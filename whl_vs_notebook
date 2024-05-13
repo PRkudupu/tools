@@ -1,180 +1,39 @@
-### Slide 1: Title Slide
----
+### Performance and Comparison of Wheel File Jobs vs. Notebook Jobs in Databricks
 
-**Title**: Performance and Comparison of Wheel File Jobs vs. Notebook Jobs in Databricks
+#### Performance Aspects
 
-**Subtitle**: A Detailed Analysis
+1. **Execution Speed**:
+   - **Wheel File Jobs**: These are significantly faster due to the pre-compiled nature of Python wheel files. The execution environment is pre-defined and optimized, reducing initialization time and leading to faster runtime. This is particularly beneficial for large-scale data processing and production environments where performance is critical.
 
----
+      [Databricks Documentation]https://docs.databricks.com/en/workflows/jobs/how-to/use-python-wheels-in-workflows.html, 
+	  https://www.databricks.com/blog/2022/02/14/deploy-production-pipelines-even-easier-with-python-wheel-tasks.html
+   - **Notebook Jobs**: Slower in comparison, as notebooks incur additional overhead due to their interactive nature and dynamic environment setup. This overhead can impact performance, especially with complex computations or large data sets. [Databricks Documentation]
+      https://docs.databricks.com/en/workflows/jobs/create-run-jobs.html.
 
-### Slide 2: Introduction
----
+2. **Resource Utilization**:
+   - **Wheel File Jobs**: Highly efficient in resource utilization. The contained environment of a wheel file job reduces the overhead of managing dependencies and system configurations, leading to better utilization of computational resources. This efficiency makes wheel file jobs ideal for high-throughput and resource-intensive tasks. [Databricks Documentation](https://docs.databricks.com/en/cheat-sheet/jobs.html).
+   - **Notebook Jobs**: Typically less efficient due to dynamic loading of dependencies and potential for increased memory usage within the interactive environment, leading to higher resource consumption and variability in performance. [Databricks Documentation](https://docs.databricks.com/en/cheat-sheet/jobs.html).
 
-**Introduction**
+3. **Scalability**:
+   - **Wheel File Jobs**: Easily scalable across multiple nodes. Wheel files encapsulate the entire application and its dependencies, ensuring consistent execution across different environments. This makes it straightforward to deploy and scale jobs for large-scale data processing tasks without additional configuration. [Databricks Documentation](https://docs.databricks.com/en/cheat-sheet/jobs.html).
+   - **Notebook Jobs**: Scaling can be more challenging due to the interactive nature of notebooks, which introduces variability that can affect consistent execution across multiple nodes. This can complicate the deployment and scaling of notebook jobs in production environments. [Databricks Documentation]
+     https://docs.databricks.com/en/workflows/jobs/create-run-jobs.html .
 
-- Overview of Databricks jobs
-- Importance of performance in data processing
+#### General Comparison
 
----
+- **Flexibility and Usability**:
+  - **Wheel File Jobs**: Offer robust and consistent environments ideal for production deployments. The wheel format encapsulates the application and its dependencies in a single package, simplifying deployment and ensuring reliability. This makes wheel file jobs highly suitable for stable, production-ready applications. [Databricks Documentation](https://docs.databricks.com/en/cheat-sheet/jobs.html).
+  - **Notebook Jobs**: Provide a highly interactive environment suitable for development, testing, and collaboration. However, they are less suited for production due to the potential for inconsistencies and the overhead of the interactive environment. [Databricks Documentation](https://docs.databricks.com/en/cheat-sheet/jobs.html).
 
-### Slide 3: Execution Speed
----
+- **Use Cases**:
+  - **Wheel File Jobs**: Best suited for performance-critical applications, complex data pipelines, and production environments where reliability and consistency are paramount. The pre-defined environment and optimized execution make wheel file jobs ideal for batch processing and large-scale data operations. [Databricks Documentation](https://docs.databricks.com/en/cheat-sheet/jobs.html).
+  - **Notebook Jobs**: Ideal for exploratory data analysis, machine learning modeling, and collaborative development. Notebooks facilitate easy sharing and real-time adjustments but are less suited for production-scale tasks due to their interactive and dynamic nature. [Databricks Documentation](https://docs.databricks.com/en/cheat-sheet/jobs.html).
 
-**Execution Speed**
+- **Version Control and Maintenance**:
+  - **Wheel File Jobs**: Easier to manage with version control systems due to their structured and compiled nature. This ensures that the same code and dependencies are used across different environments, which is crucial for maintaining large and complex codebases over time. [Databricks Documentation](https://docs.databricks.com/en/cheat-sheet/jobs.html).
+  - **Notebook Jobs**: While Databricks provides version control capabilities for notebooks, managing changes can be more complex compared to traditional software development practices. The interactive code blocks and varying output between runs introduce challenges in maintaining consistency. [Databricks Documentation](https://docs.databricks.com/en/cheat-sheet/jobs.html).
 
-- **Wheel File Jobs**
-  - Pre-compiled, optimized environment
-  - Faster initialization and runtime
-  - Ideal for large-scale data processing
+### Conclusion
+Overall, Python wheel file jobs offer superior performance, resource utilization, and scalability compared to notebook jobs. They are better suited for production environments and large-scale data processing tasks, providing a consistent and reliable execution environment. While notebooks are valuable for development and collaboration, wheel file jobs are the preferred choice for performance-critical and production-ready applications.
 
-  ![Graph: Execution Speed Comparison](#) *(Placeholder for graph showing execution speed comparison)*
-
-  [Databricks Documentation](https://docs.databricks.com/en/cheat-sheet/jobs.html)
-
-- **Notebook Jobs**
-  - Interactive, dynamic environment
-  - Additional overhead
-  - Slower performance with complex computations
-
-  [Databricks Documentation](https://docs.databricks.com/en/cheat-sheet/jobs.html)
-
----
-
-### Slide 4: Resource Utilization
----
-
-**Resource Utilization**
-
-- **Wheel File Jobs**
-  - Efficient use of computational resources
-  - Reduced overhead in managing dependencies
-  - Suitable for high-throughput tasks
-
-  ![Graph: Resource Utilization Comparison](#) *(Placeholder for graph showing resource utilization comparison)*
-
-  [Databricks Documentation](https://docs.databricks.com/en/cheat-sheet/jobs.html)
-
-- **Notebook Jobs**
-  - Dynamic loading of dependencies
-  - Increased memory usage
-  - Higher resource consumption variability
-
-  [Databricks Documentation](https://docs.databricks.com/en/cheat-sheet/jobs.html)
-
----
-
-### Slide 5: Scalability
----
-
-**Scalability**
-
-- **Wheel File Jobs**
-  - Easily scalable across nodes
-  - Consistent execution in various environments
-  - Ideal for large-scale data tasks
-
-  ![Graph: Scalability Comparison](#) *(Placeholder for graph showing scalability comparison)*
-
-  [Databricks Documentation](https://docs.databricks.com/en/cheat-sheet/jobs.html)
-
-- **Notebook Jobs**
-  - Challenging to scale
-  - Variability in execution
-  - Complicates deployment in production
-
-  [Databricks Documentation](https://docs.databricks.com/en/cheat-sheet/jobs.html)
-
----
-
-### Slide 6: Flexibility and Usability
----
-
-**Flexibility and Usability**
-
-- **Wheel File Jobs**
-  - Robust, consistent environments
-  - Simplified deployment
-  - Suitable for production-ready applications
-
-  [Databricks Documentation](https://docs.databricks.com/en/cheat-sheet/jobs.html)
-
-- **Notebook Jobs**
-  - Interactive, suitable for development
-  - Easy sharing and collaboration
-  - Less suited for production
-
-  [Databricks Documentation](https://docs.databricks.com/en/cheat-sheet/jobs.html)
-
----
-
-### Slide 7: Use Cases
----
-
-**Use Cases**
-
-- **Wheel File Jobs**
-  - Performance-critical applications
-  - Complex data pipelines
-  - Batch processing and large-scale data operations
-
-  ![Graph: Use Cases Comparison](#) *(Placeholder for graph showing use cases comparison)*
-
-  [Databricks Documentation](https://docs.databricks.com/en/cheat-sheet/jobs.html)
-
-- **Notebook Jobs**
-  - Exploratory data analysis
-  - Machine learning modeling
-  - Collaborative development
-
-  [Databricks Documentation](https://docs.databricks.com/en/cheat-sheet/jobs.html)
-
----
-
-### Slide 8: Version Control and Maintenance
----
-
-**Version Control and Maintenance**
-
-- **Wheel File Jobs**
-  - Easier with version control systems
-  - Consistent code and dependencies
-  - Maintains large codebases over time
-
-  [Databricks Documentation](https://docs.databricks.com/en/cheat-sheet/jobs.html)
-
-- **Notebook Jobs**
-  - More complex version control
-  - Interactive code blocks and varying output
-  - Challenges in maintaining consistency
-
-  [Databricks Documentation](https://docs.databricks.com/en/cheat-sheet/jobs.html)
-
----
-
-### Slide 9: Conclusion
----
-
-**Conclusion**
-
-- Wheel File Jobs: Superior performance, resource utilization, and scalability
-- Notebook Jobs: Valuable for development and collaboration
-- Wheel File Jobs: Preferred for production-ready applications
-
-  ![Graph: Overall Comparison](#) *(Placeholder for graph showing overall comparison)*
-
-  [Databricks Documentation](https://docs.databricks.com/en/cheat-sheet/jobs.html)
-
----
-
-Now, let's create graphs to support these points. We'll need data for the graphs which might typically include:
-
-1. **Execution Speed Comparison**: Time taken to complete a job for both Wheel File and Notebook Jobs.
-2. **Resource Utilization Comparison**: CPU and memory usage for both types of jobs.
-3. **Scalability Comparison**: Performance metrics (like job completion time) as the number of nodes increases.
-4. **Use Cases Comparison**: Survey or usage statistics showing preference for different job types in various scenarios.
-5. **Overall Comparison**: Summary of all metrics.
-
-Would you like me to create these graphs based on hypothetical data, or do you have specific data you'd like to use?
-
-image.png
-
+For more detailed insights and best practices on using wheel file jobs and notebook jobs in Databricks, refer to the [Databricks documentation](https://docs.databricks.com/en/cheat-sheet/jobs.html).
