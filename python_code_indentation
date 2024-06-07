@@ -1,0 +1,68 @@
+Certainly! Below is a Python script that can be used to remove and add proper indentation to a given block of code. This script assumes the code is written in Python and aims to standardize the indentation to a specific number of spaces (default is 4 spaces).
+
+```python
+def reindent_code(code: str, indent_size: int = 4) -> str:
+    """
+    Reindents the given code block to have consistent indentation.
+
+    Parameters:
+    code (str): The block of code to reindent.
+    indent_size (int): The number of spaces to use for indentation.
+
+    Returns:
+    str: The reindented code block.
+    """
+    import re
+
+    def get_indent_level(line: str) -> int:
+        return len(line) - len(line.lstrip())
+
+    lines = code.split('\n')
+    min_indent = float('inf')
+    non_empty_lines = [line for line in lines if line.strip()]
+
+    # Find the minimum indentation level of non-empty lines
+    for line in non_empty_lines:
+        indent_level = get_indent_level(line)
+        if indent_level < min_indent:
+            min_indent = indent_level
+
+    # Normalize indentation
+    reindented_lines = []
+    for line in lines:
+        if line.strip():  # Ignore empty lines
+            stripped_line = line[min_indent:] if min_indent < float('inf') else line
+            reindented_line = ' ' * indent_size * (get_indent_level(stripped_line) // indent_size) + stripped_line
+            reindented_lines.append(reindented_line)
+        else:
+            reindented_lines.append(line)
+
+    return '\n'.join(reindented_lines)
+
+# Example usage
+code_block = """
+def example_function():
+  if True:
+      print("Hello, World!")
+    print("Improper Indent")
+  if False:
+        print("Another example")
+"""
+
+print("Original Code:\n", code_block)
+reindented_code = reindent_code(code_block, indent_size=4)
+print("\nReindented Code:\n", reindented_code)
+```
+
+### How to Use the Script
+1. **Copy the Script**: Copy the above Python script into your Python environment or a Python file.
+2. **Provide the Code Block**: Replace the `code_block` variable's content with the code you want to reindent.
+3. **Run the Script**: Execute the script. The reindented code will be printed in the console.
+
+### Explanation
+- **get_indent_level**: This function calculates the indentation level of a given line.
+- **Reindent Process**:
+  - The script first identifies the minimum indentation level of non-empty lines to determine the base indentation.
+  - It then normalizes each line's indentation based on the specified `indent_size`.
+
+You can adjust the `indent_size` parameter to use a different number of spaces for indentation if needed.
