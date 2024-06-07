@@ -1,0 +1,47 @@
+To programmatically navigate a directory and run `black` on all Python scripts, you can use a Python script that utilizes the `os` and `subprocess` modules. Here is an example of how you can do this:
+
+```python
+import os
+import subprocess
+
+def format_python_files_in_directory(directory):
+    # Walk through the directory
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            # Check if the file is a Python script
+            if file.endswith(".py"):
+                file_path = os.path.join(root, file)
+                try:
+                    # Run black on the file
+                    subprocess.run(["black", file_path], check=True)
+                    print(f"Formatted: {file_path}")
+                except subprocess.CalledProcessError as e:
+                    print(f"Error formatting {file_path}: {e}")
+
+# Specify the directory you want to format
+directory_to_format = "/path/to/your/directory"
+format_python_files_in_directory(directory_to_format)
+```
+
+### Explanation:
+
+1. **Import necessary modules:**
+   - `os` for navigating the directory structure.
+   - `subprocess` for running external commands.
+
+2. **Define the function `format_python_files_in_directory(directory)`:**
+   - This function takes a directory path as an argument.
+   - It walks through the directory and its subdirectories using `os.walk(directory)`.
+
+3. **Check if a file is a Python script:**
+   - For each file in the directory, check if it ends with `.py`.
+
+4. **Run `black` on each Python file:**
+   - Use `subprocess.run` to execute the `black` command on the file.
+   - If `black` runs successfully, print a success message.
+   - If there is an error, catch the exception and print an error message.
+
+5. **Specify the directory to format:**
+   - Replace `"/path/to/your/directory"` with the path to the directory you want to format.
+
+This script will navigate through the specified directory, find all Python files, and format them using `black`.
