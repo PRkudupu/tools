@@ -1,4 +1,4 @@
-Certainly! Below is a Python script that can be used to remove and add proper indentation to a given block of code. This script assumes the code is written in Python and aims to standardize the indentation to a specific number of spaces (default is 4 spaces).
+Certainly! Here's a Python script that takes an existing block of code containing a `try`-`except` block, adds a class definition with a method that includes the `try`-`except` block, and applies proper indentation.
 
 ```python
 def reindent_code(code: str, indent_size: int = 4) -> str:
@@ -12,8 +12,6 @@ def reindent_code(code: str, indent_size: int = 4) -> str:
     Returns:
     str: The reindented code block.
     """
-    import re
-
     def get_indent_level(line: str) -> int:
         return len(line) - len(line.lstrip())
 
@@ -39,30 +37,52 @@ def reindent_code(code: str, indent_size: int = 4) -> str:
 
     return '\n'.join(reindented_lines)
 
+def wrap_try_except_in_class(code: str, class_name: str, method_name: str, indent_size: int = 4) -> str:
+    """
+    Wraps a try-except block in a class and method, then reindents the entire code block.
+
+    Parameters:
+    code (str): The block of code containing the try-except block.
+    class_name (str): The name of the class to add.
+    method_name (str): The name of the method to add.
+    indent_size (int): The number of spaces to use for indentation.
+
+    Returns:
+    str: The modified code block with the class and method added, and proper indentation.
+    """
+    # Define class and method structure
+    class_definition = f"""
+class {class_name}:
+    def {method_name}(self):
+        {code.strip().replace('\\n', '\\n' + ' ' * 8)}
+    """
+
+    return reindent_code(class_definition, indent_size)
+
 # Example usage
-code_block = """
-def example_function():
-  if True:
-      print("Hello, World!")
-    print("Improper Indent")
-  if False:
-        print("Another example")
+try_except_block = """
+try:
+    print("Attempting to do something...")
+    result = 10 / 0
+except ZeroDivisionError as e:
+    print("Caught an exception:", e)
 """
 
-print("Original Code:\n", code_block)
-reindented_code = reindent_code(code_block, indent_size=4)
-print("\nReindented Code:\n", reindented_code)
+class_name = "Test"
+method_name = "example_method"
+
+print("Original Code:\n", try_except_block)
+wrapped_code = wrap_try_except_in_class(try_except_block, class_name, method_name, indent_size=4)
+print("\nWrapped and Reindented Code:\n", wrapped_code)
 ```
+
+### Explanation
+- **reindent_code**: This function reindents the given code block to have consistent indentation.
+- **wrap_try_except_in_class**: This function wraps the given `try`-`except` block in a class and method, then reindents the entire block.
 
 ### How to Use the Script
 1. **Copy the Script**: Copy the above Python script into your Python environment or a Python file.
-2. **Provide the Code Block**: Replace the `code_block` variable's content with the code you want to reindent.
-3. **Run the Script**: Execute the script. The reindented code will be printed in the console.
+2. **Provide the Code Block, Class Name, and Method Name**: Replace the `try_except_block`, `class_name`, and `method_name` variables' content with your specific `try`-`except` block, class name, and method name.
+3. **Run the Script**: Execute the script. The modified code with the appended class and method, along with proper indentation, will be printed in the console.
 
-### Explanation
-- **get_indent_level**: This function calculates the indentation level of a given line.
-- **Reindent Process**:
-  - The script first identifies the minimum indentation level of non-empty lines to determine the base indentation.
-  - It then normalizes each line's indentation based on the specified `indent_size`.
-
-You can adjust the `indent_size` parameter to use a different number of spaces for indentation if needed.
+This script ensures that the `try`-`except` block is properly encapsulated within a class and method, and the entire block is consistently indented.
