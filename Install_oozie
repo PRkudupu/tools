@@ -1,0 +1,85 @@
+To install Oozie on Windows Subsystem for Linux (WSL), you need to follow these steps. This guide assumes you have already installed and configured WSL on your system.
+
+### Prerequisites
+1. **Install Java Development Kit (JDK)**:
+   Oozie requires JDK to be installed. Install OpenJDK using the following commands:
+   ```bash
+   sudo apt update
+   sudo apt install openjdk-8-jdk -y
+   ```
+
+2. **Install Hadoop**:
+   Oozie runs on Hadoop, so you need to install Hadoop on WSL. You can follow a guide to install Hadoop, or use these commands as a quick start:
+   ```bash
+   sudo apt install ssh
+   wget https://downloads.apache.org/hadoop/common/hadoop-3.3.1/hadoop-3.3.1.tar.gz
+   tar -xzvf hadoop-3.3.1.tar.gz
+   sudo mv hadoop-3.3.1 /usr/local/hadoop
+   ```
+
+3. **Install MySQL**:
+   Oozie requires a database to store its metadata. You can install MySQL using the following commands:
+   ```bash
+   sudo apt install mysql-server
+   sudo mysql_secure_installation
+   ```
+
+### Installing Oozie
+1. **Download Oozie**:
+   Download the Oozie binary from the Apache Oozie website:
+   ```bash
+   wget https://downloads.apache.org/oozie/5.2.1/oozie-5.2.1.tar.gz
+   tar -xzvf oozie-5.2.1.tar.gz
+   sudo mv oozie-5.2.1 /usr/local/oozie
+   ```
+
+2. **Set Environment Variables**:
+   Add the following lines to your `~/.bashrc` or `~/.profile` file to set the environment variables for Oozie and Hadoop:
+   ```bash
+   export HADOOP_HOME=/usr/local/hadoop
+   export OOZIE_HOME=/usr/local/oozie
+   export PATH=$PATH:$HADOOP_HOME/bin:$OOZIE_HOME/bin
+   source ~/.bashrc
+   ```
+
+3. **Configure Oozie**:
+   Navigate to the Oozie configuration directory and edit the configuration files as needed:
+   ```bash
+   cd /usr/local/oozie/conf
+   cp oozie-site.xml.template oozie-site.xml
+   # Edit oozie-site.xml to configure Oozie, e.g., database settings
+   ```
+
+4. **Setup Database**:
+   Create a MySQL database and user for Oozie:
+   ```sql
+   CREATE DATABASE oozie;
+   CREATE USER 'oozie'@'localhost' IDENTIFIED BY 'password';
+   GRANT ALL PRIVILEGES ON oozie.* TO 'oozie'@'localhost';
+   FLUSH PRIVILEGES;
+   ```
+
+5. **Build Oozie**:
+   Oozie needs to be built using Maven. Install Maven if you haven't already:
+   ```bash
+   sudo apt install maven
+   cd /usr/local/oozie
+   bin/mkdistro.sh -DskipTests -Puber
+   ```
+
+6. **Start Oozie**:
+   After building, you can start the Oozie server:
+   ```bash
+   cd /usr/local/oozie
+   bin/oozied.sh start
+   ```
+
+### Verify Installation
+Open your web browser and navigate to `http://localhost:11000/oozie` to access the Oozie web console. You should see the Oozie dashboard if everything is set up correctly.
+
+### Troubleshooting
+- Ensure all environment variables are correctly set.
+- Check log files for any errors if Oozie fails to start.
+- Verify that the MySQL database is running and accessible.
+
+This guide covers the basic installation steps. You might need to adjust configurations based on your specific requirements and environment.
