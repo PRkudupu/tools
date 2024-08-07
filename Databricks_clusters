@@ -1,0 +1,65 @@
+In Databricks, there are several types of clusters that serve different purposes based on the use case and workload requirements. Here's a comparison of **Interactive Clusters**, **SQL Warehouses**, and **Job Clusters**:
+
+### 1. Interactive Cluster
+- **Purpose**: Designed for interactive data analysis and exploratory work. Users can directly interact with data using notebooks and other interactive tools.
+- **Use Cases**:
+  - Data exploration and visualization.
+  - Ad-hoc analysis.
+  - Development and testing of code.
+- **Features**:
+  - Provides a notebook interface for running code cells.
+  - Supports real-time collaboration among team members.
+  - Typically larger and more powerful for handling dynamic workloads.
+  - Can be configured to auto-scale up or down based on usage.
+- **Pros**:
+  - Flexible for various data science and engineering tasks.
+  - Real-time interaction with data.
+  - Collaborative environment.
+- **Cons**:
+  - Higher cost if left running without optimization.
+  - May require manual scaling if auto-scaling isn't set up properly.
+
+### 2. SQL Warehouse
+- **Purpose**: Optimized for running SQL queries and BI workloads. Formerly known as SQL endpoints.
+- **Use Cases**:
+  - Running BI tools like Tableau, Power BI, or Looker.
+  - Executing SQL queries for analytics and reporting.
+  - Supporting dashboarding solutions.
+- **Features**:
+  - Provides a SQL-native interface for running queries.
+  - Auto-scaling and scaling policies tailored for SQL workloads.
+  - Supports JDBC/ODBC connections for external tools.
+  - Can optimize query execution plans for improved performance.
+- **Pros**:
+  - Cost-effective for executing SQL workloads.
+  - High concurrency support.
+  - Designed for integration with BI tools.
+- **Cons**:
+  - Limited to SQL workloads (not suitable for complex ETL tasks).
+  - May not offer the flexibility needed for non-SQL tasks.
+
+### 3. Job Cluster
+- **Purpose**: Dedicated to running scheduled or automated jobs, typically for batch processing tasks.
+- **Use Cases**:
+  - ETL processes.
+  - Scheduled data processing tasks.
+  - Running machine learning models in batch mode.
+- **Features**:
+  - Automatically created and terminated with the job execution.
+  - Optimized for cost savings, as resources are used only when needed.
+  - Can be customized per job for resource allocation.
+  - Supports integration with Databricks Workflows for scheduling.
+- **Pros**:
+  - Cost-efficient as the cluster is only active during job execution.
+  - Customizable per job, allowing for optimized resource usage.
+  - Ideal for routine batch processes.
+- **Cons**:
+  - Not suitable for interactive workloads.
+  - Requires careful configuration to ensure efficient execution.
+
+### Summary
+- **Interactive Clusters** are best for data exploration, development, and collaborative analysis.
+- **SQL Warehouses** are optimized for SQL workloads and BI integrations, providing a cost-effective solution for running SQL queries.
+- **Job Clusters** are tailored for automated and scheduled tasks, offering cost savings and resource optimization for batch processing.
+
+Choosing the right cluster type depends on the specific requirements of your workload, such as the need for interactivity, SQL execution, or automated job scheduling.
