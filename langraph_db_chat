@@ -1,0 +1,129 @@
+"""
+LangGraph Chat on Databricks — Minimal Project (Databricks LLMs Only)
+--------------------------------------------------------------------
+A tiny, production-friendly chat project for **Databricks Model Serving**. No OpenAI code or keys.
+
+Usage (Notebook outline):
+1) %pip install -U langgraph langchain-community langchain-core tiktoken
+2) Create or reuse a **Databricks Model Serving** chat endpoint (e.g., Llama‑3 Instruct).
+3) Set env vars (cluster/job or secrets):
+   - DATABRICKS_HOST=https://<your-workspace-url>
+   - DATABRICKS_TOKEN=<pat-or-service-principal-token>
+   - DATABRICKS_MODEL_ENDPOINT=<serving-endpoint-name>
+4) Run the tests at the bottom (single and multi-turn with memory via `thread_id`).
+
+Notes:
+- The graph persists conversation *per thread_id* using the LangGraph checkpointer interface. This minimal example
+  uses an in-memory saver; swap to SQLite (commented block) to persist across cluster restarts.
+- Keep `temperature` low for deterministic demos.
+"""
+
+# --- Install (Notebook cell) -------------------------------------------------
+# %pip install -U langgraph langchain-community langchain-core tiktoken
+
+# --- Imports -----------------------------------------------------------------
+from __future__ import annotations
+import os
+from typing import List, TypedDict
+
+from langgraph.graph import StateGraph, START, END
+from langgraph.checkpoint.memory import MemorySaver  # simple, in-memory per cluster session
+# If you prefer durable persistence, uncomment SQLite saver:
+# from langgraph.checkpoint.sqlite import SqliteSaver
+
+from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
+from langchain_community.chat_models import ChatDatabricks
+
+
+# --- Model (Databricks only) -------------------------------------------------
+# Requires these env vars to be set (Databricks UI -> cluster/job env or secret scope):
+#   DATABRICKS_HOST, DATABRICKS_TOKEN, DATABRICKS_MODEL_ENDPOINT
+# Example endpoint name: "databricks-meta-llama-3-70b-instruct"
+
+def make_chat_model():
+    endpoint = os.getenv("DATABRICKS_MODEL_ENDPOINT")
+    if not endpoint:
+        raise RuntimeError(
+            "DATABRICKS_MODEL_ENDPOINT is not set. Set it to your Model Serving endpoint name."
+        )
+    return ChatDatabricks(
+        endpoint=endpoint,
+        temperature=float(os.getenv("MODEL_TEMPERATURE", "0.2")),
+        max_tokens=int(os.getenv("MODEL_MAX_TOKENS", "512")),
+    )
+
+MODEL = make_chat_model()
+
+
+# --- Durable Memory (optional) ----------------------------------------------
+SAVER = MemorySaver()
+
+# Example durable saver (uncomment to use):
+# CHECKPOINT_PATH = os.getenv("CHECKPOINT_PATH", "/dbfs/FileStore/langgraph_chat/chat.sqlite")
+# os.makedirs(os.path.dirname(CHECKPOINT_PATH), exist_ok=True)
+# SAVER = SqliteSaver(CHECKPOINT_PATH)
+
+
+# --- Define shared state -----------------------------------------------------
+class ChatState(TypedDict):
+    messages: List[BaseMessage]
+
+
+# --- One simple node: call the chat model -----------------------------------
+SYSTEM_PROMPT = os.getenv(
+    "SYSTEM_PROMPT",
+    "You are a concise, helpful assistant. Keep answers short unless asked for details.",
+)
+
+
+def _ensure_system_prompt(msgs: List[BaseMessage]) -> List[BaseMessage]:
+    if not msgs or msgs[0].type != "system":
+        return [SystemMessage(content=SYSTEM_PROMPT)] + msgs
+    return msgs
+
+
+def chat_node(state: ChatState) -> ChatState:
+    msgs = _ensure_system_prompt(state["messages"])
+    ai_msg = MODEL.invoke(msgs)  # returns an AIMessage
+    return {"messages": msgs + [ai_msg]}
+
+
+# --- Build & compile the graph ----------------------------------------------
+workflow = StateGraph(ChatState)
+workflow.add_node("chat", chat_node)
+workflow.add_edge(START, "chat")
+workflow.add_edge("chat", END)
+
+app = workflow.compile(checkpointer=SAVER)
+
+
+# --- Helpers for invoking the graph -----------------------------------------
+# Use a stable thread_id to keep a conversation going across turns.
+
+def chat_once(thread_id: str, user_text: str) -> str:
+    """Send a single user message into the graph and return the AI's reply.
+    The thread's memory is maintained by the graph checkpointer.
+    """
+    config = {"configurable": {"thread_id": thread_id}}
+    result = app.invoke({"messages": [HumanMessage(content=user_text)]}, config=config)
+    return result["messages"][-1].content
+
+
+# --- Example: quick local test ----------------------------------------------
+if __name__ == "__main__":
+    demo_thread = os.getenv("DEMO_THREAD_ID", "demo-thread-001")
+
+    print("
+Single-turn test:")
+    print(chat_once(demo_thread, "Hi there! In one sentence, what is LangGraph?"))
+
+    print("
+Multi-turn test (memory retained by thread_id):")
+    print(chat_once(demo_thread, "Great. Now summarize it in 3 bullet points."))
+    print(chat_once(demo_thread, "Nice — turn that into a tweet (max 200 chars)."))
+
+    # Tip: use a different thread_id for a fresh conversation
+    fresh_thread = "fresh-thread-001"
+    print("
+Fresh thread test (no prior context):")
+    print(chat_once(fresh_thread, "Do you remember what we just discussed?"))
