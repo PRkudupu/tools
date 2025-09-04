@@ -1,0 +1,158 @@
+"""
+Pure LangGraph (no LangChain) — Databricks Chat + Azure Function Tool
+---------------------------------------------------------------------
+- Calls Databricks Model Serving chat endpoint via REST.
+- Adds a simple tool that hits your Azure Function: /api/sitedetails?name=...
+- Routes to the tool when the user says “Get site details for <name>”, otherwise chats.
+"""
+
+# %pip install -U langgraph requests
+
+from __future__ import annotations
+import os, json, re
+from typing import List, TypedDict, Optional, Dict, Any
+import requests
+
+from langgraph.graph import StateGraph, START, END
+from langgraph.checkpoint.memory import MemorySaver
+
+# ===== Env =====
+DBX_HOST = os.getenv("DATABRICKS_HOST", "")
+DBX_TOKEN = os.getenv("DATABRICKS_TOKEN", "")
+DBX_ENDPOINT = os.getenv("DATABRICKS_MODEL_ENDPOINT", "")
+MODEL_TEMPERATURE = float(os.getenv("MODEL_TEMPERATURE", "0.2"))
+MODEL_MAX_TOKENS = int(os.getenv("MODEL_MAX_TOKENS", "512"))
+
+AZFUNC_BASE_URL = os.getenv(
+    "AZFUNC_BASE_URL",
+    "https://saleforceapi-c9gve7hcfvaadyca.centralus-01.azurewebsites.net/api/sitedetails",
+)
+AZFUNC_KEY = os.getenv("AZFUNC_KEY", "")  # store in a secret scope in prod
+HTTP_TIMEOUT = int(os.getenv("HTTP_TIMEOUT", "10"))
+USER_AGENT = os.getenv("HTTP_USER_AGENT", "langgraph-dbx-pure/1.0 (contact: ops@example.com)")
+
+# ===== State =====
+class ChatState(TypedDict, total=False):
+    messages: List[Dict[str, Any]]  # [{"role": "...", "content": "..."}]
+    command: str                    # "tool" | "chat"
+    name: Optional[str]             # parsed for the tool
+
+# ===== Databricks chat via REST =====
+def dbx_chat(messages: List[Dict[str, Any]]) -> str:
+    if not (DBX_HOST and DBX_TOKEN and DBX_ENDPOINT):
+        raise RuntimeError("Missing DATABRICKS_HOST/TOKEN/MODEL_ENDPOINT.")
+    url = f"{DBX_HOST.rstrip('/')}/api/2.0/serving-endpoints/{DBX_ENDPOINT}/invocations"
+    headers = {
+        "Authorization": f"Bearer {DBX_TOKEN}",
+        "Content-Type": "application/json",
+        "User-Agent": USER_AGENT,
+    }
+    body = {
+        "messages": messages,                 # OpenAI-style payload
+        "temperature": MODEL_TEMPERATURE,
+        "max_tokens": MODEL_MAX_TOKENS,
+    }
+    r = requests.post(url, headers=headers, json=body, timeout=HTTP_TIMEOUT)
+    r.raise_for_status()
+    data = r.json()
+    # Try common shapes
+    if isinstance(data, dict):
+        msg = data.get("choices", [{}])[0].get("message", {}).get("content")
+        if msg:
+            return str(msg)
+        for key in ("output_text", "text", "prediction", "predictions"):
+            if key in data:
+                v = data[key]
+                return v if isinstance(v, str) else json.dumps(v)[:2000]
+    return json.dumps(data)[:2000]
+
+# ===== Tool: Azure Function sitedetails =====
+def site_details(name: str) -> str:
+    if not name:
+        return "name is required."
+    try:
+        headers = {"User-Agent": USER_AGENT}
+        if AZFUNC_KEY:
+            headers["x-functions-key"] = AZFUNC_KEY  # or pass as ?code=...
+        resp = requests.get(
+            AZFUNC_BASE_URL,
+            params={"name": name},
+            headers=headers,
+            timeout=HTTP_TIMEOUT,
+        )
+        text = (resp.text or "").strip()
+        if len(text) > 800:
+            text = text[:800] + "…"
+        return f"{resp.status_code}: {text}"
+    except Exception as e:
+        return f"API error: {e}"
+
+# ===== Router =====
+SITE_REGEX = re.compile(r"(site\\s*details|sitedetails).*? for (?P<name>[\\w\\-\\s]+)", re.I)
+
+SYSTEM_PROMPT = (
+    "You are a concise, helpful assistant on Databricks. "
+    "When provided with a tool result (role=tool), incorporate it succinctly. "
+    "Keep answers short unless asked for more detail."
+)
+
+def ensure_system(msgs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    if msgs and msgs[0].get("role") == "system":
+        return msgs
+    return [{"role": "system", "content": SYSTEM_PROMPT}] + msgs
+
+def route(state: ChatState) -> ChatState:
+    msgs = state.get("messages", [])
+    if not msgs:
+        return {"messages": [{"role": "system", "content": SYSTEM_PROMPT}], "command": "chat"}
+    last = msgs[-1]
+    if last.get("role") == "user":
+        m = SITE_REGEX.search(last.get("content", ""))
+        if m:
+            return {"command": "tool", "name": m.group("name").strip()}
+    return {"command": "chat"}
+
+def call_tool(state: ChatState) -> ChatState:
+    msgs = ensure_system(state.get("messages", []))
+    name = state.get("name") or ""
+    result = site_details(name)
+    msgs.append({"role": "tool", "content": f"site_details('{name}') -> {result}"})
+    return {"messages": msgs}
+
+def call_model(state: ChatState) -> ChatState:
+    msgs = ensure_system(state.get("messages", []))
+    reply = dbx_chat(msgs)
+    msgs.append({"role": "assistant", "content": reply})
+    return {"messages": msgs}
+
+# ===== Graph =====
+workflow = StateGraph(ChatState)
+workflow.add_node("route", route)
+workflow.add_node("tool", call_tool)
+workflow.add_node("chat", call_model)
+
+workflow.add_edge(START, "route")
+workflow.add_conditional_edges("route", lambda s: s.get("command", "chat"),
+                               {"tool": "tool", "chat": "chat"})
+workflow.add_edge("tool", "chat")
+workflow.add_edge("chat", END)
+
+app = workflow.compile(checkpointer=MemorySaver())
+
+# ===== Helper =====
+def chat_once(thread_id: str, user_text: str) -> str:
+    config = {"configurable": {"thread_id": thread_id}}
+    out = app.invoke({"messages": [{"role": "user", "content": user_text}]}, config=config)
+    return out["messages"][-1]["content"]
+
+# ===== Demo =====
+if __name__ == "__main__":
+    t = os.getenv("DEMO_THREAD_ID", "pure-lg-001")
+    print("\nPlain chat:")
+    print(chat_once(t, "In one sentence, what is LangGraph?"))
+
+    print("\nTool route:")
+    print(chat_once(t, "Get site details for prathap"))
+
+    print("\nMemory check:")
+    print(chat_once(t, "Remind me what tool we used earlier."))
