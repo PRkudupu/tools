@@ -1,0 +1,10 @@
+import requests
+BASE = "https://saleforceapi-c9gve7hcfvaadyca.centralus-01.azurewebsites.net/api/sitedetails?code=SorNfvjBsWD5CpD2Mj3hQ3lo9W2QzNaAHJCmykAceW7rAzFuPf578Q=="
+FUNC_KEY = "SorNfvjBsWD5CpD2Mj3hQ3lo9W2QzNaAHJCmykAceW7rAzFuPf578Q=="  # temp only
+r = requests.get(
+    BASE,
+    params={"name": "prathap"},
+    headers={"x-functions-key": FUNC_KEY},   # or add as params={"code": FUNC_KEY}
+    timeout=10,
+)
+print(r.status_code, r.text)
