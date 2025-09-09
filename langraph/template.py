@@ -23,10 +23,9 @@ llm = ChatDatabricks(
     max_tokens=512
 )
 
-# Define the agent state
+# Define the agent state as a typed dictionary
 class AgentState:
-    def __init__(self):
-        self.messages = []
+    messages: list
 
 # Define the prompt template
 prompt = ChatPromptTemplate.from_messages([
@@ -38,8 +37,7 @@ prompt = ChatPromptTemplate.from_messages([
 def call_llm(state: AgentState):
     input_message = state.messages[-1].content
     response = llm.invoke(prompt.format(input=input_message))
-    state.messages.append(response)
-    return state
+    return {"messages": state.messages + [response]}
 
 # Create the LangGraph workflow
 workflow = StateGraph(AgentState)
@@ -52,15 +50,14 @@ graph = workflow.compile()
 
 # Example usage
 def main():
-    # Initialize state
-    state = AgentState()
-    state.messages.append(HumanMessage(content="What is the capital of France?"))
+    # Initialize state as a dictionary
+    initial_state = {"messages": [HumanMessage(content="What is the capital of France?")]}
     
     # Run the graph
-    result = graph.invoke(state)
+    result = graph.invoke(initial_state)
     
     # Print the response
-    print(result.messages[-1].content)
+    print(result["messages"][-1].content)
 
 if __name__ == "__main__":
     main()
