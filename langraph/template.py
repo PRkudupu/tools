@@ -1,90 +1,66 @@
-%pip install -U langgraph langchain_databricks langchain_core langchain
-dbutils.library.restartPython()
+# Installation commands (run these in a Databricks notebook cell)
+# %pip install --upgrade mlflow langgraph langchain-databricks
 
-SERVING_ENDPOINT = "dbrx-instruct"   # ← change to your Serving endpoint name
+import mlflow
+from langgraph.graph import StateGraph
+from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_databricks import ChatDatabricks
+import langchain_databricks
+import langgraph
 
+# Print versions for compatibility check
+print(f"langchain-databricks version: {langchain_databricks.__version__}")
+print(f"langgraph version: {langgraph.__version__}")
+
+# Enable MLflow autologging for LangGraph tracing
+mlflow.langchain.autolog()
+
+# Configure Databricks LLM endpoint (replace with your endpoint name)
 llm = ChatDatabricks(
-    endpoint=SERVING_ENDPOINT,
-    extra_params={"temperature": 0.2, "max_tokens": 512},
+    endpoint="your-llm-endpoint-name",  # Replace with your Databricks Model Serving endpoint
+    temperature=0.7,
+    max_tokens=512
 )
 
-def add(a: int, b: int) -> int:
-    return a + b
+# Define the agent state
+class AgentState:
+    def __init__(self):
+        self.messages = []
 
-def shout(text: str) -> str:
-    return text.upper() + "!"
+# Define the prompt template
+prompt = ChatPromptTemplate.from_messages([
+    SystemMessage(content="You are a helpful assistant answering user queries."),
+    HumanMessage(content="{{input}}")
+])
 
+# Define the node function for the agent
+def call_llm(state: AgentState):
+    input_message = state.messages[-1].content
+    response = llm.invoke(prompt.format(input=input_message))
+    state.messages.append(response)
+    return state
 
-import json
-from typing import TypedDict, List, Optional
-from langgraph.graph import StateGraph, START, END
-from langgraph.checkpoint.memory import MemorySaver
-from langchain_core.messages import HumanMessage, AIMessage
+# Create the LangGraph workflow
+workflow = StateGraph(AgentState)
+workflow.add_node("llm_node", call_llm)
+workflow.set_entry_point("llm_node")
+workflow.set_finish_point("llm_node")
 
-SYSTEM_PLAN = (
-    "You are a routing planner. ALWAYS reply with a single JSON object ONLY, no prose.\n"
-    "Schema: {\"action\": \"add|shout|none\", \"args\": {...}}\n"
-    "Examples:\n"
-    "- User: 'add 7 and 12' -> {\"action\":\"add\",\"args\":{\"a\":7,\"b\":12}}\n"
-    "- User: 'make go langgraph loud' -> {\"action\":\"shout\",\"args\":{\"text\":\"go langgraph\"}}\n"
-    "- If no tool fits -> {\"action\":\"none\",\"args\":{}}\n"
-)
+# Compile the graph
+graph = workflow.compile()
 
-SYSTEM_FINALIZE = (
-    "You are a helpful assistant. Given the user request and (optional) tool result, reply concisely."
-)
+# Example usage
+def main():
+    # Initialize state
+    state = AgentState()
+    state.messages.append(HumanMessage(content="What is the capital of France?"))
+    
+    # Run the graph
+    result = graph.invoke(state)
+    
+    # Print the response
+    print(result.messages[-1].content)
 
-class AgentState(TypedDict):
-    messages: List      # chat transcript
-    plan: Optional[dict]
-    tool_result: Optional[str]
-
-# ---- Nodes ----
-def plan_node(state: AgentState) -> AgentState:
-    user_msg = state["messages"][-1]
-    resp = llm.invoke([{"role":"system","content":SYSTEM_PLAN}, user_msg])
-    # Parse JSON safely
-    try:
-        plan = json.loads(resp.content if isinstance(resp, AIMessage) else resp["content"])
-    except Exception:
-        plan = {"action": "none", "args": {}}
-    return {"plan": plan}
-
-def tool_node(state: AgentState) -> AgentState:
-    plan = state["plan"] or {"action":"none","args":{}}
-    action, args = plan.get("action","none"), plan.get("args",{})
-    try:
-        if action == "add":
-            res = str(add(int(args.get("a",0)), int(args.get("b",0))))
-        elif action == "shout":
-            res = shout(str(args.get("text","")))
-        else:
-            res = ""
-    except Exception as e:
-        res = f"(tool error) {e}"
-    return {"tool_result": res}
-
-def finalize_node(state: AgentState) -> AgentState:
-    msgs = [{"role":"system","content":SYSTEM_FINALIZE}]
-    # Include original user request and tool result (if any)
-    msgs += state["messages"]
-    if state.get("tool_result"):
-        msgs.append({"role":"system","content":f"Tool result: {state['tool_result']}"})
-    out = llm.invoke(msgs)
-    return {"messages": state["messages"] + [out]}
-
-def needs_tool(state: AgentState) -> str:
-    action = (state.get("plan") or {}).get("action","none")
-    return "do_tool" if action in {"add","shout"} else "skip_tool"
-
-# ---- Wire graph ----
-g = StateGraph(AgentState)
-g.add_node("plan", plan_node)
-g.add_node("call_tool", tool_node)
-g.add_node("finalize", finalize_node)
-
-g.add_edge(START, "plan")
-g.add_conditional_edges("plan", needs_tool, {"do_tool":"call_tool", "skip_tool":"finalize"})
-g.add_edge("call_tool", "finalize")
-
-graph = g.compile(checkpointer=MemorySaver())
+if __name__ == "__main__":
+    main()
