@@ -1,0 +1,119 @@
+# ---- Imports
+from typing import TypedDict, Dict, Any, List, Optional
+from langgraph.graph import StateGraph, START, END
+from langchain_core.messages import HumanMessage, SystemMessage, BaseMessage
+from langchain_core.prompts import ChatPromptTemplate
+from databricks_langchain import ChatDatabricks
+import json
+
+# ---- State
+class SiteState(TypedDict, total=False):
+    siteid: str
+    catalog: str
+    schema: str
+    analytic_data: Dict[str, Any]
+    messages: List[BaseMessage]
+    error: Optional[str]
+
+# ---- Utils
+def df_to_records_safely(df, limit=50):
+    """Convert a Spark DataFrame to a list[dict] with a row cap to avoid token blowups."""
+    return [r.asDict(recursive=True) for r in df.take(limit)]
+
+def compact_json(d: Dict[str, Any], max_chars: int = 100_000) -> str:
+    """Serialize dict to JSON with a size guard; if too large keep only heads."""
+    s = json.dumps(d, default=str)
+    if len(s) <= max_chars:
+        return s
+    # keep only first ~10 rows per table if too large
+    trimmed = {}
+    for k, v in d.items():
+        if isinstance(v, list):
+            trimmed[k] = v[:10]
+        else:
+            trimmed[k] = v
+    return json.dumps(trimmed, default=str)
+
+# ---- Node: read analytics and stuff into state
+def site_analytics(state: SiteState) -> SiteState:
+    site_id = state.get("siteid", "8391413")
+    catalog = state.get("catalog", "industrial-data-science")
+    schema  = state.get("schema", "cbt")
+
+    print("\n*************** SITE ANALYTICS DATA ***************\n")
+    spark.sql(f"use catalog {catalog}")
+
+    # --- define your queries (kept from your screenshots; edit as needed)
+    q = {
+        "site_account_mapping": f"SELECT * FROM cbt.site_account_mapping WHERE siteid='{site_id}'",
+        "mpl_spl_penetration": f"SELECT * FROM cbt.mpl_spl_penetration WHERE siteid='{site_id}'",
+        "last_interaction":    f"SELECT * FROM cbt.last_interaction WHERE siteid='{site_id}'",
+        "solution_sales_change": f"SELECT * FROM cbt.solution_sales_change WHERE siteid='{site_id}'",
+        "sales_wrt_last_year": f"SELECT * FROM cbt.sales_wrt_last_year WHERE siteid='{site_id}'",
+        "asset_location":      f"SELECT * FROM cbt.asset_location WHERE siteid='{site_id}'",
+        "percentage_solution_sales_change": f"SELECT * FROM cbt.percentage_solution_sales_change WHERE siteid='{site_id}'",
+        "sales_info_mtd":      f"SELECT * FROM cbt.sales_info_mtd WHERE siteid='{site_id}'",
+    }
+
+    analytic_data: Dict[str, Any] = {}
+    for name, sql in q.items():
+        try:
+            df = spark.sql(sql)
+            analytic_data[name] = df_to_records_safely(df, limit=50)  # cap rows/table
+        except Exception as e:
+            analytic_data[name] = {"error": str(e)}
+
+    # return updates: keep prior messages; add a tiny breadcrumb system msg
+    return {
+        "analytic_data": analytic_data,
+        "messages": state.get("messages", []) + [
+            SystemMessage(content=f"Loaded analytics for site {site_id} "
+                                  f"({len(analytic_data)} tables).")
+        ],
+    }
+
+# ---- LLM
+llm = ChatDatabricks(
+    endpoint="databricks-gpt-oss-20b",   # <-- your serving endpoint
+    temperature=0.3,
+    max_tokens=768,
+)
+
+# A prompt that *includes* the analytics JSON
+prompt = ChatPromptTemplate.from_messages([
+    SystemMessage(content=(
+        "You are generating a concise, structured pre-call brief for an Ecolab Institutional field associate.\n"
+        "Use ONLY the following analytics JSON as ground truth where applicable. If data is missing, say so.\n"
+        "<ANALYTICS_JSON>\n{analytics_json}\n</ANALYTICS_JSON>\n"
+        "Return a bullet-point brief with sections for Service History, Open Issues, Product Usage Trends, "
+        "Sales Insights, Opportunities, and Next Steps."
+    )),
+    HumanMessage(content="{input}")
+])
+
+# ---- Node: call LLM with analytics injected
+def call_llm(state: SiteState) -> SiteState:
+    analytics_json = compact_json(state.get("analytic_data", {}))
+    user_input = state["messages"][-1].content  # last human message is the task
+    response = llm.invoke(
+        prompt.format(analytics_json=analytics_json, input=user_input)
+    )
+    return {"messages": state["messages"] + [response]}
+
+# ---- Build graph
+workflow = StateGraph(SiteState)
+workflow.add_node("site_analytics", site_analytics)
+workflow.add_node("call_llm", call_llm)
+workflow.add_edge(START, "site_analytics")
+workflow.add_edge("site_analytics", "call_llm")
+workflow.add_edge("call_llm", END)
+graph = workflow.compile()
+
+# ---- Run
+out = graph.invoke({
+    "siteid": "8391413",
+    "catalog": "industrial-data-science",
+    "schema": "cbt",
+    "messages": [HumanMessage(content="Create a 90-second pre-call brief for this site.")]
+})
+print(out["messages"][-1].content)
