@@ -1,0 +1,158 @@
+# ---- State
+from typing import TypedDict, Dict, Any, List, Optional
+from langchain.schema import BaseMessage, HumanMessage, SystemMessage
+import json, ast, requests
+
+class SiteState(TypedDict, total=False):
+    siteid: str
+    catalog: str
+    schema: str
+    analytic_data: Dict[str, Any]
+    sf_json: str                   # <- store API payload here as a JSON string
+    messages: List[BaseMessage]
+    error: Optional[str]
+
+# ---- Utils
+def df_to_records_safely(df, limit=50):
+    """Convert a Spark DataFrame to a list[dict] with a row cap to avoid token blowups."""
+    return [r.asDict(recursive=True) for r in df.take(limit)]
+
+def compact_json(d: Dict[str, Any], max_chars: int = 100_000) -> str:
+    """Serialize dict to JSON with a size guard; if too large keep only heads."""
+    s = json.dumps(d, default=str)
+    if len(s) <= max_chars:
+        return s
+    # keep only first ~10 rows per table if too large
+    trimmed = {}
+    for k, v in d.items():
+        if isinstance(v, list):
+            trimmed[k] = v[:10]
+        else:
+            trimmed[k] = v
+    return json.dumps(trimmed, default=str)
+
+# ---- Node: call external API and stash result as JSON string
+def sf_api(state: SiteState) -> SiteState:
+    site_id = state.get("siteid", "")
+    base_url = "https://ess-precall-brief.azurewebsites.net/api/precall-brief/SiteDetails"
+
+    r = requests.get(
+        base_url,
+        params={"SiteId": site_id},                  # <-- pass siteid via URL
+        headers={"Accept": "application/json"},      # <-- ask for JSON
+        timeout=15,
+    )
+
+    text = r.text.strip()
+    sf_json_str: str
+    try:
+        sf_json_str = json.dumps(r.json(), default=str)     # happy path: real JSON
+    except Exception:
+        # sometimes services return python-like dicts: {'a': 1}
+        try:
+            parsed = ast.literal_eval(text)                 # safe-ish parser for single-quote dicts
+            sf_json_str = json.dumps(parsed, default=str)
+        except Exception:
+            # last resort: carry raw text so LLM still sees something
+            sf_json_str = json.dumps({"raw": text}, default=str)
+
+    return {
+        "sf_json": sf_json_str,
+        "messages": state.get("messages", [])
+        + [SystemMessage(content=f"Fetched SF data for site {site_id}.")],
+    }
+
+# ---- (Optional) Node: read analytics and stash in state (uncomment when ready)
+def site_analytics(state: SiteState) -> SiteState:
+    site_id = state.get("siteid", "")
+    catalog = state.get("catalog", "industrial-data-science")
+    schema  = state.get("schema", "cbt")
+
+    spark.sql(f"use catalog `{catalog}`")
+    # define your queries (trimmed example)
+    q = {
+        "site_account_mapping": f"SELECT * FROM cbt.site_account_mapping WHERE siteid='{site_id}'",
+        # ... add the rest of your queries here ...
+    }
+
+    analytic_data: Dict[str, Any] = {}
+    for name, sql in q.items():
+        try:
+            df = spark.sql(sql)
+            analytic_data[name] = df_to_records_safely(df, limit=50)
+        except Exception as e:
+            analytic_data[name] = {"error": str(e)}
+
+    return {
+        "analytic_data": analytic_data,
+        "messages": state.get("messages", [])
+        + [SystemMessage(content=f"Loaded analytics for site {site_id} ({len(analytic_data)} tables).")],
+    }
+
+# ---- Node: call LLM
+from langchain import ChatPromptTemplate
+from langchain_community.chat_models import ChatDatabricks  # use your existing import if different
+
+def call_llm(state: SiteState) -> SiteState:
+    llm = ChatDatabricks(
+        endpoint="databricks-gpt-oss-20b",
+        temperature=0.3,
+        max_tokens=768,
+    )
+
+    # inputs for the prompt
+    siteid = state.get("siteid", "")
+    analytics_json = compact_json(state.get("analytic_data", {}))
+    sf_json = state.get("sf_json", "{}")
+
+    # latest human message becomes the "user input"
+    user_input = ""
+    for m in reversed(state.get("messages", [])):
+        if isinstance(m, HumanMessage):
+            user_input = m.content
+            break
+
+    prompt = ChatPromptTemplate.from_messages([
+        ("system",
+         "Using the given customer Site ID, generate a concise, structured 90-second pre-call briefing. "
+         "Use only the provided data.\n\n"
+         "=== SITE ANALYTICS JSON ===\n{analytics_json}\n\n"
+         "=== SF JSON ===\n{sf_json}\n\n"
+         "SiteId: {siteid}\n"),
+        ("human", "{input_user_input}")
+    ])
+
+    formatted = prompt.format(
+        analytics_json=analytics_json,
+        sf_json=sf_json,
+        input_user_input=user_input or "Create a 90-second pre-call brief for this site.",
+        siteid=siteid,
+    )
+
+    response = llm.invoke(formatted)
+    return {"messages": state.get("messages", []) + [response]}
+
+# ---- Build graph
+from langgraph.graph import StateGraph, START, END
+
+workflow = StateGraph(SiteState)
+workflow.add_node("sf_api", sf_api)
+# workflow.add_node("site_analytics", site_analytics)   # <- add back when you want analytics
+workflow.add_node("call_llm", call_llm)
+
+workflow.add_edge(START, "sf_api")
+# workflow.add_edge("site_analytics", "sf_api")
+workflow.add_edge("sf_api", "call_llm")
+workflow.add_edge("call_llm", END)
+
+graph = workflow.compile()
+
+# ---- Run
+out = graph.invoke({
+    "siteid": "8391413",
+    "catalog": "industrial-data-science",
+    "schema": "cbt",
+    "messages": [HumanMessage(content="Create a 90-second pre-call brief for this site.")],
+})
+
+print(out["messages"][-1].content)
