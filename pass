@@ -6,3 +6,114 @@
 
 # 3) Restart the interpreter so Databricks picks the new wheels
 dbutils.library.restartPython()
+
+
+class GraphPyfunc(PythonModel):
+    def load_context(self, context):
+        self.graph = build_graph()
+
+    def predict(self, context, model_input):
+        """
+        Accepts a pandas DataFrame with columns:
+        ['siteid', 'sf_json', 'analytics_json', 'user_input']
+        """
+        if isinstance(model_input, dict):
+            model_input = pd.DataFrame([model_input])
+        outs = []
+        for _, row in model_input.iterrows():
+            state = {
+                "siteid": row.get("siteid"),
+                "sf_json": row.get("sf_json", {}),
+                "analytics_json": row.get("analytics_json", {}),
+                "user_input": row.get("user_input"),
+            }
+            result = self.graph.invoke(state)
+            outs.append({"output": result["messages"][-1]})
+        return pd.DataFrame(outs)
+
+# log_register.py
+import mlflow
+from mlflow.models import infer_signature
+from graph_model import GraphPyfunc
+import pandas as pd
+
+# 2a) (only once per notebook/cluster) point registry to UC
+mlflow.set_registry_uri("databricks-uc")
+
+# 2b) sample row to record a signature
+example = pd.DataFrame([{
+    "siteid": "S-123",
+    "sf_json": {"name": "Acme", "industry": "Retail"},
+    "analytics_json": {"visits": 120, "trend": "up"},
+    "user_input": "Focus on renewals and Q4 pipeline blockers."
+}])
+
+signature = infer_signature(
+    example,
+    pd.DataFrame([{"output": "text"}])
+)
+
+with mlflow.start_run() as run:
+    mlflow.pyfunc.log_model(
+        artifact_path="model",
+        python_model=GraphPyfunc(),
+        # If you need external libs, list them here:
+        pip_requirements=[
+            "mlflow>=2.11.0",
+            "pandas",
+            "langgraph",
+            # "langchain-community",
+            # "langchain-openai",
+        ],
+        signature=signature,
+        input_example=example
+    )
+    run_id = run.info.run_id
+
+# 2c) Register to UC (catalog.schema.model)
+result = mlflow.register_model(
+    model_uri=f"runs:/{run_id}/model",
+    name="main.default.pre_call_brief_graph"  # change to your <catalog>.<schema>.<name>
+)
+print("Registered version:", result.version)
+
+# Replace placeholders <> and adjust model/version
+databricks serving-endpoints create --name pre-call-brief \
+  --config '{
+    "served_entities": [
+      {
+        "entity_name": "main.default.pre_call_brief_graph",
+        "entity_version": "1",
+        "workload_size": "Small",
+        "scale_to_zero_enabled": true,
+        "environment_vars": {
+          "OPENAI_API_KEY": { "secret": { "scope": "prod-secrets", "key": "openai-key" } },
+          "DBRX_ENDPOINT":   { "string_value": "endpoints/dbrx-instruct" }
+        }
+      }
+    ],
+    "traffic_config": {
+      "routes": [
+        { "served_entity_name": "main.default.pre_call_brief_graph-1", "traffic_percentage": 100 }
+      ]
+    },
+    "auto_capture_config": {
+      "catalog_name": "main",
+      "schema_name": "model_logs"   // optional: enable request/response capture to UC
+    }
+  }'
+curl -sS -H "Authorization: Bearer $DATABRICKS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -X POST "https://<your-workspace-url>/serving-endpoints/pre-call-brief/invocations" \
+  -d '{
+    "dataframe_split": {
+      "columns": ["siteid","sf_json","analytics_json","user_input"],
+      "data": [[
+        "S-123",
+        {"name":"Acme","industry":"Retail"},
+        {"visits":120,"trend":"up"},
+        "Create a 90-second pre-call brief for tomorrow."
+      ]]
+    }
+  }'
+
