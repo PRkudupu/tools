@@ -1,0 +1,8 @@
+# 1) Install a compatible set (pin what you care about)
+%pip install -U "mlflow-skinny==2.22.2" "langchain==0.3.*" "langgraph==0.2.*" "protobuf>=5.26,<6" "grpcio-status>=1.62,<2"
+
+# 2) Sanity check the environment for any remaining conflicts
+%pip check
+
+# 3) Restart the interpreter so Databricks picks the new wheels
+dbutils.library.restartPython()
