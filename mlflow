@@ -187,26 +187,24 @@ with mlflow.start_run(run_name = "InsuranceModelRun") as run:
 import mlflow
 from mlflow.models.signature import infer_signature
 
-model_name = "insurance-langgraph-custom"
+model_name = "insurance-langgraph"
 
-input_example = {"messages": [{"role": "user", "content": "Explain deductible"}]}
+input_example = {"messages": [{"role": "user", "content": "What is a deductible?"}]}
 signature = infer_signature({"messages": input_example["messages"]}, "Deductible is ...")
 
 with mlflow.start_run(run_name="InsuranceModelRun") as run:
-    model_info = mlflow.langchain.log_model(
-        lc_model="./langgraph_app.py",   # <- your file with build_graph()
+    model_info = mlflow.pyfunc.log_model(
         artifact_path="graph",
-        registered_model_name=model_name,
+        # Just point to the code file where build_graph is defined
+        code_path=["."],              # include langgraph_app.py in the run
+        loader_module="langgraph_app", # MLflow will call mlflow.models.set_model() inside it
         pip_requirements=[
             f"mlflow=={mlflow.__version__}",
             "langgraph>=0.2.0",
-            "langchain_core",
-            "langchain_community",
-            "databricks-sdk",
         ],
         input_example=input_example,
         signature=signature,
+        registered_model_name=model_name,
     )
 
 print("Logged model URI:", model_info.model_uri)
-
