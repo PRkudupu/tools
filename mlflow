@@ -1,0 +1,96 @@
+# agent/mlflow_wrapper.py
+import json, os
+import pandas as pd
+from typing import Any, Dict, List, Union
+import mlflow
+from mlflow.pyfunc import PythonModel, PythonModelContext
+
+from agent.graph_def import build_graph, HumanMessage
+
+def _coerce_messages(x: Union[str, List[Dict[str, str]], List[str]]) -> List[HumanMessage]:
+    """
+    Accepts:
+      - a plain string prompt
+      - a list of {"role": "...", "content": "..."} (we only use content)
+      - a list[str] of contents
+    Returns List[HumanMessage].
+    """
+    if isinstance(x, str):
+        return [HumanMessage(content=x)]
+    if isinstance(x, list):
+        # list of dicts or list of strings
+        out = []
+        for item in x:
+            if isinstance(item, dict):
+                out.append(HumanMessage(content=item.get("content", "")))
+            else:
+                out.append(HumanMessage(content=str(item)))
+        return out
+    raise ValueError("Unsupported messages format")
+
+class LangGraphAgentPyfunc(PythonModel):
+    """
+    Input options:
+      1) Dict style:
+         {
+           "siteid": "839143",
+           "catalog": "industrial-data-science",
+           "schema": "cbt",
+           "messages": [{"role":"user","content":"Create a 90-second pre-call brief for this site."}]
+         }
+
+      2) DataFrame style (Databricks 'dataframe_records'):
+         Each row should have columns: siteid, catalog, schema, messages (JSON/string or array)
+    Output:
+         List[str] of final assistant texts (one per row / request).
+    """
+
+    def load_context(self, context: PythonModelContext):
+        # Optional artifact config
+        self.cfg = {}
+        if "model_config" in context.artifacts:
+            with open(context.artifacts["model_config"], "r") as f:
+                self.cfg = json.load(f)
+
+        # Defaults via env (overridden by request)
+        self.default_catalog = os.getenv("DEFAULT_CATALOG", "main")
+        self.default_schema  = os.getenv("DEFAULT_SCHEMA", "default")
+
+        # Build once per worker
+        self.graph = build_graph()
+
+    def _run_one(self, payload: Dict[str, Any]) -> str:
+        # Allow messages to come in as JSON string
+        msgs_raw = payload.get("messages", "")
+        if isinstance(msgs_raw, str):
+            try:
+                msgs_raw = json.loads(msgs_raw)  # if they sent a JSON string
+            except Exception:
+                pass
+
+        state = {
+            "siteid": str(payload.get("siteid", "")),
+            "catalog": payload.get("catalog", self.default_catalog),
+            "schema":  payload.get("schema",  self.default_schema),
+            "messages": _coerce_messages(msgs_raw if msgs_raw else "Create a 90-second pre-call brief for this site."),
+        }
+
+        result = self.graph.invoke(state)
+        # Pull the last message content (your nodes should append model output)
+        msgs = result.get("messages", [])
+        last = msgs[-1].content if msgs else ""
+        return last
+
+    def predict(self, context: PythonModelContext, model_input):
+        # Dict input (serverless real-time often supports "inputs": {...})
+        if isinstance(model_input, dict):
+            return [self._run_one(model_input)]
+
+        # DataFrame input (common with "dataframe_records")
+        if isinstance(model_input, pd.DataFrame):
+            outs = []
+            for _, row in model_input.iterrows():
+                outs.append(self._run_one(row.to_dict()))
+            return outs
+
+        raise ValueError("Unsupported input type. Send a dict or a pandas DataFrame.")
