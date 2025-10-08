@@ -1,26 +1,14 @@
-# Install once per cluster/notebook
-# %pip install databricks-sql-connector pandas pyarrow
-
-import os
-import pandas as pd
-from databricks import sql
+# Parallel SELECTs in a Databricks Spark notebook (Serverless-friendly)
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from pyspark.storagelevel import StorageLevel
 
-# ---- Fill these from your workspace (or use dbutils.secrets) ----
-HOST       = os.environ.get("DATABRICKS_HOST",       "adb-xxxxxxxx.azuredatabricks.net")
-HTTP_PATH  = os.environ.get("DATABRICKS_HTTP_PATH",  "/sql/1.0/warehouses/xxxxxxxxxxxx")
-TOKEN      = os.environ.get("DATABRICKS_TOKEN")  # or: dbutils.secrets.get("scope","token")
-
-def connect():
-    return sql.connect(server_hostname=HOST, http_path=HTTP_PATH, access_token=TOKEN)
-
-site_id = "12345"  # your value
+site_id = "12345"  # <-- your value
 
 queries = [
     ("site_account_mapping",  f"SELECT * FROM cbt.site_account_mapping        WHERE siteid='{site_id}'"),
     ("mpl_spl_penetration",   f"SELECT * FROM cbt.mpl_spl_penetration         WHERE siteid='{site_id}'"),
     ("last_interaction",      f"SELECT * FROM cbt.last_interaction            WHERE siteid='{site_id}'"),
-    ("price_change",          f"SELECT * FROM cbt.last_interaction            WHERE siteid='{site_id}'"),
+    ("price_change",          f"SELECT * FROM cbt.price_change                WHERE siteid='{site_id}'"),
     ("solution_price_change", f"SELECT * FROM cbt.solution_sales_change       WHERE siteid='{site_id}'"),
     ("sales_wrt_last_year",   f"SELECT * FROM cbt.sales_wrt_last_year         WHERE siteid='{site_id}'"),
     ("percentage_solution_sales_change",
@@ -30,32 +18,37 @@ queries = [
     ("sales_info_ytd_r12",    f"SELECT * FROM cbt.sales_info_ytd_r12          WHERE siteid='{site_id}'"),
 ]
 
-def run_one(name: str, stmt: str):
-    # one connection per thread → true parallelism on the warehouse
-    with connect() as c, c.cursor() as cur:
-        cur.execute(stmt)
-        # Load all rows (use fetchmany_arrow for very large sets)
-        pdf = cur.fetchall_arrow().to_pandas()
-        return name, pdf
+# Make sure concurrent jobs are fairly scheduled (Databricks default is FAIR, but set explicitly)
+spark.conf.set("spark.scheduler.mode", "FAIR")
 
-max_workers = min(len(queries), 8)  # tune to your warehouse size/concurrency
-results = {}
-errors = {}
+def run_query(name: str, sql_text: str):
+    try:
+        # Optional: put each job in its own fair-scheduler pool to avoid starvation
+        spark.sparkContext.setLocalProperty("spark.scheduler.pool", name)
+
+        df = spark.sql(sql_text).persist(StorageLevel.MEMORY_AND_DISK)
+        df.count()  # ACTION -> materialize; without this Spark is lazy and won't parallelize
+        df.createOrReplaceTempView(name)  # handy for downstream SQL
+        return name, df, None
+    except Exception as e:
+        return name, None, str(e)
+    finally:
+        spark.sparkContext.setLocalProperty("spark.scheduler.pool", None)
+
+max_workers = min(len(queries), 8)  # tune for your warehouse/cluster size
+results, errors = {}, {}
 
 with ThreadPoolExecutor(max_workers=max_workers) as pool:
-    futs = [pool.submit(run_one, n, s) for n, s in queries]
+    futs = [pool.submit(run_query, n, s) for n, s in queries]
     for f in as_completed(futs):
-        try:
-            n, pdf = f.result()
-            results[n] = pdf
-        except Exception as e:
-            # identify which query failed
-            # (optional) log/collect the original name
-            errors[str(f)] = repr(e)
+        name, df, err = f.result()
+        if err:
+            errors[name] = err
+        else:
+            results[name] = df
 
-print("Materialized:", sorted(results))
+print("Materialized:", sorted(results.keys()))
 if errors:
-    print("Errors:", errors)
-
-# Example usage:
-# display(results["sales_info_mtd"])
+    print("Errors:")
+    for k, v in errors.items():
+        print(f"  - {k}: {v}")
