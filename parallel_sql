@@ -1,72 +1,31 @@
-from pyspark.sql import SparkSession, Row
-from pyspark.sql.functions import lit
-from typing import Dict, Any, List, Optional
+from pyspark.sql import SparkSession
+from concurrent.futures import ThreadPoolExecutor
 
-class SiteState(dict, total=False):
-    siteid: str  # Unique identifier for the site
-    catalog: str  # Catalog name in Databricks
-    schema: str   # Schema name in Databricks
-    analytic_data: Dict[str, Any]  # Dictionary to store analytic data
-    sf_json: List[BaseMessage]     # Store API payload here as a JSON string
-    messages: List[BaseMessage]    # List of chat messages (BaseMessage objects)
-    error: Optional[str]           # Optional error message
+# Initialize Spark session
+spark = SparkSession.builder.appName("ParallelQueries").getOrCreate()
 
-def site_analytics(state: SiteState) -> SiteState:
-    # Extract site ID, catalog, and schema from the state, with defaults
-    site_id = state.get("siteid", "")
-    catalog = state.get("catalog", "industrial-data-science")
-    schema = state.get("schema", "cbt")
+# List of queries
+queries = [
+    "SELECT * FROM cbt.site_account_mapping WHERE siteid='site_id'",
+    "SELECT * FROM cbt.mpl_spl_penetration WHERE siteid='site_id'",
+    "SELECT * FROM cbt.last_interaction WHERE siteid='site_id'",
+    "SELECT * FROM cbt.interaction WHERE siteid='site_id'",
+    "SELECT * FROM cbt.solution_sales_change WHERE siteid='site_id'",
+    "SELECT * FROM cbt.sales_wrt_last_year WHERE siteid='site_id'",
+    "SELECT * FROM cbt.percentage_solution_sales_change WHERE siteid='site_id'",
+    "SELECT * FROM cbt.asset_location WHERE siteid='site_id'",
+    "SELECT * FROM cbt.sales_info_mtd WHERE siteid='site_id'",
+    "SELECT * FROM cbt.sales_info_ytd_r12 WHERE siteid='site_id'"
+]
 
-    # Set the active catalog in Spark SQL
-    spark.sql(f"use catalog {catalog}")
+# Function to execute a single query
+def run_query(query):
+    return spark.sql(query)
 
-    # Define SQL queries for various analytic tables, filtered by site ID
-    queries = [
-        ("site_account_mapping", f"SELECT * FROM cbt.site_account_mapping WHERE siteid='{site_id}'"),
-        ("mpl_spl_penetration", f"SELECT * FROM cbt.mpl_spl_penetration WHERE siteid='{site_id}'"),
-        ("last_interaction", f"SELECT * FROM cbt.last_interaction WHERE siteid='{site_id}'"),
-        ("price_change", f"SELECT * FROM cbt.last_interaction WHERE siteid='{site_id}'"),
-        ("solution_price_change", f"SELECT * FROM cbt.solution_sales_change WHERE siteid='{site_id}'"),
-        ("sales_wrt_last_year", f"SELECT * FROM cbt.sales_wrt_last_year WHERE siteid='{site_id}'"),
-        ("percentage_solution_sales_change", f"SELECT * FROM cbt.percentage_solution_sales_change WHERE siteid='{site_id}'"),
-        ("asset_location", f"SELECT * FROM cbt.asset_location WHERE siteid='{site_id}'"),
-        ("sales_info_mtd", f"SELECT * FROM cbt.sales_info_mtd WHERE siteid='{site_id}'"),
-        ("sales_info_ytd_r12", f"SELECT * FROM cbt.sales_info_ytd_r12 WHERE siteid='{site_id}'")
-    ]
+# Run queries in parallel
+with ThreadPoolExecutor(max_workers=len(queries)) as executor:
+    results = list(executor.map(run_query, queries))
 
-    # Create a DataFrame with query names and SQL queries
-    query_df = spark.createDataFrame(queries, ["name", "sql_query"])
-
-    # Function to process each partition of queries and return results
-    def process_queries(iterator):
-        import pyspark.sql as ps
-        results = {}
-        for name, sql_query in iterator:
-            try:
-                df = spark.sql(sql_query)
-                results[name] = [dict(row) for row in df.collect()]  # Collect results locally
-            except Exception as e:
-                results[name] = {"error": str(e)}
-        yield results
-
-    # Apply parallel processing using mapPartitions and collect results
-    result_rdd = query_df.rdd.mapPartitions(process_queries)
-    analytic_data = {}
-    for result_dict in result_rdd.collect():
-        analytic_data.update(result_dict)
-
-    # Update state with the aggregated analytic data
-    state["analytic_data"] = analytic_data
-
-    # Update state with messages and system message
-    state["messages"] = state.get("messages", [])
-    state["systemmessage"] = {
-        "content": f"Loaded analytics for site {site_id} ({len(state['analytic_data'])} tables)."
-    }
-
-    return state
-
-# Example usage
-state = SiteState(siteid="8391413")
-updated_state = site_analytics(state)
-print(state)  # Note: Use state directly as it is updated in-place
+# Optionally, collect and process results
+for i, result in enumerate(results):
+    result.show()
