@@ -1,29 +1,68 @@
-from pyspark.sql import SparkSession
-from functools import reduce
-import pandas as pd
+from pyspark.sql import SparkSession, Row
+from pyspark.sql.functions import lit
+from typing import Dict, Any, List, Optional
 
-# Initialize analytic_data dictionary
-analytic_data = {}
+class SiteState(dict, total=False):
+    siteid: str  # Unique identifier for the site
+    catalog: str  # Catalog name in Databricks
+    schema: str   # Schema name in Databricks
+    analytic_data: Dict[str, Any]  # Dictionary to store analytic data
+    sf_json: List[BaseMessage]     # Store API payload here as a JSON string
+    messages: List[BaseMessage]    # List of chat messages (BaseMessage objects)
+    error: Optional[str]           # Optional error message
 
-# Parallelize query execution
-def execute_query(sql_query, name):
-    try:
-        df = spark.sql(sql_query)
-        analytic_data[name] = [dict(row) for row in df.toLocalIterator()]  # Convert to list of dicts
-    except Exception as e:
-        analytic_data[name] = {"error": str(e)}
+def site_analytics(state: SiteState) -> SiteState:
+    # Extract site ID, catalog, and schema from the state, with defaults
+    site_id = state.get("siteid", "")
+    catalog = state.get("catalog", "industrial-data-science")
+    schema = state.get("schema", "cbt")
 
-# Create a list of (query_name, query) tuples
-queries = list(q.items())
+    # Set the active catalog in Spark SQL
+    spark.sql(f"use catalog {catalog}")
 
-# Use Spark to parallelize the execution
-spark.sparkContext.parallelize(queries, len(queries)).foreach(lambda x: execute_query(x[1], x[0]))
+    # Define SQL queries for various analytic tables, filtered by site ID
+    queries = [
+        ("site_account_mapping", f"SELECT * FROM cbt.site_account_mapping WHERE siteid='{site_id}'"),
+        ("mpl_spl_penetration", f"SELECT * FROM cbt.mpl_spl_penetration WHERE siteid='{site_id}'"),
+        ("last_interaction", f"SELECT * FROM cbt.last_interaction WHERE siteid='{site_id}'"),
+        ("price_change", f"SELECT * FROM cbt.last_interaction WHERE siteid='{site_id}'"),
+        ("solution_price_change", f"SELECT * FROM cbt.solution_sales_change WHERE siteid='{site_id}'"),
+        ("sales_wrt_last_year", f"SELECT * FROM cbt.sales_wrt_last_year WHERE siteid='{site_id}'"),
+        ("percentage_solution_sales_change", f"SELECT * FROM cbt.percentage_solution_sales_change WHERE siteid='{site_id}'"),
+        ("asset_location", f"SELECT * FROM cbt.asset_location WHERE siteid='{site_id}'"),
+        ("sales_info_mtd", f"SELECT * FROM cbt.sales_info_mtd WHERE siteid='{site_id}'"),
+        ("sales_info_ytd_r12", f"SELECT * FROM cbt.sales_info_ytd_r12 WHERE siteid='{site_id}'")
+    ]
 
-# Return updated state with analytic data and a system message
-return {
-    "analytic_data": analytic_data,
-    "messages": state.get("messages", []),
-    "systemmessage": {
-        "content": f"Loaded analytics for site {site_id} ({len(analytic_data)} tables)."
+    # Create a DataFrame with query names and SQL queries
+    query_df = spark.createDataFrame(queries, ["name", "sql_query"])
+
+    # Initialize analytic_data in the state
+    state["analytic_data"] = {}
+
+    # Function to process each partition of queries
+    def process_queries(iterator):
+        import pyspark.sql as ps
+        for name, sql_query in iterator:
+            try:
+                df = spark.sql(sql_query)
+                result = [dict(row) for row in df.collect()]  # Collect results locally within partition
+                state["analytic_data"][name] = result
+            except Exception as e:
+                state["analytic_data"][name] = {"error": str(e)}
+
+    # Apply parallel processing using foreachPartition
+    query_df.foreachPartition(process_queries)
+
+    # Update state with messages and system message
+    state["messages"] = state.get("messages", [])
+    state["systemmessage"] = {
+        "content": f"Loaded analytics for site {site_id} ({len(state['analytic_data'])} tables)."
     }
-}
+
+    return state
+
+# Example usage
+state = SiteState(siteid="8391413")
+updated_state = site_analytics(state)
+print(state)  # Note: Use state directly as it is updated in-place
