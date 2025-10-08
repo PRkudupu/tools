@@ -1,31 +1,61 @@
-from pyspark.sql import SparkSession
-from concurrent.futures import ThreadPoolExecutor
+# Install once per cluster/notebook
+# %pip install databricks-sql-connector pandas pyarrow
 
-# Initialize Spark session
-spark = SparkSession.builder.appName("ParallelQueries").getOrCreate()
+import os
+import pandas as pd
+from databricks import sql
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
-# List of queries
+# ---- Fill these from your workspace (or use dbutils.secrets) ----
+HOST       = os.environ.get("DATABRICKS_HOST",       "adb-xxxxxxxx.azuredatabricks.net")
+HTTP_PATH  = os.environ.get("DATABRICKS_HTTP_PATH",  "/sql/1.0/warehouses/xxxxxxxxxxxx")
+TOKEN      = os.environ.get("DATABRICKS_TOKEN")  # or: dbutils.secrets.get("scope","token")
+
+def connect():
+    return sql.connect(server_hostname=HOST, http_path=HTTP_PATH, access_token=TOKEN)
+
+site_id = "12345"  # your value
+
 queries = [
-    "SELECT * FROM cbt.site_account_mapping WHERE siteid='site_id'",
-    "SELECT * FROM cbt.mpl_spl_penetration WHERE siteid='site_id'",
-    "SELECT * FROM cbt.last_interaction WHERE siteid='site_id'",
-    "SELECT * FROM cbt.interaction WHERE siteid='site_id'",
-    "SELECT * FROM cbt.solution_sales_change WHERE siteid='site_id'",
-    "SELECT * FROM cbt.sales_wrt_last_year WHERE siteid='site_id'",
-    "SELECT * FROM cbt.percentage_solution_sales_change WHERE siteid='site_id'",
-    "SELECT * FROM cbt.asset_location WHERE siteid='site_id'",
-    "SELECT * FROM cbt.sales_info_mtd WHERE siteid='site_id'",
-    "SELECT * FROM cbt.sales_info_ytd_r12 WHERE siteid='site_id'"
+    ("site_account_mapping",  f"SELECT * FROM cbt.site_account_mapping        WHERE siteid='{site_id}'"),
+    ("mpl_spl_penetration",   f"SELECT * FROM cbt.mpl_spl_penetration         WHERE siteid='{site_id}'"),
+    ("last_interaction",      f"SELECT * FROM cbt.last_interaction            WHERE siteid='{site_id}'"),
+    ("price_change",          f"SELECT * FROM cbt.last_interaction            WHERE siteid='{site_id}'"),
+    ("solution_price_change", f"SELECT * FROM cbt.solution_sales_change       WHERE siteid='{site_id}'"),
+    ("sales_wrt_last_year",   f"SELECT * FROM cbt.sales_wrt_last_year         WHERE siteid='{site_id}'"),
+    ("percentage_solution_sales_change",
+                              f"SELECT * FROM cbt.percentage_solution_sales_change WHERE siteid='{site_id}'"),
+    ("asset_location",        f"SELECT * FROM cbt.asset_location              WHERE siteid='{site_id}'"),
+    ("sales_info_mtd",        f"SELECT * FROM cbt.sales_info_mtd              WHERE siteid='{site_id}'"),
+    ("sales_info_ytd_r12",    f"SELECT * FROM cbt.sales_info_ytd_r12          WHERE siteid='{site_id}'"),
 ]
 
-# Function to execute a single query
-def run_query(query):
-    return spark.sql(query)
+def run_one(name: str, stmt: str):
+    # one connection per thread → true parallelism on the warehouse
+    with connect() as c, c.cursor() as cur:
+        cur.execute(stmt)
+        # Load all rows (use fetchmany_arrow for very large sets)
+        pdf = cur.fetchall_arrow().to_pandas()
+        return name, pdf
 
-# Run queries in parallel
-with ThreadPoolExecutor(max_workers=len(queries)) as executor:
-    results = list(executor.map(run_query, queries))
+max_workers = min(len(queries), 8)  # tune to your warehouse size/concurrency
+results = {}
+errors = {}
 
-# Optionally, collect and process results
-for i, result in enumerate(results):
-    result.show()
+with ThreadPoolExecutor(max_workers=max_workers) as pool:
+    futs = [pool.submit(run_one, n, s) for n, s in queries]
+    for f in as_completed(futs):
+        try:
+            n, pdf = f.result()
+            results[n] = pdf
+        except Exception as e:
+            # identify which query failed
+            # (optional) log/collect the original name
+            errors[str(f)] = repr(e)
+
+print("Materialized:", sorted(results))
+if errors:
+    print("Errors:", errors)
+
+# Example usage:
+# display(results["sales_info_mtd"])
