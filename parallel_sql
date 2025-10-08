@@ -37,22 +37,26 @@ def site_analytics(state: SiteState) -> SiteState:
     # Create a DataFrame with query names and SQL queries
     query_df = spark.createDataFrame(queries, ["name", "sql_query"])
 
-    # Initialize analytic_data in the state
-    state["analytic_data"] = {}
-
-    # Function to process each partition of queries
+    # Function to process each partition of queries and return results
     def process_queries(iterator):
         import pyspark.sql as ps
+        results = {}
         for name, sql_query in iterator:
             try:
                 df = spark.sql(sql_query)
-                result = [dict(row) for row in df.collect()]  # Collect results locally within partition
-                state["analytic_data"][name] = result
+                results[name] = [dict(row) for row in df.collect()]  # Collect results locally
             except Exception as e:
-                state["analytic_data"][name] = {"error": str(e)}
+                results[name] = {"error": str(e)}
+        yield results
 
-    # Apply parallel processing using foreachPartition
-    query_df.foreachPartition(process_queries)
+    # Apply parallel processing using mapPartitions and collect results
+    result_rdd = query_df.rdd.mapPartitions(process_queries)
+    analytic_data = {}
+    for result_dict in result_rdd.collect():
+        analytic_data.update(result_dict)
+
+    # Update state with the aggregated analytic data
+    state["analytic_data"] = analytic_data
 
     # Update state with messages and system message
     state["messages"] = state.get("messages", [])
