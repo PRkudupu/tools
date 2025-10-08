@@ -1,0 +1,29 @@
+from pyspark.sql import SparkSession
+from functools import reduce
+import pandas as pd
+
+# Initialize analytic_data dictionary
+analytic_data = {}
+
+# Parallelize query execution
+def execute_query(sql_query, name):
+    try:
+        df = spark.sql(sql_query)
+        analytic_data[name] = [dict(row) for row in df.toLocalIterator()]  # Convert to list of dicts
+    except Exception as e:
+        analytic_data[name] = {"error": str(e)}
+
+# Create a list of (query_name, query) tuples
+queries = list(q.items())
+
+# Use Spark to parallelize the execution
+spark.sparkContext.parallelize(queries, len(queries)).foreach(lambda x: execute_query(x[1], x[0]))
+
+# Return updated state with analytic data and a system message
+return {
+    "analytic_data": analytic_data,
+    "messages": state.get("messages", []),
+    "systemmessage": {
+        "content": f"Loaded analytics for site {site_id} ({len(analytic_data)} tables)."
+    }
+}
