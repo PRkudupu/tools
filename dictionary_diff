@@ -1,0 +1,19 @@
+from deepdiff import DeepDiff
+
+def summarize_diff(old, new):
+    dd = DeepDiff(old, new, ignore_order=True)
+    return {
+        "added_keys": sorted([k.replace("root", "") for k in dd.get("dictionary_item_added", [])]),
+        "removed_keys": sorted([k.replace("root", "") for k in dd.get("dictionary_item_removed", [])]),
+        "changed_values": {
+            path.replace("root", ""): (chg["old_value"], chg["new_value"])
+            for path, chg in dd.get("values_changed", {}).items()
+        }
+    }
+
+print(summarize_diff(a, b))
+# {
+#   'added_keys': ["['w']"],
+#   'removed_keys': ["['z']"],
+#   'changed_values': {"['y']['p']": (10, 11)}
+# }
