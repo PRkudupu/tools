@@ -1,0 +1,35 @@
+def getAccessToken(self, firstRun):
+    self.firstRun = firstRun
+    access_token_flag = True
+    # generate token for salesforce api requests
+
+    try:
+        if not hasattr(self, 'token_expiry') or time.time() > self.token_expiry:
+            auth_data = {
+                'grant_type': 'password',
+                'client_id': self.CLIENT_ID_SFDC,
+                'client_secret': self.CLIENT_SECRET_SFDC,
+                'username': self.USER_NAME_SFDC,
+                'password': self.PASSWORD_SFDC
+            }
+
+            if (self.AUTH_URL != "" or self.AUTH_URL != None):
+                auth_response = httpx.post(self.AUTH_URL, data=auth_data)
+                access_token = auth_response.json().get('access_token')
+                self.access_token = access_token
+                self.token_expiry = time.time() + 60  # Set expiry to 60 seconds from now
+                if (self.access_token != "" or self.access_token != None):
+                    self.headers = {
+                        'Authorization': f'Bearer {self.access_token}',
+                        'Content-Type': 'application/json'
+                    }
+                else:
+                    logger.info("ACCESS TOKEN NOT GENERATED : ")
+            else:
+                logger.info("INVALID ENV FILE : CANT READ AUTH URL")
+                access_token_flag = False
+        except Exception as access_token_e:
+            logger.info(f"ERROR WHILE FETCHING ACCESS TOKEN. {access_token_e}")
+            access_token_flag = False
+
+    return access_token_flag
