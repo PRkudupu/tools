@@ -51,4 +51,34 @@ print("Materialized:", sorted(results.keys()))
 if errors:
     print("Errors:")
     for k, v in errors.items():
-        print(f"  - {k}: {v}")
+        print(f"  - {k}: {v}"
+
+
+
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+def site_analytics(state):
+    q = state["queries"]          # dict: {name: sql_or_callable}
+    analytic_data = {}
+
+    def execute_query(name, job):
+        try:
+            # Swap in your real runner:
+            if callable(job):
+                result = job()
+            else:
+                result = run_sql(job)  # e.g., spark.sql(job).collect()
+            return name, result
+        except Exception as e:
+            return name, {"error": str(e)}
+
+    # ✅ instantiate the pool
+    with ThreadPoolExecutor(max_workers=min(32, max(1, len(q)))) as pool:
+        futures = [pool.submit(execute_query, name, job) for name, job in q.items()]
+        for fut in as_completed(futures):
+            name, result = fut.result()
+            analytic_data[name] = result
+
+    state["analytic_data"] = analytic_data
+    state["system_message"] = "Analytics complete"
+    return state
