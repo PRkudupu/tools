@@ -1,0 +1,39 @@
+from simple_salesforce import Salesforce
+import time  # For your 60-sec expiry logic
+
+class SFLib:
+    def __init__(self, username, password, security_token, domain='login'):  # domain='test' for sandbox
+        self.username = username
+        self.password = password + security_token  # Append token to password
+        self.domain = domain
+        self.sf = None
+        self.token_expiry = 0
+
+    def get_connection(self):
+        """Get or renew connection with 60-sec token expiry check."""
+        if not self.sf or time.time() > self.token_expiry:
+            try:
+                self.sf = Salesforce(username=self.username, password=self.password, domain=self.domain)
+                self.token_expiry = time.time() + 60  # Your 60-sec logic
+                print("Connected to Salesforce!")
+            except Exception as e:
+                print(f"Auth failed: {e}")
+                return False
+        return True
+
+    def query_accounts(self, soql_query="SELECT Id, Name FROM Account LIMIT 5"):
+        """Run a SOQL query and return results as list of dicts."""
+        if self.get_connection():
+            try:
+                results = self.sf.query(soql_query)
+                return results['records']
+            except Exception as e:
+                print(f"Query error: {e}")
+                return []
+        return []
+
+# Usage
+lib = SFLib('your_username@example.com', 'your_password', 'your_security_token')
+accounts = lib.query_accounts()
+for acc in accounts:
+    print(acc['Name'])  # Outputs account names
