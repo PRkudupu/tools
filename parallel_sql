@@ -1,60 +1,3 @@
-# Parallel SELECTs in a Databricks Spark notebook (Serverless-friendly)
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from pyspark.storagelevel import StorageLevel
-
-site_id = "12345"  # <-- your value
-
-queries = [
-    ("site_account_mapping",  f"SELECT * FROM cbt.site_account_mapping        WHERE siteid='{site_id}'"),
-    ("mpl_spl_penetration",   f"SELECT * FROM cbt.mpl_spl_penetration         WHERE siteid='{site_id}'"),
-    ("last_interaction",      f"SELECT * FROM cbt.last_interaction            WHERE siteid='{site_id}'"),
-    ("price_change",          f"SELECT * FROM cbt.price_change                WHERE siteid='{site_id}'"),
-    ("solution_price_change", f"SELECT * FROM cbt.solution_sales_change       WHERE siteid='{site_id}'"),
-    ("sales_wrt_last_year",   f"SELECT * FROM cbt.sales_wrt_last_year         WHERE siteid='{site_id}'"),
-    ("percentage_solution_sales_change",
-                              f"SELECT * FROM cbt.percentage_solution_sales_change WHERE siteid='{site_id}'"),
-    ("asset_location",        f"SELECT * FROM cbt.asset_location              WHERE siteid='{site_id}'"),
-    ("sales_info_mtd",        f"SELECT * FROM cbt.sales_info_mtd              WHERE siteid='{site_id}'"),
-    ("sales_info_ytd_r12",    f"SELECT * FROM cbt.sales_info_ytd_r12          WHERE siteid='{site_id}'"),
-]
-
-# Make sure concurrent jobs are fairly scheduled (Databricks default is FAIR, but set explicitly)
-spark.conf.set("spark.scheduler.mode", "FAIR")
-
-def run_query(name: str, sql_text: str):
-    try:
-        # Optional: put each job in its own fair-scheduler pool to avoid starvation
-        spark.sparkContext.setLocalProperty("spark.scheduler.pool", name)
-
-        df = spark.sql(sql_text).persist(StorageLevel.MEMORY_AND_DISK)
-        df.count()  # ACTION -> materialize; without this Spark is lazy and won't parallelize
-        df.createOrReplaceTempView(name)  # handy for downstream SQL
-        return name, df, None
-    except Exception as e:
-        return name, None, str(e)
-    finally:
-        spark.sparkContext.setLocalProperty("spark.scheduler.pool", None)
-
-max_workers = min(len(queries), 8)  # tune for your warehouse/cluster size
-results, errors = {}, {}
-
-with ThreadPoolExecutor(max_workers=max_workers) as pool:
-    futs = [pool.submit(run_query, n, s) for n, s in queries]
-    for f in as_completed(futs):
-        name, df, err = f.result()
-        if err:
-            errors[name] = err
-        else:
-            results[name] = df
-
-print("Materialized:", sorted(results.keys()))
-if errors:
-    print("Errors:")
-    for k, v in errors.items():
-        print(f"  - {k}: {v}"
-
-
-
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def site_analytics(state):
@@ -82,3 +25,72 @@ def site_analytics(state):
     state["analytic_data"] = analytic_data
     state["system_message"] = "Analytics complete"
     return state
+
+
+
+from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
+from typing import Dict, Any
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Assuming 'spark' is a pyspark.sql.SparkSession instance available in the scope.
+# If not, it should be initialized or passed as a parameter.
+
+def execute_query(name: str, job: str) -> tuple[str, Any]:
+    """
+    Execute a Spark SQL query and return the results, handling exceptions.
+    
+    :param name: The name/key for the query.
+    :param job: A SQL query string.
+    :return: Tuple of (name, result) where result is the query output or error message.
+    """
+    try:
+        result = spark.sql(job).collect()  # Collect results (consider alternatives for large data)
+        return name, result
+    except Exception as e:
+        logging.error(f"Error executing query '{name}': {str(e)}")
+        return name, f"error: {str(e)}"
+
+def process_queries(q: Dict[str, str], state: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Process multiple Spark SQL queries in parallel and update the state.
+    
+    :param q: Dictionary of query names and their SQL strings.
+    :param state: Dictionary to store results and system messages.
+    :return: Updated state dictionary.
+    """
+    if not q:
+        logging.warning("No queries to execute in 'q'.")
+        state["system_message"] = "No queries to process"
+        return state
+
+    analytic_data: Dict[str, Any] = {}
+    num_jobs = len(q)
+    max_workers = min(max(1, num_jobs), 32)  # Dynamic worker cap based on job count
+
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+        futures = [pool.submit(execute_query, name, job) for name, job in q.items()]
+        for fut in as_completed(futures):
+            try:
+                name, result = fut.result(timeout=300)  # 5-minute timeout per query
+                analytic_data[name] = result
+            except TimeoutError:
+                logging.error(f"Timeout for query '{name}' after 300 seconds.")
+                analytic_data[name] = "error: Timeout after 300 seconds"
+            except Exception as e:
+                logging.error(f"Unexpected error for query '{name}': {str(e)}")
+                analytic_data[name] = f"error: {str(e)}"
+
+    # Update state
+    state["analytic_data"] = analytic_data
+    state["system_message"] = "Analytics complete"
+    logging.info("Analytics complete")
+
+    return state
+
+# Example usage (uncomment to test)
+# state = {"analytic_data": {}, "system_message": ""}
+# q = {"query1": "SELECT * FROM table LIMIT 10", "query2": "SELECT count(*) FROM table"}
+# state = process_queries(q, state)
