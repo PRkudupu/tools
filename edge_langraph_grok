@@ -1,0 +1,94 @@
+# --- 1) State definition (lean, with defaults) ---
+from typing import TypedDict, List, Optional, Dict, Any
+from typing_extensions import Annotated
+from langgraph.graph import StateGraph, END, SEND
+from langgraph.graph.message import add_messages
+from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
+
+class SiteState(TypedDict):
+    site_id: Annotated[Optional[str], lambda x, y: y]
+    messages: Annotated[List[BaseMessage], add_messages]
+    user_input: Annotated[Optional[str], lambda x, y: y]
+    analytic_data: Annotated[Dict[str, Any], lambda x, y: y]
+    sf_json: Annotated[Dict[str, Any], lambda x, y: y]
+    prompt_str: Annotated[Optional[str], lambda x, y: y]
+    llm_text: Annotated[Optional[str], lambda x, y: y]
+
+# --- 2) Nodes (single-purpose, with error handling) ---
+def extract_user_input(state: SiteState) -> SiteState:
+    """Extract the latest human message as user_input."""
+    for msg in reversed(state.get("messages", [])):
+        if isinstance(msg, HumanMessage):
+            return {"user_input": msg.content}
+    return {"user_input": "Create a 90-second pre-call brief for this site."}
+
+def fetch_analytics(state: SiteState) -> SiteState:
+    """Fetch and compact analytic data with fallback."""
+    try:
+        data = compact_json(get_analytic_data(state))
+    except Exception as e:
+        data = {"error": f"Analytics fetch failed: {str(e)}"}
+    return {"analytic_data": data}
+
+def fetch_sf_json(state: SiteState) -> SiteState:
+    """Fetch Salesforce live data with fallback."""
+    try:
+        data = getLiveData(state)
+    except Exception as e:
+        data = {"error": f"SF fetch failed: {str(e)}"}
+    return {"sf_json": data}
+
+def build_prompt(state: SiteState) -> SiteState:
+    """Build prompt from analytics and SF data."""
+    user_input = state.get("user_input", "Create a 90-second pre-call brief.")
+    prompt = (
+        f"You are a sales copilot. User input: {user_input}\n"
+        f"Analytics: {state.get('analytic_data', {})}\n"
+        f"SF Live Data: {state.get('sf_json', {})}\n"
+        "Write a concise brief."
+    )
+    return {"prompt_str": prompt}
+
+def call_llm(state: SiteState) -> SiteState:
+    """Invoke LLM with the constructed prompt."""
+    try:
+        llm = ChatDatabricks(endpoint="databricks-gpt-oss-20b", temperature=1.0, max_tokens=4000)
+        text = llm.invoke(state["prompt_str"]).content
+        return {"llm_text": text, "messages": [AIMessage(content=text)]}
+    except Exception as e:
+        return {"llm_text": f"LLM call failed: {str(e)}", "messages": [AIMessage(content=f"Error: {str(e)}")]}
+
+# --- 3) Conditional routing ---
+def route_input(state: SiteState) -> str:
+    """Route based on user input presence."""
+    return "proceed" if state.get("user_input") else "default"
+
+# --- 4) Graph wiring with parallel fetches ---
+builder = StateGraph(SiteState)
+
+# Add nodes
+builder.add_node("extract_user_input", extract_user_input)
+builder.add_node("fetch_analytics", fetch_analytics)
+builder.add_node("fetch_sf_json", fetch_sf_json)
+builder.add_node("build_prompt", build_prompt)
+builder.add_node("call_llm", call_llm)
+
+# Define entry and flow
+builder.add_edge("start", "extract_user_input")
+builder.add_conditional_edges(
+    "extract_user_input",
+    route_input,
+    {
+        "proceed": SEND([("fetch_analytics", {}), ("fetch_sf_json", {})]),
+        "default": SEND([("fetch_analytics", {}), ("fetch_sf_json", {})]),
+    },
+)
+
+# Converge parallel fetches and continue
+builder.add_edge("fetch_analytics", "build_prompt")
+builder.add_edge("fetch_sf_json", "build_prompt")
+builder.add_edge("build_prompt", "call_llm")
+builder.add_edge("call_llm", END)
+
+# Compile graph
+graph = builder.compile()
