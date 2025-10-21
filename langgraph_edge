@@ -1,0 +1,137 @@
+Got it, Prathap. The quickest way to “split this into different edges” in LangGraph is to turn each concern inside `call_llm` into its own **node** and wire them with **edges** (plus an optional conditional). Below is a compact, ready-to-drop pattern that mirrors what your function does—just decomposed.
+
+```python
+# --- 1) State definition (reducers keep latest values) ---
+from typing import TypedDict, List, Optional, Dict, Any
+from typing_extensions import Annotated
+from langgraph.graph import StateGraph, END
+from langgraph.graph.message import add_messages
+from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
+from pydantic import BaseModel, Field
+
+def last(_, x):  # simple reducer: keep latest
+    return x
+
+class SiteState(TypedDict):
+    site_id: Annotated[Optional[str], last]
+    catalog: Annotated[Optional[str], last]
+    schema: Annotated[Optional[str], last]
+    messages: Annotated[List[BaseMessage], add_messages]
+
+    # Derived fields
+    user_input: Annotated[str, last]
+    analytic_data: Annotated[Dict[str, Any], last]
+    sf_json: Annotated[Dict[str, Any], last]
+    values: Annotated[Dict[str, Any], last]
+    prompt_str: Annotated[str, last]
+    llm_text: Annotated[str, last]
+```
+
+```python
+# --- 2) Nodes (small, single-purpose) ---
+
+def extract_user_input(state: SiteState) -> SiteState:
+    # latest human message as user_input
+    for m in reversed(state.get("messages", [])):
+        if isinstance(m, HumanMessage):
+            return {"user_input": m.content}
+    return {"user_input": ""}
+
+def fetch_analytics(state: SiteState) -> SiteState:
+    # your existing helpers
+    data = compact_json(get_analytic_data(state))
+    return {"analytic_data": data}
+
+def fetch_sf_json(state: SiteState) -> SiteState:
+    return {"sf_json": getLiveData(state)}
+
+def build_values(state: SiteState) -> SiteState:
+    # fall back text is preserved from your code
+    ui = state.get("user_input") or "Create a 90-second pre-call brief for this site."
+    vals = {
+        "analytic_data": state.get("analytic_data", {}),
+        "sf_json": state.get("sf_json", {}),
+        "site_id": state.get("site_id"),
+        "input_user_input": ui,
+    }
+    return {"values": vals}
+
+def render_prompt(state: SiteState) -> SiteState:
+    # Replace with your ChatPromptTemplate if you already have one.
+    # Keeping it simple: you can drop in prompt = ChatPromptTemplate.from_messages([...])
+    prompt_str = (
+        "You are a sales copilot.\n"
+        f"User input: {state['values']['input_user_input']}\n\n"
+        f"Analytics: {state['values']['analytic_data']}\n\n"
+        f"SF Live Data: {state['values']['sf_json']}\n"
+        "Write a concise brief."
+    )
+    return {"prompt_str": prompt_str}
+
+def call_llm(state: SiteState) -> SiteState:
+    # Your Databricks LLM wiring kept intact
+    llm = ChatDatabricks(
+        endpoint="databricks-gpt-oss-20b",
+        temperature=1.0,
+        max_tokens=4000,
+    )
+    text = llm.invoke(state["prompt_str"]).content  # or .generate / .stream as needed
+    # also append to the message history if you want the graph to keep it
+    return {
+        "llm_text": text,
+        "messages": [AIMessage(content=text)]
+    }
+```
+
+```python
+# --- 3) (Optional) Conditional: if no user input, branch to a default path ---
+def have_input(state: SiteState) -> str:
+    return "have_input" if state.get("user_input") else "no_input"
+```
+
+```python
+# --- 4) Graph wiring: edges between the nodes ---
+builder = StateGraph(SiteState)
+
+builder.add_node("extract_user_input", extract_user_input)
+builder.add_node("fetch_analytics",   fetch_analytics)
+builder.add_node("fetch_sf_json",     fetch_sf_json)
+builder.add_node("build_values",      build_values)
+builder.add_node("render_prompt",     render_prompt)
+builder.add_node("call_llm",          call_llm)
+
+# Start -> extract input
+builder.add_edge("start", "extract_user_input")
+
+# Optional branching (both branches converge on build_values)
+builder.add_conditional_edges(
+    "extract_user_input",
+    have_input,
+    {
+        "have_input": "fetch_analytics",
+        "no_input":   "fetch_analytics",
+    },
+)
+
+# You can fan out to gather prerequisites. Run in sequence; they’re cheap and IO-bound.
+builder.add_edge("fetch_analytics", "fetch_sf_json")
+builder.add_edge("fetch_sf_json", "build_values")
+builder.add_edge("build_values", "render_prompt")
+builder.add_edge("render_prompt", "call_llm")
+builder.add_edge("call_llm", END)
+
+graph = builder.compile()
+```
+
+### Why this layout works
+
+* **Smaller nodes = easier testing & reuse.** You can unit-test `fetch_analytics` or swap it for a mock.
+* **Edges make intent explicit.** You can now insert conditionals (e.g., skip `fetch_sf_json` when `site_id` is missing) without touching the LLM node.
+* **Future parallelism.** If you later adopt LangGraph’s send/gather pattern, `fetch_analytics` and `fetch_sf_json` are natural parallel branches that join at `build_values`.
+
+### Minimal changes you might need
+
+* Replace `get_analytic_data`, `compact_json`, and `getLiveData` with your implementations.
+* If you already use `ChatPromptTemplate`, swap the `render_prompt` body with your template’s `.format(**state["values"])`.
+
+If you paste this skeleton in and move your existing code into the indicated nodes, you’ll have clean **multiple-edge** flow with the same behavior as your original single function.
