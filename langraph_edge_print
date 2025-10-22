@@ -1,23 +1,40 @@
+from typing import TypedDict
 from langgraph.graph import StateGraph, START, END
 
-# State to carry data between nodes
-class State(dict):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self["value"] = kwargs.get("value", "")
+# ---- State ----
+class State(TypedDict):
+    value: str
+    choose_b: bool  # route flag
 
-# Node function (simplified)
-def task_a(state: State) -> State:
-    print("Task A")
-    state["value"] += "a"
-    return state
+# ---- Nodes ----
+def task_a(s: State) -> State:
+    return {"value": s["value"] + "a", "choose_b": s["choose_b"]}
 
-# Build the graph
+def task_b(s: State) -> State:
+    # logical endpoint #1
+    return {"value": s["value"] + " ->B", "choose_b": s["choose_b"]}
+
+def task_c(s: State) -> State:
+    # logical endpoint #2
+    return {"value": s["value"] + " ->C", "choose_b": s["choose_b"]}
+
+def route(s: State) -> str:
+    # choose which endpoint to take
+    return "B" if s["choose_b"] else "C"
+
+# ---- Build ----
 graph = StateGraph(State)
 graph.add_node("A", task_a)
-graph.add_edge("A", END)
+graph.add_node("B", task_b)
+graph.add_node("C", task_c)
 
-# Compile and run
-compiled_graph = graph.compile()
-result = compiled_graph.invoke({"value": ""})  # Ensure "value" is included
-print(f"Final: {result}")
+graph.add_edge(START, "A")
+graph.add_conditional_edges("A", route, {"B": "B", "C": "C"})
+graph.add_edge("B", END)   # endpoint #1 -> END
+graph.add_edge("C", END)   # endpoint #2 -> END
+
+# ---- Run ----
+app = graph.compile()
+
+print(app.invoke({"value": "", "choose_b": True})["value"])   # "a ->B"
+print(app.invoke({"value": "", "choose_b": False})["value"])  # "a ->C"
