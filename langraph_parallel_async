@@ -1,0 +1,60 @@
+from typing import TypedDict, Annotated, Dict, Any, List
+import operator, asyncio
+from langgraph.graph import StateGraph, START, END
+
+# -------- State --------
+class State(TypedDict, total=False):
+    query: str
+    # merge parallel tool outputs safely: dict union + list concat
+    data: Annotated[Dict[str, Any], operator.or_]     # fan-in reducer
+    logs: Annotated[List[str], operator.add]          # optional
+
+# -------- Tool nodes (async) --------
+async def fetch_a(s: State) -> State:
+    await asyncio.sleep(0.2)  # simulate I/O
+    return {"data": {"source_a": {"items": [1, 2, 3]}}, "logs": ["A done"]}
+
+async def fetch_b(s: State) -> State:
+    await asyncio.sleep(0.1)
+    return {"data": {"source_b": {"items": ["x", "y"]}}, "logs": ["B done"]}
+
+# -------- Join & LLM --------
+def join(s: State) -> State:
+    # Build a single context string for the LLM
+    a = s["data"].get("source_a", {})
+    b = s["data"].get("source_b", {})
+    context = f"From A: {a}\nFrom B: {b}"
+    return {"data": {**s["data"], "context": context}}
+
+def llm_answer(s: State) -> State:
+    # Replace with your actual LLM call; this is a placeholder
+    q = s.get("query", "")
+    ctx = s["data"].get("context", "")
+    answer = f"[LLM] Answering '{q}' with context:\n{ctx}"
+    return {"data": {**s["data"], "answer": answer}}
+
+# -------- Build graph --------
+g = StateGraph(State)
+g.add_node("fetch_a", fetch_a)
+g.add_node("fetch_b", fetch_b)
+g.add_node("join", join)
+g.add_node("llm", llm_answer)
+
+# fan-out (parallel tools)
+g.add_edge(START, "fetch_a")
+g.add_edge(START, "fetch_b")
+
+# fan-in then sequential LLM
+g.add_edge("fetch_a", "join")
+g.add_edge("fetch_b", "join")
+g.add_edge("join", "llm")
+g.add_edge("llm", END)
+
+app = g.compile()
+
+# -------- Run (async to enable true parallel I/O) --------
+out = asyncio.run(app.ainvoke({"query": "Summarize findings"}))
+print(out["data"]["answer"])
+# -> [LLM] Answering 'Summarize findings' with context:
+#    From A: {'items': [1, 2, 3]}
+#    From B: {'items': ['x', 'y']}
