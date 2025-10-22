@@ -1,0 +1,64 @@
+from typing import TypedDict, Annotated, List
+import operator
+from langgraph.graph import StateGraph, START, END
+
+# ---------- State ----------
+# `results` uses a reducer so parallel nodes can append safely.
+class State(TypedDict):
+    value: str
+    results: Annotated[List[str], operator.add]  # fan-in list concat
+
+# ---------- Nodes ----------
+def prep(s: State) -> State:
+    # pre work before the parallel step
+    return {"value": s["value"] + "A", "results": []}
+
+def work_b(s: State) -> State:
+    # parallel branch #1
+    return {"results": ["B"]}  # only touch `results` to avoid conflicts
+
+def work_c(s: State) -> State:
+    # parallel branch #2
+    return {"results": ["C"]}
+
+def join(s: State) -> State:
+    # runs once after BOTH B and C finish (fan-in)
+    merged = "".join(sorted(s["results"]))  # e.g., "BC" (order not guaranteed)
+    return {"value": s["value"] + merged}
+
+def step_d(s: State) -> State:
+    # sequential step after join
+    return {"value": s["value"] + "D"}
+
+def step_e(s: State) -> State:
+    # final sequential step
+    return {"value": s["value"] + "E"}
+
+# ---------- Build graph ----------
+g = StateGraph(State)
+g.add_node("prep", prep)
+g.add_node("B", work_b)
+g.add_node("C", work_c)
+g.add_node("join", join)
+g.add_node("D", step_d)
+g.add_node("E", step_e)
+
+# fan-out
+g.add_edge(START, "prep")
+g.add_edge("prep", "B")
+g.add_edge("prep", "C")
+
+# fan-in (both point to 'join'; LangGraph will merge state using the reducer)
+g.add_edge("B", "join")
+g.add_edge("C", "join")
+
+# then continue sequentially
+g.add_edge("join", "D")
+g.add_edge("D", "E")
+g.add_edge("E", END)
+
+app = g.compile()
+
+# ---------- Run ----------
+out = app.invoke({"value": "", "results": []})
+print(out["value"])  # e.g., "ABCDE"
