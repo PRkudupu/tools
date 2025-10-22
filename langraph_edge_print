@@ -1,0 +1,45 @@
+from langgraph.graph import StateGraph, START, END
+
+# State to carry data between nodes
+class State(dict):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self["value"] = kwargs.get("value", 0)
+
+# Node functions with print statements
+def task_a(state: State) -> State:
+    print("Executing Task A: Adding 10 to value")
+    state["value"] += 10
+    return state
+
+def task_b(state: State) -> State:
+    print(f"Executing Task B: Value is {state['value']}")
+    state["value"] *= 2
+    return state
+
+def task_c(state: State) -> State:
+    print(f"Executing Task C: Value is {state['value']}")
+    state["value"] -= 5
+    return state
+
+# Conditional edge function
+def decide_next(state: State) -> str:
+    print(f"Deciding next node: Value is {state['value']}")
+    return "B" if state["value"] > 15 else "C"
+
+# Build the graph
+graph = StateGraph(State)
+graph.add_node("A", task_a)
+graph.add_node("B", task_b)
+graph.add_node("C", task_c)
+
+# Add edges
+graph.add_edge(START, "A")  # Start -> A
+graph.add_conditional_edges("A", decide_next, {"B": "B", "C": "C"})  # A -> B or C based on condition
+graph.add_edge("B", END)  # B -> End
+graph.add_edge("C", END)  # C -> End
+
+# Compile and run
+compiled_graph = graph.compile()
+result = compiled_graph.invoke({"value": 0})
+print(f"Final state: {result}")
