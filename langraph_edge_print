@@ -6,40 +6,18 @@ class State(dict):
         super().__init__(*args, **kwargs)
         self["value"] = kwargs.get("value", "")
 
-# Node functions with simple print statements
+# Node function (simplified)
 def task_a(state: State) -> State:
     print("Task A")
     state["value"] += "a"
     return state
 
-def task_b(state: State) -> State:
-    print("Task B")
-    state["value"] += "b"
-    return state
-
-def task_c(state: State) -> State:
-    print("Task C")
-    state["value"] += "c"
-    return state
-
-# Conditional edge function
-def decide_next(state: State) -> str:
-    print("Deciding next")
-    return "B" if "a" in state["value"] else "C"
-
 # Build the graph
 graph = StateGraph(State)
 graph.add_node("A", task_a)
-graph.add_node("B", task_b)
-graph.add_node("C", task_c)
-
-# Add edges
-graph.add_edge(START, "A")
-graph.add_conditional_edges("A", decide_next, {"B": "B", "C": "C"})
-graph.add_edge("B", END)
-graph.add_edge("C", END)
+graph.add_edge("A", END)
 
 # Compile and run
 compiled_graph = graph.compile()
-result = compiled_graph.invoke({"value": ""})
+result = compiled_graph.invoke({"value": ""})  # Ensure "value" is included
 print(f"Final: {result}")
