@@ -73,3 +73,4 @@ graph = builder.compile()
 # - Use efficient SQL queries to minimize computation time.
 # - Databricks' auto-optimizing query engine helps with performance on Delta tables.
 ```
+%pip install langchain-community
