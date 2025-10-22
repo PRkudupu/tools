@@ -1,76 +1,135 @@
+import os
+from typing import Dict, List, Optional
+from dataclasses import dataclass
+from dotenv import load_dotenv
+from langgraph.graph import StateGraph, END
+from langchain_databricks import ChatDatabricks
+from langchain.schema import AIMessage
+import mlflow
 
-```python
-# Note: This code assumes you have installed the necessary libraries in your Databricks cluster or notebook,
-# such as langchain, langchain-community, langgraph, and pyspark. If using Databricks Model Serving,
-# configure your LLM endpoint accordingly. Replace placeholders like the LLM endpoint and table name as needed.
+# Load environment variables (including DATABRICKS_HOST and DATABRICKS_TOKEN)
+load_dotenv()
 
-from langgraph.graph import START, StateGraph, MessagesState
-from langgraph.prebuilt import ToolNode, tools_condition
-from langchain_community.agent_toolkits import SparkSQLToolkit
-from langchain_community.utilities.spark_sql import SparkSQL
-from langchain_community.chat_models import ChatDatabricks  # Use ChatOpenAI if not using Databricks models
-from langchain_core.messages import HumanMessage, SystemMessage
-from pyspark.sql import SparkSession
-
-# Get the Spark session (already available in Databricks as 'spark')
-spark = SparkSession.builder.getOrCreate()
-
-# Define the schema where your Delta table resides (e.g., 'default' or 'your_catalog.your_schema')
-schema = "default"
-
-# Initialize SparkSQL utility for the schema
-spark_sql = SparkSQL(schema=schema)
-
-# Initialize the LLM (replace with your Databricks serving endpoint or use OpenAI)
+# Initialize Databricks LLM
+# Make sure to set DATABRICKS_HOST and DATABRICKS_TOKEN in your environment
+# Example endpoint: "databricks-meta-llama-3-1-405b-instruct" or your custom endpoint
 llm = ChatDatabricks(
-    endpoint="databricks-meta-llama-3-70b-instruct",  # Example endpoint; replace with yours
+    endpoint="databricks-dbrx-instruct",  # Replace with your actual endpoint name
     temperature=0.1
 )
 
-# Create the Spark SQL toolkit (provides tools like query_sql_database, info_sql_database, etc.)
-toolkit = SparkSQLToolkit(db=spark_sql, llm=llm)
-tools = toolkit.get_tools()
+# Data structures for travel details
+@dataclass
+class TravelRequest:
+    departure_city: str
+    destination_city: str
+    departure_date: str
+    return_date: str
+    passengers: int = 1
 
-# Bind tools to the LLM
-llm_with_tools = llm.bind_tools(tools)
+@dataclass
+class FlightOption:
+    flight_id: str
+    airline: str
+    departure_time: str
+    price: float
 
-# System prompt for the agent
-system_message = SystemMessage(
-    content="You are a helpful assistant that queries Delta tables using SQL tools to retrieve live data. "
-            "Use the provided tools to execute SQL queries on the Delta table for accurate, real-time information. "
-            "Assume the Delta table is named 'my_delta_table' unless specified otherwise."
-)
+@dataclass
+class HotelOption:
+    hotel_id: str
+    name: str
+    rating: float
+    price_per_night: float
 
-# Define the assistant node
-def assistant(state: MessagesState):
-    return {"messages": [llm_with_tools.invoke([system_message] + state["messages"])]}
+# State for the workflow
+class TravelState(dict):
+    request: Optional[TravelRequest]
+    flights: List[FlightOption]
+    hotels: List[HotelOption]
+    messages: List
 
-# Build the LangGraph
-builder = StateGraph(MessagesState)
+# Simplified travel search workflow
+class SimpleTravelSearch:
+    def __init__(self):
+        self.workflow = self._create_workflow()
+    
+    def _create_workflow(self):
+        workflow = StateGraph(TravelState)
+        
+        # Add nodes (steps in the search process)
+        workflow.add_node("parse_request", self.parse_request)
+        workflow.add_node("search_flights_hotels", self.search_flights_hotels)
+        
+        # Define the flow between nodes
+        workflow.set_entry_point("parse_request")
+        workflow.add_edge("parse_request", "search_flights_hotels")
+        workflow.add_edge("search_flights_hotels", END)
+        
+        return workflow.compile()
+    
+    def parse_request(self, state: TravelState) -> TravelState:
+        # Create a sample travel request
+        # Note: In a real scenario, you could use the LLM here to parse natural language input
+        state["request"] = TravelRequest(
+            departure_city="New York",
+            destination_city="London",
+            departure_date="2025-09-15",
+            return_date="2025-09-22",
+            passengers=1
+        )
+        state["messages"] = [AIMessage(content="Parsed travel request")]
+        return state
+    
+    def search_flights_hotels(self, state: TravelState) -> TravelState:
+        # Simulate flight search
+        # Note: You could integrate the LLM to generate or query real data here
+        state["flights"] = [
+            FlightOption("BA123", "British Airways", "08:00", 750.00),
+            FlightOption("VS456", "Virgin Atlantic", "14:15", 680.00)
+        ]
+        
+        # Simulate hotel search
+        state["hotels"] = [
+            HotelOption("HTL001", "London Grand Hotel", 4.5, 180.00),
+            HotelOption("HTL002", "Comfort Suites", 4.0, 150.00)
+        ]
+        
+        # Display results
+        print("\n=== Flight Options ===")
+        for i, flight in enumerate(state["flights"], 1):
+            print(f"{i}. {flight.airline} ({flight.flight_id}) - ${flight.price}")
+        
+        print("\n=== Hotel Options ===")
+        for i, hotel in enumerate(state["hotels"], 1):
+            print(f"{i}. {hotel.name} - {hotel.rating}★ - ${hotel.price_per_night}/night")
+        
+        state["messages"].append(AIMessage(content="Found flights and hotels"))
+        return state
+    
+    def run(self):
+        initial_state = TravelState(
+            request=None,
+            flights=[],
+            hotels=[],
+            messages=[]
+        )
+        return self.workflow.invoke(initial_state)
 
-# Add nodes
-builder.add_node("assistant", assistant)
-builder.add_node("tools", ToolNode(tools))
-
-# Add edges
-builder.add_edge(START, "assistant")
-builder.add_conditional_edges(
-    "assistant",
-    tools_condition  # Routes to 'tools' if tool calls are needed, else to END
-)
-builder.add_edge("tools", "assistant")
-
-# Compile the graph
-graph = builder.compile()
-
-# Example usage: Invoke the graph with a query (this would fetch live data from the Delta table)
-# response = graph.invoke({"messages": [HumanMessage(content="What is the count of rows in my_delta_table?")]})
-# print(response['messages'][-1].content)
-
-# For low latency:
-# - Ensure your Delta table is optimized (e.g., ZORDER, OPTIMIZE commands).
-# - Cache the table if frequently queried: spark.sql("CACHE TABLE my_delta_table")
-# - Use efficient SQL queries to minimize computation time.
-# - Databricks' auto-optimizing query engine helps with performance on Delta tables.
-```
-%pip install langchain-community
+# Run the workflow
+if __name__ == "__main__":
+    print("Starting Travel Search with Databricks LLM and MLflow...")
+    search = SimpleTravelSearch()
+    
+    # Log the workflow to MLflow
+    # Note: In Databricks, MLflow tracking is automatic; outside, set mlflow.set_tracking_uri if needed
+    with mlflow.start_run(run_name="travel_search_workflow"):
+        mlflow.langchain.log_model(
+            lc_model=search.workflow,
+            artifact_path="travel_search_model",
+            input_example={"request": {"departure_city": "NYC", "destination_city": "LON"}},
+            # Add other parameters as needed, e.g., loader_fn if required for non-serializable components
+        )
+        print("Workflow logged to MLflow")
+    
+    search.run()
+    print("\nTravel Search Complete!")
