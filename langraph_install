@@ -1,0 +1,4 @@
+pip uninstall -y langchain langgraph langchain-core langsmith langchain-community langchain-openai langchain-text-splitters
+
+pip install langgraph==0.2.39 langchain-core==0.3.15
+
