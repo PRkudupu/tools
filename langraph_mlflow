@@ -1,0 +1,52 @@
+import mlflow
+from langgraph.graph import StateGraph, START, END
+
+# ---- State ----
+class State(dict):
+    pass
+
+# ---- Nodes ----
+def task_a(s: State) -> State:
+    return {"value": s["value"] + "a", "choose_b": s["choose_b"]}
+
+def task_b(s: State) -> State:
+    return {"value": s["value"] + "->B", "choose_b": s["choose_b"]}
+
+def task_c(s: State) -> State:
+    return {"value": s["value"] + "->C", "choose_b": s["choose_b"]}
+
+def route(s: State) -> str:
+    return "B" if s["choose_b"] else "C"
+
+# ---- Build Graph ----
+graph = StateGraph(State)
+graph.add_node("A", task_a)
+graph.add_node("B", task_b)
+graph.add_node("C", task_c)
+graph.add_edge(START, "A")
+graph.add_conditional_edges("A", route, {"B": "B", "C": "C"})
+graph.add_edge("B", END)
+graph.add_edge("C", END)
+
+app = graph.compile()
+
+# ---- Run with MLflow ----
+mlflow.set_experiment("LangGraphDemo")
+
+with mlflow.start_run():
+    input_state = {"value": "", "choose_b": True}
+    result = app.invoke(input_state)
+    mlflow.log_param("choose_b", input_state["choose_b"])
+    mlflow.log_metric("value_length", len(result["value"]))
+    mlflow.log_text(result["value"], "output.txt")
+
+    print("Run 1:", result["value"])
+
+with mlflow.start_run():
+    input_state = {"value": "", "choose_b": False}
+    result = app.invoke(input_state)
+    mlflow.log_param("choose_b", input_state["choose_b"])
+    mlflow.log_metric("value_length", len(result["value"]))
+    mlflow.log_text(result["value"], "output.txt")
+
+    print("Run 2:", result["value"])
