@@ -50,3 +50,18 @@ response = requests.post(url, headers=headers, json=payload)
 print(response.status_code)
 print(response.json())
 
+
+
+-- register the model
+with mlflow.start_run() as run:
+    mlflow.pyfunc.log_model(
+        artifact_path="model",
+        python_model=GraphModel(),
+        pip_requirements=["mlflow", "langgraph"]
+    )
+    model_uri = f"runs:/{run.info.run_id}/model"
+    print("Logged model:", model_uri)
+
+registered = mlflow.register_model(model_uri, "main.default.site_agent")
+print("Registered model version:", registered.version)
+
