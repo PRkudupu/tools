@@ -15,3 +15,7 @@ with mlflow.start_run():
         python_model=GraphModel(),
         pip_requirements=["mlflow", "langgraph"]
     )
+curl -X POST "$DATABRICKS_HOST/serving-endpoints/site-agent/invocations" \
+  -H "Authorization: Bearer $DATABRICKS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"inputs": [{"dataframe_records": [{"site_id": "123"}]}]}'
