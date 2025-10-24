@@ -19,3 +19,34 @@ curl -X POST "$DATABRICKS_HOST/serving-endpoints/site-agent/invocations" \
   -H "Authorization: Bearer $DATABRICKS_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"inputs": [{"dataframe_records": [{"site_id": "123"}]}]}'
+
+-- databricks test
+import requests
+import os
+
+# --- Set your credentials ---
+DATABRICKS_HOST = "https://adb-xxxxxxxxxxxxx.azuredatabricks.net"   # replace with your workspace URL
+DATABRICKS_TOKEN = "dapi_your_generated_token"                       # your personal access token
+ENDPOINT_NAME = "site-agent"                                         # your serving endpoint name
+
+# --- Build request ---
+url = f"{DATABRICKS_HOST}/serving-endpoints/{ENDPOINT_NAME}/invocations"
+headers = {
+    "Authorization": f"Bearer {DATABRICKS_TOKEN}",
+    "Content-Type": "application/json"
+}
+payload = {
+    "inputs": [
+        {"dataframe_records": [
+            {"site_id": "123", "question": "How is performance today?"}
+        ]}
+    ]
+}
+
+# --- Call endpoint ---
+response = requests.post(url, headers=headers, json=payload)
+
+# --- Print result ---
+print(response.status_code)
+print(response.json())
+
