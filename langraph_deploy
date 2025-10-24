@@ -118,3 +118,28 @@ class SiteAgentPyFunc(mlflow.pyfunc.PythonModel):
         graph = build_graph(state)
         out = graph.invoke(state)
         return pd.DataFrame([{"site_id": site_id, "result": out}])
+
+-- LOG AND AUTO REGISTER
+registered_name = "site_agent"  # or "main.default.site_agent" if using Unity Catalog
+
+mlflow.set_experiment("/Shared/site_agent_exp")
+
+with mlflow.start_run():
+    mlflow.pyfunc.log_model(
+        artifact_path="model",
+        python_model=SiteAgentPyFunc(),
+        registered_model_name=registered_name,   # auto-registers
+    )
+-- QUICK VALIDATION
+import pandas as pd, mlflow
+
+m = mlflow.pyfunc.load_model(f"models:/{registered_name}/latest")
+
+messages = [
+    {"role": "system", "content": "You are a helpful assistant."},
+    {"role": "user", "content": "My site_id is 8391413. Please fetch analytics."}
+]
+df = pd.DataFrame([{"messages": messages}])
+
+m.predict(df)
+
