@@ -65,3 +65,56 @@ with mlflow.start_run() as run:
 registered = mlflow.register_model(model_uri, "main.default.site_agent")
 print("Registered model version:", registered.version)
 
+--- Lateset 
+import re
+import pandas as pd
+import mlflow
+
+# --- your existing graph code is assumed available ---
+# def build_graph(state): ... returns compiled graph that uses state["site_id"]
+
+def _extract_site_id(messages):
+    """
+    Look for an explicit JSON-like key or any 5+ digit number
+    in the most recent human message.
+    Supports: 'site_id: 8391413', '{"site_id": 8391413}', or just '8391413'.
+    """
+    # pick the last human/user message
+    user_msgs = [m for m in messages if m.get("role") in {"user", "human"}]
+    if not user_msgs:
+        raise ValueError("No human message found to read site_id.")
+
+    text = str(user_msgs[-1].get("content", ""))
+    # explicit key
+    m = re.search(r'"?site[_\s-]*id"?\s*[:=]\s*"?(\d+)"?', text, flags=re.I)
+    if m:
+        return int(m.group(1))
+
+    # bare number with 5+ digits
+    m = re.search(r'\b(\d{5,})\b', text)
+    if m:
+        return int(m.group(1))
+
+    raise ValueError("Could not parse site_id from the human message.")
+
+class SiteAgentPyFunc(mlflow.pyfunc.PythonModel):
+    def predict(self, context, model_input: pd.DataFrame):
+        """
+        Expects a DataFrame with one row and a column 'messages' (list of {role, content}).
+        We parse site_id from the latest human message, build initial state,
+        run your graph, and return the result.
+        """
+        messages = model_input.iloc[0]["messages"]
+        site_id = _extract_site_id(messages)
+
+        state = {
+            "site_id": site_id,
+            "analytic_data": {},
+            "sf_feed": "",
+            "messages": messages,
+            "error": None,
+        }
+
+        graph = build_graph(state)
+        out = graph.invoke(state)
+        return pd.DataFrame([{"site_id": site_id, "result": out}])
