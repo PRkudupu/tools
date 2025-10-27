@@ -1,0 +1,24 @@
+state = SiteState({
+    "site_id": "",  # Initialize site_id as empty string
+    "analytic_data": {},
+    "sf_feed": "",
+    "messages": [
+        {"role": "system", "content": "You are a helpful assistant."},
+    ],
+    "error": None
+})
+
+# Capture user input and add it as a new message
+user_input = input("Please enter the Site ID: ").strip()  # Get input from user
+state["messages"].append({"role": "user", "content": user_input})  # Add to messages
+
+# Fetch site_id from the latest user message
+site_id = ""
+for message in reversed(state.get("messages", [])):
+    if message.get("role") == "user":
+        site_id = message.get("content", "").strip()
+        break
+
+state["site_id"] = site_id  # Update state with the extracted site_id
+
+build_graph(state)  # Proceed with the updated state
