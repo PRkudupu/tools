@@ -1,0 +1,36 @@
+from langgraph.graph import StateGraph, START, END
+# assume you already have: get_analytic_data, getLiveData, call_llm
+
+def build_graph(state: dict):
+    """
+    If no site_id/number is present in `state`, route straight to LLM.
+    Otherwise, fetch analytics & live data in parallel, then call LLM.
+    """
+    if not str(state.get("site_id", "")).strip():
+        # Minimal graph: START -> call_llm -> END
+        wf = StateGraph(dict)
+        wf.add_node("call_llm", call_llm)
+        wf.add_edge(START, "call_llm")
+        wf.add_edge("call_llm", END)
+        graph = wf.compile()
+        print(graph.invoke(state))   # or: return graph.invoke(state)
+        return graph
+
+    # ---- Full graph when site_id is available
+    wf = StateGraph(dict)
+    wf.add_node("get_analytic_data", get_analytic_data)
+    wf.add_node("getLiveData", getLiveData)
+    wf.add_node("call_llm", call_llm)
+
+    # fan-out from START (parallel)
+    wf.add_edge(START, "get_analytic_data")
+    wf.add_edge(START, "getLiveData")
+
+    # converge to LLM
+    wf.add_edge("getLiveData", "call_llm")
+    wf.add_edge("get_analytic_data", "call_llm")
+    wf.add_edge("call_llm", END)
+
+    graph = wf.compile()
+    print(graph.invoke(state))       # or: return graph.invoke(state)
+    return graph
