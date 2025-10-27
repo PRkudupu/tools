@@ -1,0 +1,36 @@
+import re
+
+state = SiteState({
+    "site_id": "",  # Initialize site_id as empty string
+    "analytic_data": {},
+    "sf_feed": "",
+    "messages": [
+        {"role": "system", "content": "You are a helpful assistant."},
+    ],
+    "error": None
+})
+
+# Capture user input and add it as a new message
+user_input = input("Please enter the Site ID: ").strip()  # Get input from user
+state["messages"].append({"role": "user", "content": user_input})  # Add to messages
+
+# Fetch site_id from the latest user message using regex
+site_id = ""
+for message in reversed(state.get("messages", [])):
+    if message.get("role") == "user":
+        # Look for a sequence of digits, prioritizing numbers near 'site_id' or 'site' if present
+        site_id_match = re.search(r'(?:site_id|site)\s*(\d+)|(\d+)', message.get("content", ""))
+        if site_id_match:
+            # Prefer the number after 'site_id' or 'site' if found, otherwise take any number
+            site_id = site_id_match.group(1) if site_id_match.group(1) else site_id_match.group(2)
+        break
+
+# Validate that site_id is a number
+if site_id and not site_id.isdigit():
+    state["error"] = "Site ID was not right"
+elif not site_id:  # If no valid site_id is found
+    state["error"] = "No information was found about this site"
+else:
+    state["site_id"] = site_id  # Update state with the extracted site_id
+
+build_graph(state)  # Proceed with the updated state
