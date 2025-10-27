@@ -1,0 +1,21 @@
+site_id = state.get("site_id", "")
+
+# Extract site ID from user input (any number)
+user_input = ""
+for m in reversed(state.get("messages", [])):
+    if isinstance(m, HumanMessage):
+        user_input = m.content
+        break
+
+# Check if user_input contains a number
+import re
+site_id_match = re.search(r'\b\d+\b', user_input)
+if site_id_match:
+    site_id = site_id_match.group(0)
+
+# Proceed with the rest of the logic using the validated site_id
+values = {...}
+prompt = ChatPromptTemplate.from_messages([...])
+formatted = prompt.format_messages(**values)
+response = llm.invoke(formatted)
+return {"messages": state.get("messages", []) + [response]}
