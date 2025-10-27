@@ -1,0 +1,54 @@
+import re
+
+def extract_site_id(messages):
+    """
+    Prefer a number that appears after 'site_id' or 'site'.
+    Falls back to a bare number only if it's the whole message.
+    Returns None if nothing usable is found.
+    """
+    key_pat = re.compile(r"\b(?:site[_\s-]*id|site)\b\D*?(\d{2,})", re.I)
+    bare_pat = re.compile(r"^\s*(\d{2,})\s*$")
+
+    for msg in reversed(messages):
+        if msg.get("role") != "user":
+            continue
+        text = msg.get("content", "")
+        m = key_pat.search(text)
+        if m:
+            return m.group(1)
+        # fallback: message is just a number like "12345"
+        m2 = bare_pat.search(text)
+        if m2:
+            return m2.group(1)
+    return None
+
+def call_llm(prompt):
+    """
+    Replace this with your LLM call (Databricks endpoint, OpenAI, etc.).
+    Keep the signature simple: input prompt -> print/return response.
+    """
+    # TODO: plug in your real LLM call
+    print("[LLM] No site specified. Responding directly to the user prompt:")
+    print(prompt)
+    return {"reply": "…llm output here…"}
+
+def main():
+    state = {"messages": []}
+
+    user_input = input("Please enter the Site ID (or just ask your question): ").strip()
+    state["messages"].append({"role": "user", "content": user_input})
+
+    site_id = extract_site_id(state["messages"])
+
+    if not site_id:
+        # No site or number found → call LLM directly and exit
+        call_llm(user_input)
+        return
+
+    # Otherwise continue your normal site-specific flow
+    state["site_id"] = site_id
+    print(f"Proceeding with site_id={state['site_id']}")
+    build_graph(state)  # uses site_id in state
+
+if __name__ == "__main__":
+    main()
