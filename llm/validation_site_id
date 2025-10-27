@@ -1,0 +1,34 @@
+import sys
+import re
+
+def extract_site_id(messages):
+    # prefer number appearing after "site_id" or "site"
+    for msg in reversed(messages):
+        if msg.get("role") == "user":
+            m = re.search(r'(?:site_id|site)\s*(\d+)|(\d+)', msg.get("content",""))
+            if m:
+                return m.group(1) or m.group(2)
+    return ""
+
+def validate_or_exit(site_id, state):
+    if not site_id or not site_id.isdigit():
+        state["error"] = "Invalid site_id. Stopping execution."
+        print(state["error"])
+        sys.exit(1)  # <-- hard stop
+    state["site_id"] = site_id
+
+# --- usage ---
+state = {
+    "site_id": "",
+    "messages": [{"role":"system","content":"You are a helpful assistant."}],
+    "error": None,
+}
+
+user_input = input("Please enter the Site ID: ").strip()
+state["messages"].append({"role":"user","content":user_input})
+
+site_id = extract_site_id(state["messages"])
+validate_or_exit(site_id, state)   # will exit here if invalid
+
+# continue only if valid...
+print(f"Proceeding with site_id={state['site_id']}")
