@@ -1,0 +1,8 @@
+-- pick the catalog first
+USE CATALOG `industrial-data-science`;  -- or your catalog
+-- see *your effective* privileges on the schema
+SELECT privilege_type
+FROM system.information_schema.schema_privileges
+WHERE catalog_name = 'industrial-data-science'
+  AND schema_name  = 'cbt'                 -- your schema
+  AND grantee      = current_user();
