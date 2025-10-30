@@ -1,0 +1,40 @@
+import pandas as pd
+import mlflow
+from mlflow.models.signature import infer_signature
+
+# ----- Registry target & names -----
+mlflow.set_registry_uri("databricks-uc")
+MODEL_NAME = "custbrief_serving_endpoint"
+REGISTERED_NAME = f"industrial-data-science.cbt.{MODEL_NAME}"
+
+# ----- Build input/output examples for signature -----
+# Make these match your predict(input_df) contract.
+# If your predict expects a DataFrame with a 'messages' column (list[str]) and
+# returns a single 'text' string, do this:
+input_example = pd.DataFrame([{
+    "messages": ["Create a 90-second pre-call brief for this site."]
+}])
+
+example_output = pd.DataFrame([{
+    "text": "Here is a concise 90-second pre-call brief ..."
+}])
+
+signature = infer_signature(model_input=input_example, model_output=example_output)
+
+# ----- Log the model -----
+with mlflow.start_run(run_name="customerBriefModelRun") as run:
+    model_info = mlflow.pyfunc.log_model(
+        artifact_path="graph",
+        # Your custom module must implement an mlflow.pyfunc.PythonModel
+        # (or call mlflow.models.set_model() during import, if that's your design).
+        loader_module="langgraph_app",
+        pip_requirements=[
+            f"mlflow=={mlflow.__version__}",
+            "langgraph>=0.2.0",
+        ],
+        input_example=input_example,
+        signature=signature,
+        registered_model_name=REGISTERED_NAME,
+    )
+
+print("Logged model URI:", model_info.model_uri)
