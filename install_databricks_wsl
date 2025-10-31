@@ -1,0 +1,25 @@
+# --- Update system ---
+sudo apt update && sudo apt install -y curl unzip ca-certificates bash-completion
+
+# --- Remove old Python-based CLI (if exists) ---
+pipx uninstall databricks-cli 2>/dev/null || true
+pip uninstall -y databricks-cli 2>/dev/null || true
+sudo rm -f /usr/local/bin/databricks
+
+# --- Install latest Go-based Databricks CLI ---
+curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sudo sh
+
+# --- Verify installation ---
+databricks -v
+
+# --- Enable bash autocompletion ---
+databricks completion bash | sudo tee /etc/bash_completion.d/databricks >/dev/null
+exec $SHELL
+
+# --- Authenticate (choose one) ---
+# Option 1: OAuth login (recommended for Azure)
+# az login
+# databricks auth login --host https://adb-<workspace-id>.<region>.azuredatabricks.net
+
+# Option 2: Personal Access Token (legacy)
+# databricks configure --profile DEFAULT
