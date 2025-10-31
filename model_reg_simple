@@ -1,0 +1,21 @@
+# === MINIMAL: Create & Register Model with MLflow in Databricks ===
+
+import mlflow
+from sklearn.linear_model import LogisticRegression
+import numpy as np
+
+# --- 1. Create a simple model ---
+X = np.array([[1], [2], [3], [4]])
+y = np.array([0, 0, 1, 1])
+model = LogisticRegression().fit(X, y)
+
+# --- 2. Log & Register (Unity Catalog) ---
+mlflow.set_experiment("/Users/your@email.com/simple-model-exp")  # Change email
+
+with mlflow.start_run():
+    mlflow.sklearn.log_model(model, "model")
+    model_uri = mlflow.get_artifact_uri("model")
+    
+    # Register in UC (catalog.schema.name)
+    registered = mlflow.register_model(model_uri, "main.default.simple_logreg")
+    print(f"Registered: {registered.name} v{registered.version}")
