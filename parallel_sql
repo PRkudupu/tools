@@ -94,3 +94,14 @@ def process_queries(q: Dict[str, str], state: Dict[str, Any]) -> Dict[str, Any]:
 # state = {"analytic_data": {}, "system_message": ""}
 # q = {"query1": "SELECT * FROM table LIMIT 10", "query2": "SELECT count(*) FROM table"}
 # state = process_queries(q, state)
+
+
+
+What each piece means:
+
+ThreadPoolExecutor(...): spins up a pool of worker threads. max_workers is the smaller of 32 and the number of queries (len(q)), with a floor of 1.
+pool.submit(func, ...): schedules execute_query(name, job) to run in a worker thread and returns a Future (a handle to the pending result).
+futures = [...]: a list of all those Future objects.
+as_completed(futures): iterates futures as they finish, fastest first.
+fut.result(): blocks until that task is done and returns its value; if the task raised, this re-raises the exception here.
+analytic_data[name] = result: builds a dictionary of all query outputs keyed by their names.
