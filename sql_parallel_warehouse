@@ -1,51 +1,77 @@
+# 1) imports & simple config
+from databricks.sdk import WorkspaceClient
+from databricks.sdk.service.sql import StatementState
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Dict, List, Any
-import sql_connect  # assuming this is your custom module
+import os, time
+from typing import Dict, Any, List, Tuple
 
-# --- Helper function ---
-def execute_query(name: str, query: str) -> tuple[str, List[Dict[str, Any]]]:
+# REQUIRED: set this to your warehouse id (or store in a secret/env var)
+WAREHOUSE_ID = os.getenv("DATABRICKS_WAREHOUSE_ID") or "PUT-YOUR-WAREHOUSE-ID-HERE"
+CATALOG = os.getenv("CATALOG", "industrial-data-science")
+SCHEMA  = os.getenv("SCHEMA",  "cbt")
+
+w = WorkspaceClient()  # uses notebook auth or DATABRICKS_HOST/TOKEN if provided
+
+# 2) small helpers
+def _wait(statement_id: str, interval: float = 0.25):
+    h = w.statement_execution.get_statement(statement_id=statement_id)
+    while h.status.state in (StatementState.PENDING, StatementState.RUNNING):
+        time.sleep(interval)
+        h = w.statement_execution.get_statement(statement_id=statement_id)
+    return h
+
+def _fetch_all(h) -> Tuple[List[str], List[List[Any]]]:
+    cols = [c.name for c in (h.result.manifest.columns or [])]
+    rows = h.result.data_array or []
+    idx = 1
+    while h.result and h.result.next_chunk_internal_link:
+        chunk = w.statement_execution.get_statement_result_chunk_n(
+            statement_id=h.statement_id, chunk_index=idx
+        )
+        rows.extend(chunk.data_array or [])
+        idx += 1
+    return cols, rows
+
+def _run_one(name: str, sql_text: str, params: Dict[str, Any] | None = None):
     try:
-        with sql_connect.connect(
-            server_hostname=sql_connect.SERVER_HOSTNAME,
-            http_path=sql_connect.HTTP_PATH,
-            access_token=sql_connect.ACCESS_TOKEN
-        ) as conn:
-            with conn.cursor() as cur:
-                # Set session to correct catalog/schema
-                cur.execute(f"USE CATALOG `{sql_connect.CATALOG}`")
-                cur.execute(f"USE `{sql_connect.SCHEMA}`")
-                cur.execute(query)
-                rows = cur.fetchall()
-                # Convert to list of dicts with column names
-                cols = [d[0] for d in cur.description]
-                result = [dict(zip(cols, r)) for r in rows]
-                return name, result
+        handle = w.statement_execution.execute_statement(
+            warehouse_id=WAREHOUSE_ID,
+            catalog=CATALOG,
+            schema=SCHEMA,
+            statement=sql_text,
+            parameters=[{"name": k, "value": v} for k, v in (params or {}).items()],
+            disposition="INLINE",
+            wait_timeout="0s",
+        )
+        handle = _wait(handle.statement_id)
+        if handle.status.state != StatementState.SUCCEEDED:
+            return name, {"error": f"{handle.status.state}: {handle.status.error}"}
+        cols, data = _fetch_all(handle)
+        return name, [dict(zip(cols, r)) for r in data]
     except Exception as e:
         return name, {"error": str(e)}
 
-# --- Main parallel execution ---
-def run_queries_in_parallel(queries: Dict[str, str]) -> Dict[str, Any]:
-    analytic_data: Dict[str, Any] = {}
-    max_workers = min(8, len(queries))  # Respect warehouse concurrency limits
-
+# 3) public function you’ll call
+def run_queries_in_parallel(queries: Dict[str, str], params: Dict[str, Any] | None = None, max_workers: int | None = None):
+    if not WAREHOUSE_ID or WAREHOUSE_ID.startswith("PUT-"):
+        raise ValueError("Set DATABRICKS_WAREHOUSE_ID to your SQL Warehouse id.")
+    if max_workers is None:
+        max_workers = min(8, len(queries))
+    results: Dict[str, Any] = {}
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
-        # Submit all queries
-        futures = [
-            pool.submit(execute_query, name, query)
-            for name, query in queries.items()
-        ]
-        # Collect results as they complete
-        for future in as_completed(futures):
-            name, result = future.result()
-            analytic_data[name] = result
+        futs = [pool.submit(_run_one, name, sql_text, params) for name, sql_text in queries.items()]
+        for f in as_completed(futs):
+            name, value = f.result()
+            results[name] = value
+    return results
 
-    state = {"analytic_data": analytic_data}
-    print("Analytic data:", analytic_data)
-    return state
+# 4) example usage (adapt to your state dict)
+site_id = "ABC123"
+queries = {
+    "site_account_mapping":  "SELECT * FROM cbt.site_account_mapping WHERE siteid = :site_id",
+    "mpl_spl_penetration":   "SELECT * FROM cbt.mpl_spl_penetration  WHERE siteid = :site_id",
+}
+params = {"site_id": site_id}
 
-# --- Example usage ---
-# queries = {
-#     "sales_summary": "SELECT region, SUM(amount) FROM sales GROUP BY region",
-#     "user_growth": "SELECT DATE_TRUNC('month', created_at) AS month, COUNT(*) FROM users GROUP BY 1"
-# }
-# state = run_queries_in_parallel(queries)
+data = run_queries_in_parallel(queries, params=params)
+print({k: (len(v) if isinstance(v, list) else v) for k, v in data.items()})  # shows row counts per query
