@@ -1,0 +1,23 @@
+from databricks import sql
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+HOST = "<workspace-host>"
+WAREHOUSE = "<sql-warehouse-http-path>"
+TOKEN = "<token>"
+
+def run_query(name, sql_text, params=()):
+    with sql.connect(server_hostname=HOST, http_path=WAREHOUSE, access_token=TOKEN) as c:
+        with c.cursor() as cur:
+            cur.execute(sql_text, params)
+            rows = cur.fetchall()
+            return name, [dict(zip([d[0] for d in cur.description], r)) for r in rows]
+
+queries = {...}  # dict[name] = ("SELECT ... WHERE site_id = ?", (site_id,))
+max_workers = min(8, len(queries))
+
+results = {}
+with ThreadPoolExecutor(max_workers=max_workers) as pool:
+    futures = [pool.submit(run_query, n, q[0], q[1]) for n, q in queries.items()]
+    for f in as_completed(futures):
+        n, rows = f.result()
+        results[n] = rows
