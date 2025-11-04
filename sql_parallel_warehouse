@@ -1,23 +1,88 @@
-from databricks import sql
+# --------------------------------------------------------------
+# 1. CONFIGURATION (same values you already have)
+# --------------------------------------------------------------
+HOST      = "adb-1355704782079007.7.azuredatabricks.net"   # <-- Synapse server
+WAREHOUSE = "sql/1.0/warehouses/aabc3a9405a7c8961"        # <-- not used for ODBC
+TOKEN     = "dapic6854bd4f0c39e91b51999a2efd8b6f1-3"     # <-- AAD token
+SCHEMA    = "dbo"                                         # <-- change if needed
+SITE_ID   = 12345                                         # <-- YOUR site_id
+
+# --------------------------------------------------------------
+# 2. One-time connection string builder (Databricks secret scope optional)
+# --------------------------------------------------------------
+def _synapse_conn_str() -> str:
+    """
+    Returns a pyodbc connection string that works inside Databricks.
+    The token is passed as `UID=token:<token>`.
+    """
+    return (
+        f"Driver={{ODBC Driver 17 for SQL Server}};"
+        f"Server=tcp:{HOST},1433;"
+        f"Database=YourDatabaseName;"   # <-- **replace** with the actual DB name
+        f"UID=token:{TOKEN};"
+        f"Encrypt=yes;"
+        f"TrustServerCertificate=no;"
+        f"Connection Timeout=30;"
+    )
+
+# --------------------------------------------------------------
+# 3. Query runner – pure T-SQL, returns list[dict]
+# --------------------------------------------------------------
+def run_synapse_query(name: str, sql: str, params: dict | None = None) -> list[dict]:
+    import pyodbc
+    params = params or {}
+    conn_str = _synapse_conn_str()
+    with pyodbc.connect(conn_str, autocommit=True) as conn:
+        with conn.cursor() as cur:
+            # pyodbc uses ? placeholders; we replace named :params ourselves
+            if params:
+                placeholders = ",".join(["?"] * len(params))
+                sql = sql.replace(":site_id", "?")   # simple case – add more if needed
+                cur.execute(sql, *params.values())
+            else:
+                cur.execute(sql)
+            columns = [col[0] for col in cur.description]
+            rows = cur.fetchall()
+            return [dict(zip(columns, row)) for row in rows]
+
+# --------------------------------------------------------------
+# 4. Query catalogue (T-SQL, use ? for parameters)
+# --------------------------------------------------------------
+queries = {
+    "site_account_mapping":    f"SELECT * FROM {SCHEMA}.SITE_ACCOUNT_MAPPING WHERE site_id = ?",
+    "mpl_spl_penetration":     f"SELECT * FROM {SCHEMA}.MPL_SPL_PENETRATION WHERE site_id = ?",
+    "last_interaction":        f"SELECT * FROM {SCHEMA}.LAST_INTERACTION WHERE site_id = ?",
+    "solution_price_change":   f"SELECT * FROM {SCHEMA}.SOLUTION_PRICE_CHANGE WHERE site_id = ?",
+    "sales_wrt_last_year":     f"SELECT * FROM {SCHEMA}.SALES_WRT_LAST_YEAR WHERE site_id = ?",
+    "pending_services":        f"SELECT * FROM {SCHEMA}.PENDING_SERVICES WHERE site_id = ?",
+    "percentage_solution_sales_change": f"SELECT * FROM {SCHEMA}.PERCENTAGE_SOLUTION_SALES_CHANGE WHERE site_id = ?",
+    "asset_location":          f"SELECT * FROM {SCHEMA}.ASSET_LOCATION WHERE site_id = ?",
+    "sales_info_mtd":          f"SELECT * FROM {SCHEMA}.SALES_INFO_MTD WHERE site_id = ?",
+    "sales_info_ytd_r12":      f"SELECT * FROM {SCHEMA}.SALES_INFO_YTD_R12 WHERE site_id = ?",
+}
+
+# --------------------------------------------------------------
+# 5. Parallel execution (Databricks ThreadPoolExecutor)
+# --------------------------------------------------------------
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-HOST = "<workspace-host>"
-WAREHOUSE = "<sql-warehouse-http-path>"
-TOKEN = "<token>"
-
-def run_query(name, sql_text, params=()):
-    with sql.connect(server_hostname=HOST, http_path=WAREHOUSE, access_token=TOKEN) as c:
-        with c.cursor() as cur:
-            cur.execute(sql_text, params)
-            rows = cur.fetchall()
-            return name, [dict(zip([d[0] for d in cur.description], r)) for r in rows]
-
-queries = {...}  # dict[name] = ("SELECT ... WHERE site_id = ?", (site_id,))
 max_workers = min(8, len(queries))
-
 results = {}
+
 with ThreadPoolExecutor(max_workers=max_workers) as pool:
-    futures = [pool.submit(run_query, n, q[0], q[1]) for n, q in queries.items()]
-    for f in as_completed(futures):
-        n, rows = f.result()
-        results[n] = rows
+    future_to_name = {
+        pool.submit(run_synapse_query, name, sql, {"site_id": SITE_ID}): name
+        for name, sql in queries.items()
+    }
+    for future in as_completed(future_to_name):
+        name = future_to_name[future]
+        try:
+            results[name] = future.result()
+        except Exception as e:
+            results[name] = []
+            print(f"Query '{name}' failed: {e}")
+
+# --------------------------------------------------------------
+# 6. Example: inspect one result
+# --------------------------------------------------------------
+display(results["site_account_mapping"][:5])   # works in Databricks notebooks
