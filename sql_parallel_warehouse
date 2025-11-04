@@ -1,53 +1,51 @@
-from databricks import sql
 from concurrent.futures import ThreadPoolExecutor, as_completed
-import os
+from typing import Dict, List, Any
+import sql_connect  # assuming this is your custom module
 
-def site_analytics(state: dict) -> dict:
-    # ---- inputs / defaults
-    site_id = state.get("siteid", "")
-    catalog = state.get("catalog", "industrial-data-science")
-    schema  = state.get("schema", "cbt")
+# --- Helper function ---
+def execute_query(name: str, query: str) -> tuple[str, List[Dict[str, Any]]]:
+    try:
+        with sql_connect.connect(
+            server_hostname=sql_connect.SERVER_HOSTNAME,
+            http_path=sql_connect.HTTP_PATH,
+            access_token=sql_connect.ACCESS_TOKEN
+        ) as conn:
+            with conn.cursor() as cur:
+                # Set session to correct catalog/schema
+                cur.execute(f"USE CATALOG `{sql_connect.CATALOG}`")
+                cur.execute(f"USE `{sql_connect.SCHEMA}`")
+                cur.execute(query)
+                rows = cur.fetchall()
+                # Convert to list of dicts with column names
+                cols = [d[0] for d in cur.description]
+                result = [dict(zip(cols, r)) for r in rows]
+                return name, result
+    except Exception as e:
+        return name, {"error": str(e)}
 
-    # ---- SQL Warehouse creds (store these in a secret scope or env vars)
-    SERVER_HOSTNAME = os.getenv("DATABRICKS_HOST")          # e.g. "adb-1234567890123456.7.azuredatabricks.net"
-    HTTP_PATH       = os.getenv("DATABRICKS_WAREHOUSE_PATH")# e.g. "/sql/1.0/warehouses/ab12c3d4e5f6g7h8"
-    ACCESS_TOKEN    = os.getenv("DATABRICKS_TOKEN")         # PAT or use OAuth
+# --- Main parallel execution ---
+def run_queries_in_parallel(queries: Dict[str, str]) -> Dict[str, Any]:
+    analytic_data: Dict[str, Any] = {}
+    max_workers = min(8, len(queries))  # Respect warehouse concurrency limits
 
-    # ---- all queries you want to run
-    q = {
-        "site_account_mapping":
-            f"SELECT * FROM {catalog}.{schema}.site_account_mapping WHERE siteid = '{site_id}'",
-        "mpl_spl_penetration":
-            f"SELECT * FROM {catalog}.{schema}.mpl_spl_penetration WHERE siteid = '{site_id}'",
-    }
-
-    # ---- helper: run a single query on the warehouse
-    def execute_query(name: str, query: str):
-        try:
-            with sql.connect(server_hostname=SERVER_HOSTNAME,
-                             http_path=HTTP_PATH,
-                             access_token=ACCESS_TOKEN) as conn:
-                with conn.cursor() as cur:
-                    # set session to correct catalog/schema
-                    cur.execute(f"USE CATALOG {catalog}")
-                    cur.execute(f"USE {schema}")
-                    cur.execute(query)
-                    rows = cur.fetchall()
-                    # rows are tuples; convert to list of dicts with column names
-                    cols = [d[0] for d in cur.description]
-                    result = [dict(zip(cols, r)) for r in rows]
-                    return name, result
-        except Exception as e:
-            return name, {"error": str(e)}
-
-    # ---- run in parallel (mind your warehouse concurrency limits)
-    analytic_data = {}
-    max_workers = min(8, len(q))  # keep this ≤ your warehouse concurrent query capacity
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
-        futures = [pool.submit(execute_query, name, query) for name, query in q.items()]
-        for fut in as_completed(futures):
-            name, result = fut.result()
+        # Submit all queries
+        futures = [
+            pool.submit(execute_query, name, query)
+            for name, query in queries.items()
+        ]
+        # Collect results as they complete
+        for future in as_completed(futures):
+            name, result = future.result()
             analytic_data[name] = result
 
-    state["analytic_data"] = analytic_data
+    state = {"analytic_data": analytic_data}
+    print("Analytic data:", analytic_data)
     return state
+
+# --- Example usage ---
+# queries = {
+#     "sales_summary": "SELECT region, SUM(amount) FROM sales GROUP BY region",
+#     "user_growth": "SELECT DATE_TRUNC('month', created_at) AS month, COUNT(*) FROM users GROUP BY 1"
+# }
+# state = run_queries_in_parallel(queries)
