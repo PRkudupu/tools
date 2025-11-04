@@ -1,77 +1,134 @@
-# 1) imports & simple config
-from databricks.sdk import WorkspaceClient
-from databricks.sdk.service.sql import StatementState
+import os
+import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-import os, time
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any
+import pyspark.sql.functions as F  # For potential Spark DataFrame ops post-query
+from pyspark.sql import SparkSession
 
-# REQUIRED: set this to your warehouse id (or store in a secret/env var)
-WAREHOUSE_ID = os.getenv("DATABRICKS_WAREHOUSE_ID") or "PUT-YOUR-WAREHOUSE-ID-HERE"
-CATALOG = os.getenv("CATALOG", "industrial-data-science")
-SCHEMA  = os.getenv("SCHEMA",  "cbt")
+# Optional: For direct SQL Warehouse integration (install via %pip install databricks-sql-connector)
+try:
+    from databricks import sql
+    SQL_WAREHOUSE_ENABLED = True
+except ImportError:
+    SQL_WAREHOUSE_ENABLED = False
+    logging.warning("databricks-sql-connector not available; falling back to spark.sql()")
 
-w = WorkspaceClient()  # uses notebook auth or DATABRICKS_HOST/TOKEN if provided
+# MLOps: Enable MLflow for logging (Databricks auto-configures)
+import mlflow
 
-# 2) small helpers
-def _wait(statement_id: str, interval: float = 0.25):
-    h = w.statement_execution.get_statement(statement_id=statement_id)
-    while h.status.state in (StatementState.PENDING, StatementState.RUNNING):
-        time.sleep(interval)
-        h = w.statement_execution.get_statement(statement_id=statement_id)
-    return h
+# Set active catalog in Spark SQL (Databricks Unity Catalog)
+spark = SparkSession.builder.getOrCreate()
+spark.sql("USE CATALOG industrial-data-science")
 
-def _fetch_all(h) -> Tuple[List[str], List[List[Any]]]:
-    cols = [c.name for c in (h.result.manifest.columns or [])]
-    rows = h.result.data_array or []
-    idx = 1
-    while h.result and h.result.next_chunk_internal_link:
-        chunk = w.statement_execution.get_statement_result_chunk_n(
-            statement_id=h.statement_id, chunk_index=idx
-        )
-        rows.extend(chunk.data_array or [])
-        idx += 1
-    return cols, rows
+# Define SQL queries for various analytic tables, filtered by site ID
+def get_queries(site_id: str) -> Dict[str, str]:
+    return {
+        "site_account_mapping": f"SELECT * FROM cbt.site_account_mapping WHERE siteid='{site_id}'",  # Site account mapping data
+        "mpl_sql_penetration": f"SELECT * FROM cbt.mpl_sql_penetration WHERE siteid='{site_id}'"  # MPL/SQL penetration data
+    }
 
-def _run_one(name: str, sql_text: str, params: Dict[str, Any] | None = None):
+# Analytic data function (placeholder; extend for joins/aggregations if needed)
+def process_analytic_data(df: Any, name: str) -> Dict[str, Any]:
+    """
+    Process Spark DataFrame or SQL result into dict.
+    In prod, add ML inference here (e.g., via MLflow model load).
+    """
+    if hasattr(df, 'collect'):  # Spark DataFrame
+        rows = df.collect()
+        return {name: [row.asDict() for row in rows]}
+    else:  # SQL Warehouse result (list of dicts)
+        return {name: df}
+
+# Execute a single Spark SQL query and return results, handling exceptions
+def execute_spark_query(query: str) -> Dict[str, Any]:
     try:
-        handle = w.statement_execution.execute_statement(
-            warehouse_id=WAREHOUSE_ID,
-            catalog=CATALOG,
-            schema=SCHEMA,
-            statement=sql_text,
-            parameters=[{"name": k, "value": v} for k, v in (params or {}).items()],
-            disposition="INLINE",
-            wait_timeout="0s",
-        )
-        handle = _wait(handle.statement_id)
-        if handle.status.state != StatementState.SUCCEEDED:
-            return name, {"error": f"{handle.status.state}: {handle.status.error}"}
-        cols, data = _fetch_all(handle)
-        return name, [dict(zip(cols, r)) for r in data]
+        result = spark.sql(query).collect()
+        return {'data': [row.asDict() for row in result]}
     except Exception as e:
-        return name, {"error": str(e)}
+        logging.error(f"Spark SQL error: {str(e)}")
+        return {'error': str(e)}
 
-# 3) public function you’ll call
-def run_queries_in_parallel(queries: Dict[str, str], params: Dict[str, Any] | None = None, max_workers: int | None = None):
-    if not WAREHOUSE_ID or WAREHOUSE_ID.startswith("PUT-"):
-        raise ValueError("Set DATABRICKS_WAREHOUSE_ID to your SQL Warehouse id.")
-    if max_workers is None:
-        max_workers = min(8, len(queries))
-    results: Dict[str, Any] = {}
+# Optional: Execute via Databricks SQL Warehouse (serverless, parallel-friendly)
+def execute_sql_warehouse_query(query: str, warehouse_hostname: str, http_path: str, token: str) -> Dict[str, Any]:
+    if not SQL_WAREHOUSE_ENABLED:
+        raise ImportError("databricks-sql-connector required for SQL Warehouse")
+    try:
+        with sql.connect(
+            server_hostname=warehouse_hostname,
+            http_path=http_path,
+            access_token=token
+        ) as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(query)
+                rows = cursor.fetchall()
+                columns = [desc[0] for desc in cursor.description]
+                return {'data': [dict(zip(columns, row)) for row in rows]}
+    except Exception as e:
+        logging.error(f"SQL Warehouse error: {str(e)}")
+        return {'error': str(e)}
+
+# Main parallel execution function
+def run_parallel_analytics(site_id: str, use_sql_warehouse: bool = False, max_workers: int = 5) -> Dict[str, Any]:
+    """
+    Run SQL queries in parallel using ThreadPoolExecutor.
+    - use_sql_warehouse: If True, uses Databricks SQL Warehouse API for execution.
+    - Returns state with analytic data and system message.
+    """
+    queries = get_queries(site_id)
+    state = {}
+    analytic_data = {}
+    
+    # MLOps: Log run start
+    with mlflow.start_run():
+        mlflow.log_param("site_id", site_id)
+        mlflow.log_param("num_queries", len(queries))
+        mlflow.log_param("use_sql_warehouse", use_sql_warehouse)
+    
+    def job(query_name: str, query: str):
+        if use_sql_warehouse:
+            # Fetch config from env (set in Databricks secrets or env vars)
+            warehouse_hostname = os.getenv('DATABRICKS_WAREHOUSE_HOSTNAME')
+            http_path = os.getenv('DATABRICKS_HTTP_PATH')
+            token = os.getenv('DATABRICKS_TOKEN')
+            if not all([warehouse_hostname, http_path, token]):
+                raise ValueError("SQL Warehouse env vars missing")
+            result = execute_sql_warehouse_query(query, warehouse_hostname, http_path, token)
+        else:
+            result = execute_spark_query(query)
+        
+        if 'error' not in result:
+            processed = process_analytic_data(result['data'], query_name)
+            analytic_data.update(processed)
+        return result
+    
+    # Parallel execution with ThreadPoolExecutor
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
-        futs = [pool.submit(_run_one, name, sql_text, params) for name, sql_text in queries.items()]
-        for f in as_completed(futs):
-            name, value = f.result()
-            results[name] = value
-    return results
+        futures = {pool.submit(job, name, q): name for name, q in queries.items()}
+        for future in as_completed(futures):
+            name = futures[future]
+            try:
+                result = future.result()
+                if 'error' in result:
+                    logging.error(f"Query '{name}' failed: {result['error']}")
+                    state[f"{name}_error"] = result['error']
+            except Exception as e:
+                logging.error(f"Future for '{name}' failed: {str(e)}")
+                state[f"{name}_error"] = str(e)
+    
+    # Store analytic data in state
+    state["analytic_data"] = analytic_data
+    
+    # Add system message to state
+    state["system_message"] = "Analytics complete"
+    
+    # MLOps: Log completion and print summary
+    mlflow.log_metric("queries_completed", len(analytic_data))
+    print(analytic_data)  # Or log to MLflow artifacts
+    print("Analytics complete")  # System message
+    
+    return state
 
-# 4) example usage (adapt to your state dict)
-site_id = "ABC123"
-queries = {
-    "site_account_mapping":  "SELECT * FROM cbt.site_account_mapping WHERE siteid = :site_id",
-    "mpl_spl_penetration":   "SELECT * FROM cbt.mpl_spl_penetration  WHERE siteid = :site_id",
-}
-params = {"site_id": site_id}
-
-data = run_queries_in_parallel(queries, params=params)
-print({k: (len(v) if isinstance(v, list) else v) for k, v in data.items()})  # shows row counts per query
+# Example usage
+site_id = "example_site_id"  # Input from chat endpoint
+state = run_parallel_analytics(site_id, use_sql_warehouse=False)  # Set True for warehouse
+print(state)
