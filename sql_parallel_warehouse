@@ -1,88 +1,117 @@
-# --------------------------------------------------------------
-# 1. CONFIGURATION (same values you already have)
-# --------------------------------------------------------------
-HOST      = "adb-1355704782079007.7.azuredatabricks.net"   # <-- Synapse server
-WAREHOUSE = "sql/1.0/warehouses/aabc3a9405a7c8961"        # <-- not used for ODBC
-TOKEN     = "dapic6854bd4f0c39e91b51999a2efd8b6f1-3"     # <-- AAD token
-SCHEMA    = "dbo"                                         # <-- change if needed
-SITE_ID   = 12345                                         # <-- YOUR site_id
+# ==============================================================
+# run_uc_queries.py
+# Databricks-native: Query Unity Catalog via SQL Warehouse (no Spark)
+# ==============================================================
+
+from databricks import sql
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import List, Dict, Any
+import os
 
 # --------------------------------------------------------------
-# 2. One-time connection string builder (Databricks secret scope optional)
+# 1. CONFIGURATION
 # --------------------------------------------------------------
-def _synapse_conn_str() -> str:
-    """
-    Returns a pyodbc connection string that works inside Databricks.
-    The token is passed as `UID=token:<token>`.
-    """
-    return (
-        f"Driver={{ODBC Driver 17 for SQL Server}};"
-        f"Server=tcp:{HOST},1433;"
-        f"Database=YourDatabaseName;"   # <-- **replace** with the actual DB name
-        f"UID=token:{TOKEN};"
-        f"Encrypt=yes;"
-        f"TrustServerCertificate=no;"
-        f"Connection Timeout=30;"
-    )
+# === REQUIRED: Update these values ===
+HOST      = "adb-1355704782079007.7.azuredatabricks.net"   # Your workspace URL
+WAREHOUSE = "sql/1.0/warehouses/aabc3a9405a7c8961"        # SQL Warehouse HTTP path
+CATALOG   = "main"                                        # Unity Catalog catalog
+SCHEMA    = "sales"                                       # Schema inside catalog
+SITE_ID   = 12345                                         # Your site_id
+
+# === OPTIONAL: Use Databricks Secret Scope (Recommended) ===
+# Uncomment and set scope/key if using secrets
+# TOKEN = dbutils.secrets.get(scope="uc-scope", key="sql-warehouse-token")
+# Otherwise, hardcode (NOT for production):
+TOKEN = "dapic6854bd4f0c39e91b51999a2efd8b6f1-3"
 
 # --------------------------------------------------------------
-# 3. Query runner – pure T-SQL, returns list[dict]
+# 2. QUERY RUNNER (Unity Catalog + SQL Warehouse)
 # --------------------------------------------------------------
-def run_synapse_query(name: str, sql: str, params: dict | None = None) -> list[dict]:
-    import pyodbc
+def run_query(name: str, sql_text: str, params: Dict[str, Any] = None) -> List[Dict[str, Any]]:
+    """
+    Executes a parameterized SQL query against Unity Catalog via SQL Warehouse.
+    Returns list of dicts (one per row).
+    """
     params = params or {}
-    conn_str = _synapse_conn_str()
-    with pyodbc.connect(conn_str, autocommit=True) as conn:
-        with conn.cursor() as cur:
-            # pyodbc uses ? placeholders; we replace named :params ourselves
-            if params:
-                placeholders = ",".join(["?"] * len(params))
-                sql = sql.replace(":site_id", "?")   # simple case – add more if needed
-                cur.execute(sql, *params.values())
-            else:
-                cur.execute(sql)
-            columns = [col[0] for col in cur.description]
-            rows = cur.fetchall()
-            return [dict(zip(columns, row)) for row in rows]
+    try:
+        with sql.connect(
+            server_hostname=HOST,
+            http_path=WAREHOUSE,
+            access_token=TOKEN
+        ) as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql_text, params)
+                columns = [column[0] for column in cur.description]
+                rows = cur.fetchall()
+                return [dict(zip(columns, row)) for row in rows]
+    except Exception as e:
+        print(f"[ERROR] Query '{name}' failed: {e}")
+        return []
 
 # --------------------------------------------------------------
-# 4. Query catalogue (T-SQL, use ? for parameters)
+# 3. QUERY CATALOG (Fully qualified UC tables + :param syntax)
 # --------------------------------------------------------------
 queries = {
-    "site_account_mapping":    f"SELECT * FROM {SCHEMA}.SITE_ACCOUNT_MAPPING WHERE site_id = ?",
-    "mpl_spl_penetration":     f"SELECT * FROM {SCHEMA}.MPL_SPL_PENETRATION WHERE site_id = ?",
-    "last_interaction":        f"SELECT * FROM {SCHEMA}.LAST_INTERACTION WHERE site_id = ?",
-    "solution_price_change":   f"SELECT * FROM {SCHEMA}.SOLUTION_PRICE_CHANGE WHERE site_id = ?",
-    "sales_wrt_last_year":     f"SELECT * FROM {SCHEMA}.SALES_WRT_LAST_YEAR WHERE site_id = ?",
-    "pending_services":        f"SELECT * FROM {SCHEMA}.PENDING_SERVICES WHERE site_id = ?",
-    "percentage_solution_sales_change": f"SELECT * FROM {SCHEMA}.PERCENTAGE_SOLUTION_SALES_CHANGE WHERE site_id = ?",
-    "asset_location":          f"SELECT * FROM {SCHEMA}.ASSET_LOCATION WHERE site_id = ?",
-    "sales_info_mtd":          f"SELECT * FROM {SCHEMA}.SALES_INFO_MTD WHERE site_id = ?",
-    "sales_info_ytd_r12":      f"SELECT * FROM {SCHEMA}.SALES_INFO_YTD_R12 WHERE site_id = ?",
+    "site_account_mapping":    f"SELECT * FROM {CATALOG}.{SCHEMA}.SITE_ACCOUNT_MAPPING WHERE site_id = :site_id",
+    "mpl_spl_penetration":     f"SELECT * FROM {CATALOG}.{SCHEMA}.MPL_SPL_PENETRATION WHERE site_id = :site_id",
+    "last_interaction":        f"SELECT * FROM {CATALOG}.{SCHEMA}.LAST_INTERACTION WHERE site_id = :site_id",
+    "solution_price_change":   f"SELECT * FROM {CATALOG}.{SCHEMA}.SOLUTION_PRICE_CHANGE WHERE site_id = :site_id",
+    "sales_wrt_last_year":     f"SELECT * FROM {CATALOG}.{SCHEMA}.SALES_WRT_LAST_YEAR WHERE site_id = :site_id",
+    "pending_services":        f"SELECT * FROM {CATALOG}.{SCHEMA}.PENDING_SERVICES WHERE site_id = :site_id",
+    "percentage_solution_sales_change": f"SELECT * FROM {CATALOG}.{SCHEMA}.PERCENTAGE_SOLUTION_SALES_CHANGE WHERE site_id = :site_id",
+    "asset_location":          f"SELECT * FROM {CATALOG}.{SCHEMA}.ASSET_LOCATION WHERE site_id = :site_id",
+    "sales_info_mtd":          f"SELECT * FROM {CATALOG}.{SCHEMA}.SALES_INFO_MTD WHERE site_id = :site_id",
+    "sales_info_ytd_r12":      f"SELECT * FROM {CATALOG}.{SCHEMA}.SALES_INFO_YTD_R12 WHERE site_id = :site_id",
 }
 
 # --------------------------------------------------------------
-# 5. Parallel execution (Databricks ThreadPoolExecutor)
+# 4. PARALLEL EXECUTION
 # --------------------------------------------------------------
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
 max_workers = min(8, len(queries))
-results = {}
+results: Dict[str, List[Dict[str, Any]]] = {}
 
-with ThreadPoolExecutor(max_workers=max_workers) as pool:
+print(f"Executing {len(queries)} queries in parallel (max {max_workers} workers)...")
+
+with ThreadPoolExecutor(max_workers=max_workers) as executor:
+    # Submit all queries
     future_to_name = {
-        pool.submit(run_synapse_query, name, sql, {"site_id": SITE_ID}): name
+        executor.submit(
+            run_query,
+            name,
+            sql,
+            {"site_id": SITE_ID}
+        ): name
         for name, sql in queries.items()
     }
+
+    # Collect results as they complete
     for future in as_completed(future_to_name):
         name = future_to_name[future]
         try:
-            results[name] = future.result()
-        except Exception as e:
+            result_data = future.result()
+            results[name] = result_data
+            print(f"Completed: {name} → {len(result_data)} rows")
+        except Exception as exc:
             results[name] = []
-            print(f"Query '{name}' failed: {e}")
+            print(f"Failed: {name} → {exc}")
 
 # --------------------------------------------------------------
-# 6. Example: inspect one result
+# 5. FINAL OUTPUT (Databricks-friendly)
 # --------------------------------------------------------------
-display(results["site_account_mapping"][:5])   # works in Databricks notebooks
+print("\nAll queries completed.")
+print(f"Results dictionary keys: {list(results.keys())}")
+
+# Example: Show first few rows of one table
+sample_key = "site_account_mapping"
+if results[sample_key]:
+    print(f"\nSample from '{sample_key}':")
+    for row in results[sample_key][:3]:
+        print(row)
+else:
+    print(f"No data returned for '{sample_key}'")
+
+# Optional: Display in notebook
+try:
+    display(results[sample_key][:10])
+except:
+    pass  # Not in notebook context
