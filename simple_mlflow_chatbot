@@ -1,16 +1,11 @@
-# Databricks notebook: use %pip
-%pip uninstall -y langgraph langchain langchain-core langchain-community \
-  langchain-openai langchain-classic langchain-text-splitters
-
-%pip install \
+pip install \
   langgraph==0.2.46 \
   langchain==0.3.7 \
   langchain-core==0.3.15 \
   langchain-community==0.3.7 \
-  langchain-databricks==0.1.5 \
-  mlflow==2.15.1
-# Only if you actually need OpenAI in this env:
-# %pip install langchain-openai==0.2.2
+  langchain-databricks==0.1.2 \
+  mlflow==2.15.1 \
+  --no-deps  # Optional: skip dependency resolution if conflicting
 
 # === Minimal LangGraph + Databricks LLM (single-node graph) ===
 from typing import TypedDict
