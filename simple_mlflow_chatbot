@@ -1,39 +1,47 @@
-%pip install -q langgraph langchain-databricks mlflow
-
-from langchain_databricks import ChatDatabricks
+from typing_extensions import Annotated, TypedDict
+from databricks_langchain import ChatDatabricks          # ← use this package
+from langchain_core.messages import HumanMessage
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
-from typing import Annotated, TypedDict
-from langchain_core.messages import HumanMessage
 import mlflow
 
-# LLM (use your actual endpoint)
-llm = ChatDatabricks(endpoint="databricks-meta-llama-3-70b-instruct")
+# LLM
+llm = ChatDatabricks(endpoint="databricks-gpt-oss-20b")
 
 # State
-class AgentState(TypedDict):
+class State(TypedDict):
     messages: Annotated[list, add_messages]
 
-# Chat node
-def chat(state: AgentState):
+# Node
+def chat(state: State):
     return {"messages": [llm.invoke(state["messages"])]}
 
-# Build graph
-graph = StateGraph(AgentState)
+# Graph
+graph = StateGraph(State)
 graph.add_node("chat", chat)
 graph.add_edge(START, "chat")
 graph.add_edge("chat", END)
 app = graph.compile()
 
-# Test
-result = app.invoke({"messages": [HumanMessage(content="Hi!")]})
-print("Assistant:", result["messages"][-1].content)
+# Test (ok to use HumanMessage at runtime)
+print(app.invoke({"messages": [HumanMessage("Hi")]})["messages"][-1].content)
 
-# Log & Deploy
-mlflow.set_experiment("/Workspace/Users/your.email@company.com/chatbot")
+# --- Log to MLflow ---
+mlflow.set_experiment("/Workspace/Users/prathap.kudupu@ecolab.com/chatbot")
 with mlflow.start_run():
     mlflow.langchain.log_model(
-        app, "model",
-        input_example={"messages": [HumanMessage(content="Hello")]}
+        app,
+        artifact_path="model",
+        # Use a plain dict for input_example (no HumanMessage object)
+        input_example={"messages": [{"type": "human", "content": "Hi"}]},
+        # Pin compatible versions to avoid pydantic v1/v2 mixing
+        pip_requirements=[
+            "mlflow>=2.14.1",
+            "langchain>=0.2.15",
+            "langgraph>=0.2.16",
+            "databricks-langchain>=0.1.13",
+            "pydantic>=2.6",
+        ],
     )
-print("Model logged → Go to Serving → Create Endpoint")
+
+print("Model logged → Deploy via Serving > Create Endpoint")
