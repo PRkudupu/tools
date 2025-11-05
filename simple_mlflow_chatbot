@@ -1,92 +1,52 @@
-%pip install \
-  langchain==0.3.7 \
-  langchain-core==0.3.15 \
-  langchain-community==0.3.7 \
-  langgraph==0.2.46 \
-  langchain-databricks==0.1.5 \
-  "mlflow[langchain]==2.15.1"
-
-
-# === Minimal LangGraph + Databricks LLM (single-node graph) ===
-from typing import TypedDict
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_databricks import ChatDatabricks
-from langgraph.graph import StateGraph, END
-
-# Optional (only for UC registration)
 import mlflow
-from mlflow.models import infer_signature
+import mlflow.pyfunc
 
-# 1) Config
-llmModelName = "<YOUR_DATABRICKS_CHAT_ENDPOINT_NAME>"  # e.g., 'databricks-meta-llama-3-70b-instruct'
-systemMessageTemplate = "You are a concise assistant. Answer clearly and directly."
+class GraphPyfunc(mlflow.pyfunc.PythonModel):
+    def load_context(self, context):
+        # rebuild your graph here (same as above) and store it:
+        from langgraph.graph import StateGraph, END
+        from langchain_core.prompts import ChatPromptTemplate
+        from langchain_databricks import ChatDatabricks
 
-# 2) Prompt + Model
-prompt = ChatPromptTemplate.from_messages(
-    [("system", systemMessageTemplate), ("user", "{question}")]
-)
-model = ChatDatabricks(endpoint=llmModelName, extra_params={"temperature": 0.3, "max_tokens": 600})
+        class QAState(dict): pass
 
-# 3) LangGraph state + single node
-class QAState(TypedDict, total=False):
-    question: str
-    answer: str
+        prompt = ChatPromptTemplate.from_messages(
+            [("system","You are concise."), ("user","{question}")]
+        )
+        model = ChatDatabricks(endpoint="<YOUR_ENDPOINT>",
+                               extra_params={"temperature":0.3,"max_tokens":600})
 
-def generate(state: QAState) -> QAState:
-    chain = prompt | model
-    res = chain.invoke({"question": state["question"]})
-    return {**state, "answer": getattr(res, "content", str(res))}
+        def generate(state: QAState) -> QAState:
+            res = (prompt | model).invoke({"question": state["question"]})
+            return {**state, "answer": getattr(res, "content", str(res))}
 
-# Build graph: question -> generate -> END
-graph = StateGraph(QAState)
-graph.add_node("generate", generate)
-graph.set_entry_point("generate")
-graph.add_edge("generate", END)
-simple_graph = graph.compile()  # Runnable
+        g = StateGraph(QAState)
+        g.add_node("generate", generate)
+        g.set_entry_point("generate")
+        g.add_edge("generate", END)
+        self.graph = g.compile()
 
-# 4) Quick test
-state = {"question": "How many days are covered under pre-hospitalization?"}
-out = simple_graph.invoke(state)
-print(out["answer"])
+    def predict(self, context, model_input):
+        # expect dict with 'question'
+        out = self.graph.invoke({"question": model_input["question"]})
+        return out["answer"]
 
-# 5) (Optional) Register in Unity Catalog with MLflow
-#    This logs the compiled graph (a Runnable) and registers it.
-mlflow.set_registry_uri("databricks-uc")
-registered_model_name = "insurance.simple.LangGraph"  # catalog.schema.name
+# log + register
+conda_deps = None  # optional
+pip_reqs = [
+    f"mlflow=={mlflow.__version__}",
+    "langgraph==0.2.46",
+    "langchain==0.3.7",
+    "langchain-core==0.3.15",
+    "langchain-community==0.3.7",
+    "langchain-databricks==0.1.5",
+]
 
-example_input = {"question": "Example question"}
-example_output = simple_graph.invoke(example_input)["answer"]
-signature = infer_signature(example_input, example_output)
-
-def _loader_fn():
-    # Recreate the same single-node graph at serve time
-    g = StateGraph(QAState)
-    g.add_node("generate", generate)
-    g.set_entry_point("generate")
-    g.add_edge("generate", END)
-    return g.compile()
-
-with mlflow.start_run(run_name="SimpleLangGraph-PromptOnly") as run:
-    model_info = mlflow.langchain.log_model(
-        simple_graph,
-        loader_fn=_loader_fn,
-        artifact_path="graph",
-        registered_model_name=registered_model_name,
-        pip_requirements=[
-            f"mlflow=={mlflow.__version__}",
-            "langgraph>=0.2.39",
-            "langchain-core>=0.2.0",
-            "langchain-databricks>=0.1.0",
-        ],
-        signature=signature,
+with mlflow.start_run(run_name="SimpleLangGraph-PyFunc") as run:
+    info = mlflow.pyfunc.log_model(
+        artifact_path="model",
+        python_model=GraphPyfunc(),
+        pip_requirements=pip_reqs,
+        registered_model_name="insurance.simple.LangGraphPyfunc",
     )
-
-print("Registered:", model_info.model_uri)
-
-# --- Calling after you deploy the Registered Model ---
-# JSON payload example for your serving endpoint:
-# {
-#   "inputs": {
-#     "question": "How many days are covered under pre-hospitalization?"
-#   }
-# }
+print("Registered:", info.model_uri)
