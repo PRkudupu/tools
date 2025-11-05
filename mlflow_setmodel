@@ -1,0 +1,75 @@
+import mlflow
+from mlflow.models import set_model
+
+# Import LangGraph and Databricks LangChain components
+from typing import TypedDict, Annotated
+from langgraph.graph import StateGraph, START, END  # Graph builder and control nodes
+from langgraph.pregel.io import add_messages        # Utility for message accumulation
+from databricks_langchain import ChatDatabricks     # Databricks LLM client
+
+# Define the state schema for the graph using a TypedDict with an "messages" field.
+# The Annotated add_messages indicates that returned messages should be appended to state.
+class State(TypedDict):
+    messages: Annotated[list, add_messages]
+
+# Instantiate the Databricks LLM client (ChatDatabricks) with your endpoint and parameters.
+# Replace "<your-serving-endpoint>" with the name of your deployed Databricks model serving endpoint.
+chat_model = ChatDatabricks(
+    endpoint="<your-serving-endpoint>",   # e.g., "databricks-dbrx-instruct" or your custom endpoint name
+    temperature=0.0,                      # example parameter: temperature
+    max_tokens=256                        # example parameter: max tokens for response
+    # (You can include other supported parameters as needed)
+)
+
+# Define the single node in the graph. It uses the current state's messages (conversation)
+# and calls the Databricks LLM. We prepend a default system prompt if not already present.
+def generate_reply(state: State):
+    # Extract the conversation messages list from state
+    messages = state["messages"]  
+    # Ensure a system prompt "Tell me a joke" is included at the beginning of the conversation
+    if not messages or messages[0].get("role") != "system":
+        messages = [{"role": "system", "content": "Tell me a joke"}] + messages
+    # Call the Databricks LLM endpoint with the prompt (as list of (role, content) tuples)
+    # This returns an AI message (assistant's reply) in LangChain message format.
+    assistant_message = chat_model.invoke([(m["role"], m["content"]) for m in messages])
+    # Return the assistant message as a list so that it will be appended to the state's messages
+    return {"messages": [assistant_message]}
+
+# Build the LangGraph (StateGraph) with the defined state and node
+graph_builder = StateGraph(State)             # Initialize a StateGraph with our State schema
+graph_builder.add_node("chat_node", generate_reply)   # Add the LLM invocation node
+graph_builder.add_edge(START, "chat_node")    # Graph starts at our node
+graph_builder.add_edge("chat_node", END)      # End the graph after generating the reply
+
+# Compile the graph to get a runnable graph object
+graph = graph_builder.compile()
+
+# Register the compiled graph as the model for MLflow (model-from-code).
+set_model(graph)
+
+
+import mlflow
+
+# Start an MLflow run (optional but good practice to group logging under a run)
+with mlflow.start_run():
+    model_info = mlflow.langchain.log_model(
+        lc_model="llm_graph_model.py",          # Path to the model code file
+        name="langgraph_chatdatabricks_model",  # Artifact path (or use 'artifact_path' param if using older MLflow)
+        registered_model_name="LangGraphChatDatabricksModel",  # Register in MLflow Model Registry
+        pip_requirements=[
+            "langgraph>=0.2.27", 
+            "databricks-langchain>=0.1.0", 
+            "langchain-core>=0.3.0", 
+            "mlflow>=2.14.0", 
+            "pydantic>=1.10"
+            # Optionally include "langchain-community>=0.0.9" if needed for ChatDatabricks
+        ],
+        input_example={"messages": [{"role": "user", "content": "Hello"}]},
+        # signature can be inferred from input_example; or define explicitly:
+        # signature=mlflow.models.infer_signature({"messages": [{"role": "user", "content": "Hi"}]}, 
+        #                                         {"messages": [{"role": "user", "content": "Hi"}, {"role": "assistant", "content": "<answer>"}]})
+    )
+# Print out the model URI and version
+print(f"Model logged to {model_info.model_uri}")
+if model_info.model_uri is not None and model_info.model_uri.startswith("models:/"):
+    print(f"Registered model version: {model_info.version}")
