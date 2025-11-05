@@ -1,11 +1,11 @@
-pip install \
-  langgraph==0.2.46 \
+%pip install \
   langchain==0.3.7 \
   langchain-core==0.3.15 \
   langchain-community==0.3.7 \
-  langchain-databricks==0.1.2 \
-  mlflow==2.15.1 \
-  --no-deps  # Optional: skip dependency resolution if conflicting
+  langgraph==0.2.46 \
+  langchain-databricks==0.1.5 \
+  "mlflow[langchain]==2.15.1"
+
 
 # === Minimal LangGraph + Databricks LLM (single-node graph) ===
 from typing import TypedDict
