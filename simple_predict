@@ -1,0 +1,11 @@
+import pandas as pd
+
+def predict(self, context, model_input):
+    # model_input must be a dict with key "question"
+    if "question" not in model_input:
+        raise KeyError("Pass a dict like {'question': '...'} or {'question': ['...', '...']}")
+    qs = model_input["question"]
+    if isinstance(qs, str):
+        qs = [qs]
+    out = [self.graph.invoke({"question": q})["answer"] for q in qs]
+    return pd.Series(out, name="answer")
