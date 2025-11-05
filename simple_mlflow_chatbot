@@ -1,3 +1,13 @@
+%pip uninstall -y langchain langchain-core langchain-community pydantic pydantic-core
+%pip install --upgrade \
+  "mlflow>=2.14.1" \
+  "pydantic>=2.6,<3" \
+  "langchain>=0.2.15,<0.3" \
+  "langgraph>=0.2.16" \
+  "databricks-langchain>=0.1.13" \
+  "pydantic-settings>=2,<3"
+
+
 from typing_extensions import Annotated, TypedDict
 from databricks_langchain import ChatDatabricks          # ← use this package
 from langchain_core.messages import HumanMessage
