@@ -33,3 +33,57 @@ class QAGraph:
 qa = QAGraph()
 out1 = qa.predict({"question": "What is the capital of France?"})
 print(out1)
+
+# --------- MLflow PyFunc wrapper ----------
+class LLMGraphModel(mlflow.pyfunc.PythonModel):
+    def load_context(self, context):
+        # Rebuild or load the graph at serve-time
+        self.graph = build_graph()
+
+    def predict(self, context, model_input):
+        """
+        model_input: either a plain string, or a dict like {"text": "..."}
+        returns: string (the assistant's last message)
+        """
+        if isinstance(model_input, dict):
+            text = model_input.get("text", "")
+        else:
+            text = str(model_input)
+
+        result = self.graph.invoke({"messages": [HumanMessage(content=text)]})
+        # last message from the graph is the LLM response object; return its content field
+        last = result["messages"][-1]
+        # LangChain chat message objects store text at .content
+        return str(getattr(last, "content", last))
+
+
+# ------- Log + Register --------
+mlflow.set_experiment("/Users/<your_user>/langgraph_llm_demo")  # change path or omit
+model_name = "prathap_llm_graph"  # UC or Workspace registry name (see note below)
+
+with mlflow.start_run():
+    example_input = {"text": "Say one short clean joke"}
+    # Create a tiny signature: input text -> output text
+    sig = infer_signature(example_input, "string response")
+
+    mlflow.pyfunc.log_model(
+        artifact_path="model",
+        python_model=LLMGraphModel(),
+        conda_env=None,  # let mlflow capture the current env
+        input_example=example_input,
+        signature=sig,
+        pip_requirements=[
+            "mlflow>=2.13",
+            "langgraph",
+            "langchain",
+            "langchain-core",
+            "databricks-sdk",
+            "pydantic",
+        ],
+    )
+
+    # Register in the Model Registry
+    reg = mlflow.register_model("runs:/{}/model".format(mlflow.active_run().info.run_id), model_name)
+
+reg
+print("Registered model:", model_name)
