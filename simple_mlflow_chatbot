@@ -1,0 +1,36 @@
+%pip install -q langgraph langchain-databricks mlflow
+
+from langchain_databricks import ChatDatabricks
+from langgraph.graph import StateGraph, START, END
+from langgraph.graph.message import add_messages
+from typing import Annotated, TypedDict
+from langchain_core.messages import HumanMessage
+import mlflow
+
+# LLM
+llm = ChatDatabricks(endpoint="databricks-meta-llama-3-70b-instruct")
+
+# State
+class State(TypedDict):
+    messages: Annotated[list, add_messages]
+
+# Node
+def chat(state: State):
+    return {"messages": [llm.invoke(state["messages"])]}
+
+# Graph
+graph = StateGraph(State)
+graph.add_node("chat", chat)
+graph.add_edge(START, "chat")
+graph.add_edge("chat", END)
+app = graph.compile()
+
+# Test
+print(app.invoke({"messages": [HumanMessage("Hi!")]}))["messages"][-1].content
+
+# Log & Deploy
+mlflow.set_experiment("/Users/your.email@company.com/chatbot")
+with mlflow.start_run():
+    mlflow.langchain.log_model(app, "model", input_example={"messages": [HumanMessage("Hi")]})
+
+print("Model logged → Deploy via Serving > Create Endpoint")
