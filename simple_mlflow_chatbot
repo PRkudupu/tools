@@ -1,9 +1,12 @@
+# --- imports & graph code above stays the same ---
+
 import mlflow
 import mlflow.pyfunc
+from mlflow.models import infer_signature
 
 class GraphPyfunc(mlflow.pyfunc.PythonModel):
     def load_context(self, context):
-        # rebuild your graph here (same as above) and store it:
+        # Rebuild your single-node LangGraph here (same as before)
         from langgraph.graph import StateGraph, END
         from langchain_core.prompts import ChatPromptTemplate
         from langchain_databricks import ChatDatabricks
@@ -13,8 +16,10 @@ class GraphPyfunc(mlflow.pyfunc.PythonModel):
         prompt = ChatPromptTemplate.from_messages(
             [("system","You are concise."), ("user","{question}")]
         )
-        model = ChatDatabricks(endpoint="<YOUR_ENDPOINT>",
-                               extra_params={"temperature":0.3,"max_tokens":600})
+        model = ChatDatabricks(
+            endpoint="<YOUR_DATABRICKS_CHAT_ENDPOINT_NAME>",
+            extra_params={"temperature":0.3, "max_tokens":600},
+        )
 
         def generate(state: QAState) -> QAState:
             res = (prompt | model).invoke({"question": state["question"]})
@@ -27,26 +32,30 @@ class GraphPyfunc(mlflow.pyfunc.PythonModel):
         self.graph = g.compile()
 
     def predict(self, context, model_input):
-        # expect dict with 'question'
         out = self.graph.invoke({"question": model_input["question"]})
         return out["answer"]
 
-# log + register
-conda_deps = None  # optional
-pip_reqs = [
-    f"mlflow=={mlflow.__version__}",
-    "langgraph==0.2.46",
-    "langchain==0.3.7",
-    "langchain-core==0.3.15",
-    "langchain-community==0.3.7",
-    "langchain-databricks==0.1.5",
-]
+# -------- Add signature + input_example --------
+example_input  = {"question": "How many days are covered under pre-hospitalization?"}
+example_output = GraphPyfunc().predict(None, example_input)   # returns str
+signature = infer_signature(example_input, example_output)
+
+REGISTERED_NAME = "industrial-data-science.cbt.custbrief_test"  # your UC path
 
 with mlflow.start_run(run_name="SimpleLangGraph-PyFunc") as run:
     info = mlflow.pyfunc.log_model(
         artifact_path="model",
         python_model=GraphPyfunc(),
-        pip_requirements=pip_reqs,
-        registered_model_name="insurance.simple.LangGraphPyfunc",
+        pip_requirements=[
+            f"mlflow=={mlflow.__version__}",
+            "langgraph==0.2.46",
+            "langchain==0.3.7",
+            "langchain-core==0.3.15",
+            "langchain-community==0.3.7",
+            "langchain-databricks==0.1.5",
+        ],
+        input_example=example_input,   # <-- added
+        signature=signature,           # <-- added
+        registered_model_name=REGISTERED_NAME,
     )
 print("Registered:", info.model_uri)
