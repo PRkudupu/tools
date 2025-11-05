@@ -1,133 +1,35 @@
-import pandas as pd
+# === Paste this entire block ===
+class QAState(dict): pass
 
-def predict(self, context, model_input):
-    # model_input must be a dict with key "question"
-    if "question" not in model_input:
-        raise KeyError("Pass a dict like {'question': '...'} or {'question': ['...', '...']}")
-    qs = model_input["question"]
-    if isinstance(qs, str):
-        qs = [qs]
-    out = [self.graph.invoke({"question": q})["answer"] for q in qs]
-    return pd.Series(out, name="answer")
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "You are concise."),
+    ("user", "{question}")
+])
 
+model = ChatDatabricks(endpoint="databricks-gpt-oss-20b",
+                       extra_params={"temperature": 0.3, "max_tokens": 600})
 
-import pandas as pd
-from typing import List, Union
-
-from langchain.prompts import ChatPromptTemplate
-from langchain.schema import BaseMessage
-from langchain_databricks import ChatDatabricks
-from langgraph.graph import StateGraph, END
-
-
-# ----------------------------------------------------------------------
-# 1. State holder
-# ----------------------------------------------------------------------
-class QAState(dict):
-    """Simple dict subclass – LangGraph accepts any dict-like object."""
-    pass
-
-
-# ----------------------------------------------------------------------
-# 2. Prompt & LLM
-# ----------------------------------------------------------------------
-prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", "You are concise."),
-        ("user", "{question}"),
-    ]
-)
-
-model = ChatDatabricks(
-    endpoint="databricks-gpt-oss-20b",
-    extra_params={"temperature": 0.3, "max_tokens": 600},
-)
-
-
-# ----------------------------------------------------------------------
-# 3. Node that calls the LLM
-# ----------------------------------------------------------------------
 def generate(state: QAState) -> QAState:
-    """Invoke the model with the current question and store the answer."""
     res = model.invoke(prompt.format_messages(question=state["question"]))
-    # `res` is an AIMessage → text lives in .content
     state["answer"] = res.content
     return state
 
-
-# ----------------------------------------------------------------------
-# 4. Build the graph
-# ----------------------------------------------------------------------
 class QAGraph:
     def __init__(self):
         g = StateGraph(QAState)
-
         g.add_node("generate", generate)
         g.set_entry_point("generate")
         g.add_edge("generate", END)
-
         self.graph = g.compile()
 
-    # ------------------------------------------------------------------
-    # 5. Public predict method
-    # ------------------------------------------------------------------
     def predict(self, model_input: dict) -> pd.Series:
-        """
-        Expected input:
-            {"question": <str>}          # single question
-        or
-            {"question": [<str>, ...]}   # batch of questions
-
-        Returns a pandas Series indexed by the input order.
-        """
-        # ---- validation ------------------------------------------------
-        if "question" not in model_input:
-            raise KeyError('model_input must contain a "question" key')
-
-        qs_raw: Union[str, List[str]] = model_input["question"]
-
-        # ---- normalise to list ----------------------------------------
-        if isinstance(qs_raw, str):
-            qs: List[str] = [qs_raw]
-        else:
-            qs = list(qs_raw)
-
-        # ---- run the graph for every question -------------------------
-        answers = []
-        for q in qs:
-            initial_state = QAState(question=q)
-            final_state: QAState = self.graph.invoke(initial_state)
-            answers.append(final_state["answer"])
-
+        qs = model_input["question"]
+        if isinstance(qs, str):
+            qs = [qs]
+        answers = [self.graph.invoke(QAState(question=q))["answer"] for q in qs]
         return pd.Series(answers, name="answer")
 
-# Instantiate once
+# === Run this ===
 qa = QAGraph()
-
-# Single question
 out1 = qa.predict({"question": "What is the capital of France?"})
 print(out1)
-# 0    Paris
-# Name: answer, dtype: object
-
-# Batch
-out2 = qa.predict({"question": ["Who wrote 1984?", "What is 2+2?"]})
-print(out2)
-# 0    George Orwell
-# 1              4
-# Name: answer, dtype: object
-
-
-def predict(self, model_input: dict) -> pd.Series:
-    # assume model_input["question"] is either str or list[str]
-    qs = model_input["question"]
-    if isinstance(qs, str):
-        qs = [qs]
-
-    answers = []
-    for q in qs:
-        state = QAState(question=q)
-        result = self.graph.invoke(state)
-        answers.append(result["answer"])
-
-    return pd.Series(answers, name="answer")
