@@ -100,3 +100,19 @@ class QAGraph:
             answers.append(final_state["answer"])
 
         return pd.Series(answers, name="answer")
+
+# Instantiate once
+qa = QAGraph()
+
+# Single question
+out1 = qa.predict({"question": "What is the capital of France?"})
+print(out1)
+# 0    Paris
+# Name: answer, dtype: object
+
+# Batch
+out2 = qa.predict({"question": ["Who wrote 1984?", "What is 2+2?"]})
+print(out2)
+# 0    George Orwell
+# 1              4
+# Name: answer, dtype: object
