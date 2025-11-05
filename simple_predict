@@ -116,3 +116,18 @@ print(out2)
 # 0    George Orwell
 # 1              4
 # Name: answer, dtype: object
+
+
+def predict(self, model_input: dict) -> pd.Series:
+    # assume model_input["question"] is either str or list[str]
+    qs = model_input["question"]
+    if isinstance(qs, str):
+        qs = [qs]
+
+    answers = []
+    for q in qs:
+        state = QAState(question=q)
+        result = self.graph.invoke(state)
+        answers.append(result["answer"])
+
+    return pd.Series(answers, name="answer")
