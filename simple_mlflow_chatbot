@@ -7,30 +7,33 @@ from typing import Annotated, TypedDict
 from langchain_core.messages import HumanMessage
 import mlflow
 
-# LLM
+# LLM (use your actual endpoint)
 llm = ChatDatabricks(endpoint="databricks-meta-llama-3-70b-instruct")
 
 # State
-class State(TypedDict):
+class AgentState(TypedDict):
     messages: Annotated[list, add_messages]
 
-# Node
-def chat(state: State):
+# Chat node
+def chat(state: AgentState):
     return {"messages": [llm.invoke(state["messages"])]}
 
-# Graph
-graph = StateGraph(State)
+# Build graph
+graph = StateGraph(AgentState)
 graph.add_node("chat", chat)
 graph.add_edge(START, "chat")
 graph.add_edge("chat", END)
 app = graph.compile()
 
 # Test
-print(app.invoke({"messages": [HumanMessage("Hi!")]}))["messages"][-1].content
+result = app.invoke({"messages": [HumanMessage(content="Hi!")]})
+print("Assistant:", result["messages"][-1].content)
 
 # Log & Deploy
-mlflow.set_experiment("/Users/your.email@company.com/chatbot")
+mlflow.set_experiment("/Workspace/Users/your.email@company.com/chatbot")
 with mlflow.start_run():
-    mlflow.langchain.log_model(app, "model", input_example={"messages": [HumanMessage("Hi")]})
-
-print("Model logged → Deploy via Serving > Create Endpoint")
+    mlflow.langchain.log_model(
+        app, "model",
+        input_example={"messages": [HumanMessage(content="Hello")]}
+    )
+print("Model logged → Go to Serving → Create Endpoint")
