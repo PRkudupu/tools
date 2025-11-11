@@ -24,3 +24,42 @@ with mlflow.start_run() as run:
     )
 
 print("✅ Model successfully registered in MLflow Databricks!")
+
+
+
+import mlflow
+from mlflow.pyfunc import PythonModel
+from mlflow.models.signature import infer_signature
+
+graph = workflow.compile()
+
+def msg_to_dict(m):
+    if isinstance(m, dict): return {"role": m.get("role","user"), "content": m.get("content","")}
+    if hasattr(m, "content"):  # LangChain BaseMessage/Pydantic
+        role = getattr(m, "type", getattr(m, "role", "user"))
+        return {"role": role, "content": m.content}
+    return {"role": "user", "content": str(m)}
+
+def normalize(payload):
+    return {"messages": [msg_to_dict(m) for m in payload.get("messages", [])]}
+
+class ChatGraphModel(PythonModel):
+    def __init__(self, g): self.g = g
+    def predict(self, context, model_input: dict):
+        return [ self.g.invoke(normalize(model_input)) ]
+
+ex_in  = {"messages": [{"role": "user", "content": "Tell me a joke"}]}
+ex_out = [ normalize({"messages": [{"role": "assistant", "content": "…"}]}) ]
+sig = infer_signature(ex_in, ex_out)
+
+mlflow.set_experiment("/Users/<your_username>/langgraph_experiments")
+with mlflow.start_run():
+    mlflow.pyfunc.log_model(
+        artifact_path="langgraph_model",
+        python_model=ChatGraphModel(graph),
+        input_example=ex_in,
+        signature=sig,
+        registered_model_name="LangGraphLLMModel"
+    )
+
+print("✅ Registered with signature")
