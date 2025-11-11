@@ -1,60 +1,72 @@
-from typing import TypedDict, Annotated, Dict, List
+from typing import TypedDict, Annotated, List, Dict, Any
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
-# If you already use ChatDatabricks:
 from langchain_databricks import ChatDatabricks
 
-# ---- State as pure primitives (no Pydantic/BaseMessage) ----
+# ---- State: strictly primitives: list of {"role": str, "content": str}
 class State(TypedDict):
-    messages: Annotated[List[Dict], add_messages]  # list of {"role","content"}
+    messages: Annotated[List[Dict[str, str]], add_messages]
 
-# ---- Node that ALWAYS returns a dict update ----
 def call_llm(state: State) -> State:
     chat = ChatDatabricks(
-        endpoint="databricks-gpt-oss-20b",
+        endpoint="databricks-gpt-oss-20b",  # change if needed
         temperature=0.0,
         max_tokens=256,
     )
-    # last user input (fallback)
+
+    # get the last user message text
     user_text = ""
     for m in reversed(state.get("messages", [])):
         if m.get("role") == "user":
             user_text = m.get("content", "")
             break
 
-    prompt = f"Tell me a joke about: {user_text or 'anything'}"
-    ai = chat.invoke(prompt)      # ai.content is a plain string
+    # invoke as a simple prompt; returns AIMessage with .content
+    ai = chat.invoke(user_text or "Tell me a joke")
 
-    # RETURN A DICT UPDATE (this is key)
-    return {"messages": [{"role": "assistant", "content": ai.content}]}
+    # ✅ RETURN a dict update (LangGraph requirement)
+    return {"messages": [{"role": "assistant", "content": str(ai.content)}]}
 
-# ---- Build & compile the graph ----
-g = StateGraph(State)
-g.add_node("call_llm", call_llm)
-g.add_edge(START, "call_llm")
-g.add_edge("call_llm", END)
-graph = g.compile()
+# build & compile the graph
+workflow = StateGraph(State)
+workflow.add_node("call_llm", call_llm)
+workflow.add_edge(START, "call_llm")
+workflow.add_edge("call_llm", END)
+graph = workflow.compile()
 
 
 import mlflow
 from mlflow.pyfunc import PythonModel
+from typing import Any
 
 class ChatGraphModel(PythonModel):
-    # batched predict: list[dict] -> list[dict]
-    def predict(self, context, model_input: list[dict]):
-        out = []
+    # MLflow requires explicit element type: list[dict[str, Any]]
+    def predict(self, context, model_input: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        out: list[dict[str, Any]] = []
+
         for item in model_input:
-            # item must be like {"messages":[{"role":"user","content":"..."}]}
-            result = graph.invoke(item)   # LangGraph returns a dict state
-            out.append(result)            # list[dict] is JSON-serializable
+            # normalize to primitives
+            msgs = item.get("messages", [])
+            norm_msgs: List[Dict[str, str]] = [
+                {"role": str(m.get("role", "user")), "content": str(m.get("content", ""))}
+                for m in msgs
+            ]
+            state_in: State = {"messages": norm_msgs}
+
+            # LangGraph returns a dict state
+            state_out: State = graph.invoke(state_in)
+
+            # ensure JSON-serializable dict for pyfunc
+            out.append({"messages": state_out.get("messages", [])})
+
         return out
-
-
+# --- Register in UC ---
 mlflow.set_experiment("/Users/<your_username>/langgraph_experiments")
-mlflow.set_registry_uri("databricks-uc")  # register to UC
+mlflow.set_registry_uri("databricks-uc")   # ensure UC registry
 
 registered_name = "main.default.langgraph_llm_model"  # catalog.schema.model
 
+# input_example must match predict type: list[dict[str, Any]]
 input_example = [
     {"messages": [{"role": "user", "content": "Tell me a joke"}]}
 ]
@@ -63,8 +75,8 @@ with mlflow.start_run():
     mlflow.pyfunc.log_model(
         artifact_path="langgraph_model",
         python_model=ChatGraphModel(),
-        input_example=input_example,        # list[dict] avoids signature inference issues
+        input_example=input_example,        # primitives only
         registered_model_name=registered_name,
     )
 
-print("✅ Registered:", registered_name)
+print(f"✅ Registered to UC: {registered_name}")
