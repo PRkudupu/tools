@@ -1,94 +1,26 @@
-# ---------- 1) Build the graph exactly once ----------
-from typing import Annotated, TypedDict, List, Dict, Any
-from langgraph.graph import StateGraph, START, END
-from langgraph.graph.message import add_messages
-from databricks_langchain import ChatDatabricks
-
-class State(TypedDict):
-    messages: Annotated[List[Dict[str, Any]], add_messages]
-
-def build_graph() -> Any:
-    chat_model = ChatDatabricks(
-        endpoint="databricks-gpt-oss-20b",   # <-- use your serving endpoint name
-        temperature=0.0,
-        max_tokens=256,
-    )
-
-    def generate_reply(state: State) -> State:
-        messages = state["messages"]
-        # Ensure a system message at the start
-        if not messages or messages[0].get("role") != "system":
-            messages = [{"role": "system", "content": "Tell me a joke"}] + messages
-
-        # ChatDatabricks.invoke expects just content; keep it simple:
-        assistant = chat_model.invoke([{"role": m["role"], "content": m["content"]} for m in messages])
-        # Return as a list to be appended by add_messages
-        return {"messages": [ {"role": "assistant", "content": str(assistant)} ]}
-
-    g = StateGraph(State)
-    g.add_node("chat_node", generate_reply)
-    g.add_edge(START, "chat_node")
-    g.add_edge("chat_node", END)
-    return g.compile()
-
-GRAPH = build_graph()
-
-# ---------- 2) Wrap in an MLflow pyfunc ----------
 import mlflow
-import pandas as pd
-from mlflow.pyfunc import PythonModel
-from mlflow.models import infer_signature
+from mlflow.models.signature import infer_signature
 
-class LangGraphPyFunc(PythonModel):
-    def load_context(self, context):
-        # Rebuild or reuse the compiled graph (we’ll reuse global GRAPH for speed)
-        self.graph = GRAPH
+# Assume your function or LangGraph workflow is ready
+graph = workflow.compile()
 
-    def predict(self, context, model_input):
-        """
-        Expects a pandas.DataFrame with a column 'messages' (list of {role, content} dicts).
-        Returns a list of assistant strings (one per row).
-        """
-        # Normalize to DataFrame
-        if isinstance(model_input, dict):
-            model_input = pd.DataFrame([model_input])
-        elif not isinstance(model_input, pd.DataFrame):
-            model_input = pd.DataFrame(model_input)
+# Example input/output for signature
+example_input = {"messages": [{"role": "user", "content": "Tell me a joke"}]}
+example_output = call_llm(example_input)
 
-        outputs = []
-        for _, row in model_input.iterrows():
-            msgs = row["messages"]
-            state = {"messages": msgs}
-            out = self.graph.invoke(state)
-            # The graph returns the whole state; we append the last assistant message
-            last = out["messages"][-1]["content"]
-            outputs.append(last)
-        return outputs
+# Set MLflow experiment (optional)
+mlflow.set_experiment("/Users/<your_username>/langgraph_experiments")
 
-# ---------- 3) Log & register ----------
-input_example = pd.DataFrame([{
-    "messages": [
-        {"role": "user", "content": "Hello"}
-    ]
-}])
+# Log and register the model
+with mlflow.start_run() as run:
+    signature = infer_signature(example_input, example_output)
 
-sig = infer_signature(input_example, ["dummy"])
-
-with mlflow.start_run():
-    model_info = mlflow.pyfunc.log_model(
-        artifact_path="model",
-        python_model=LangGraphPyFunc(),                 # <-- FIX: provide python_model
-        registered_model_name="LangGraphChatDatabricksModel",  # use UC name if applicable: catalog.schema.name
-        pip_requirements=[
-            "langgraph>=0.2.27",
-            "databricks-langchain>=0.4.0",
-            "langchain-core>=0.3.0",
-            "mlflow>=2.9.0",
-            "pydantic>=1.10",
-            # add "langchain-community>=0.0.9" if your ChatDatabricks needs it
-        ],
-        input_example=input_example,
-        signature=sig,
+    # Log the graph as a Python model
+    mlflow.pyfunc.log_model(
+        artifact_path="langgraph_model",
+        python_model=graph,
+        signature=signature,
+        registered_model_name="LangGraphLLMModel"
     )
 
-print("Model logged to:", model_info.model_uri)
+print("✅ Model successfully registered in MLflow Databricks!")
