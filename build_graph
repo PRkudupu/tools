@@ -1,71 +1,59 @@
-from typing import TypedDict, Annotated
+from typing import TypedDict, Annotated, List, Dict, Any
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
-from langgraph.graph.state import CompiledStateGraph
 from databricks_langchain import ChatDatabricks
+from langchain_core.runnables import RunnableLambda
 import mlflow
 
-# 1. Define the State schema with a messages field using add_messages reducer
+# Define the State schema with add_messages to accumulate conversation turns
 class State(TypedDict):
-    """Shared state for the chat system, containing the conversation messages."""
-    messages: Annotated[list, add_messages]  # list of chat messages (user/assistant), using reducer to append new messages
+    messages: Annotated[List[Dict[str, Any]], add_messages]
 
-# 2. Initialize the Databricks chat model (GPT OSS 20B) via ChatDatabricks
-#    - Inside Databricks, no explicit host/token needed (uses workspace credentials).
+# Instantiate the Databricks GPT OSS 20B model
 chat_model = ChatDatabricks(
-    endpoint="databricks-gpt-oss-20b",  # target the GPT OSS 20B foundation model endpoint:contentReference[oaicite:11]{index=11}
+    endpoint="databricks-gpt-oss-20b",
     temperature=0.1,
     max_tokens=256
 )
 
-# 3. Define the function to generate an AI response using the chat model
-def generate_response(state: State) -> dict:
-    """
-    Takes the current state (with conversation messages) and returns a new state 
-    update containing the AI's response to the latest user message.
-    """
-    # The latest user message is assumed to be the last item in state["messages"].
-    # We invoke the Databricks chat model with the full message history to get a reply.
-    ai_message = chat_model.invoke(state["messages"])
-    # Return the new AI message as an update. The add_messages reducer will append it to the state.
-    return {"messages": [ai_message]}
+# Node function to get latest user message and return AI response
+def generate_response(state: State) -> State:
+    user_text = ""
+    for m in reversed(state.get("messages", [])):
+        if m.get("role") == "user":
+            user_text = m.get("content", "")
+            break
+    ai = chat_model.invoke(user_text or "Say something")
+    return {"messages": [{"role": "assistant", "content": str(ai.content)}]}
 
-# 4. Build the StateGraph with a single node for response generation
-graph_builder = StateGraph(State)
-graph_builder.add_node("generate_response", generate_response)
-graph_builder.add_edge(START, "generate_response")
-graph_builder.add_edge("generate_response", END)
-# Compile the graph to get an executable object (CompiledStateGraph)
-chat_graph: CompiledStateGraph = graph_builder.compile()
+# Build and compile the LangGraph workflow
+workflow = StateGraph(State)
+workflow.add_node("call_llm", generate_response)
+workflow.add_edge(START, "call_llm")
+workflow.add_edge("call_llm", END)
+compiled_graph = workflow.compile()
 
-# 5. (Optional) Test the chat system by invoking the graph with an example conversation
+# Wrap in a RunnableLambda so it can be logged to MLflow
+graph_runnable = RunnableLambda(lambda state: compiled_graph.invoke(state))
+
+# Optional test
 if __name__ == "__main__":
-    # Example initial user message
-    initial_state = {"messages": [{"role": "user", "content": "Hello, chatbot!"}]}
-    result_state = chat_graph.invoke(initial_state)
-    # Print the assistant's reply from the result state
-    assistant_reply = result_state["messages"][-1]["content"] if result_state["messages"] else None
-    print(f"User: {initial_state['messages'][0]['content']}")
-    print(f"Assistant: {assistant_reply}")
+    input_state = {
+        "messages": [{"role": "user", "content": "What's the capital of France?"}]
+    }
+    result = compiled_graph.invoke(input_state)
+    print("Assistant:", result["messages"][-1]["content"])
 
-    # Continue the conversation with another user message to demonstrate state persistence
-    followup_state = {"messages": result_state["messages"] + [{"role": "user", "content": "How are you today?"}]}
-    result_state2 = chat_graph.invoke(followup_state)
-    assistant_reply2 = result_state2["messages"][-1]["content"] if result_state2["messages"] else None
-    print(f"User: {followup_state['messages'][-1]['content']}")
-    print(f"Assistant: {assistant_reply2}")
-
-# 6. Log the compiled chat graph as an MLflow model with LangChain flavor
+# Log to MLflow (wrapped)
 with mlflow.start_run():
     mlflow.langchain.log_model(
-        lc_model=chat_graph,
+        lc_model=graph_runnable,
         artifact_path="langchain_model",
-        # Specify pip requirements for the model environment
         pip_requirements=[
-            "mlflow>=2.9",             # MLflow with LangChain support (2.9+ for LLM integrations)
-            "langchain",               # Core LangChain library (for message schemas, etc.)
-            "langgraph",               # LangGraph for StateGraph functionality
-            "databricks-langchain"     # Databricks LangChain integration (provides ChatDatabricks)
+            "mlflow>=2.9",
+            "langchain",
+            "langgraph",
+            "databricks-langchain"
         ]
     )
-    print("Logged the chat graph to MLflow with LangChain flavor.")
+    print("✅ Chat model (wrapped) logged to MLflow.")
