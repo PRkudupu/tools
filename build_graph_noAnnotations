@@ -27,6 +27,35 @@ state: State = {"messages": [HumanMessage(content="Hi")], "result": None}
 graph.invoke(state)
 
 
+from typing import TypedDict, Optional, List, Dict, Any
+
+from langchain_core.messages import BaseMessage, AIMessage, HumanMessage
+from langgraph.graph import StateGraph, START, END
+from langgraph.graph.message import add_messages  # reducer
+
+# ---- State (no Annotated) ----
+class State(TypedDict):
+    messages: List[BaseMessage]
+    result: Optional[str]
+
+def chat_node(state: State) -> Dict[str, Any]:
+    last_human = next((m.content for m in reversed(state.get("messages", []))
+                       if isinstance(m, HumanMessage)), None)
+    reply = f"Hello! You said: {last_human}" if last_human else "Hello!"
+    return {"messages": [AIMessage(content=reply)], "result": reply}
+
+# ---- Build graph and wire reducer for the 'messages' channel ----
+builder = StateGraph(State, channels={"messages": add_messages})
+builder.add_node("chat", chat_node)
+builder.add_edge(START, "chat")
+builder.add_edge("chat", END)
+graph = builder.compile()
+
+# Smoke test in notebook
+state: State = {"messages": [HumanMessage(content="Hi")], "result": None}
+graph.invoke(state)
+
+
 import json
 import mlflow
 import mlflow.pyfunc
