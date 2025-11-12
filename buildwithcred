@@ -1,0 +1,136 @@
+# ==== CONFIG: edit these ====
+EXPERIMENT = "/Workspace/Users/prathap.kudupu@ecolab.com/cust_brief/src"
+CATALOG    = "industrial-data-science"
+SCHEMA     = "cbt"
+NAME       = "langgraph_model"
+ENDPOINT   = "databricks-gpt-oss-20b"   # your Databricks LLM Serving endpoint
+
+# ===== Imports =====
+from __future__ import annotations
+import os
+from typing import Any, Dict, List, Tuple
+
+import pandas as pd
+import mlflow
+import mlflow.pyfunc
+from mlflow.models import infer_signature
+
+from typing_extensions import TypedDict, Annotated
+from langgraph.graph import StateGraph, START, END
+from langgraph.graph.message import add_messages
+from databricks_langchain import ChatDatabricks
+
+
+# ---- Credential guard (so failures are obvious at serve time) ----
+def _require_dbx_creds():
+    if not (
+        os.environ.get("DATABRICKS_HOST")
+        and os.environ.get("DATABRICKS_TOKEN")
+    ) and not os.environ.get("DATABRICKS_CONFIG_PROFILE"):
+        raise RuntimeError(
+            "Databricks credentials not found. Set DATABRICKS_HOST and DATABRICKS_TOKEN "
+            "(or DATABRICKS_CONFIG_PROFILE) in the serving environment."
+        )
+
+
+# ---- LangGraph state & helpers ----
+class State(TypedDict):
+    messages: Annotated[list, add_messages]  # chat history
+    result: str                               # final answer text
+
+def _normalize_messages(raw) -> List[Tuple[str, str]]:
+    """Normalize inputs to list[(role, content)]."""
+    if isinstance(raw, str):
+        return [("user", raw)]
+    out: List[Tuple[str, str]] = []
+    for m in raw or []:
+        if isinstance(m, tuple) and len(m) >= 2:
+            out.append((str(m[0]).lower(), str(m[1])))
+        elif isinstance(m, dict) and "content" in m:
+            role = str(m.get("role", m.get("type", "user"))).lower()
+            out.append((role, str(m["content"])))
+        else:
+            role = getattr(m, "type", getattr(m, "role", "user"))
+            content = getattr(m, "content", None)
+            out.append((str(role).lower(), str(content) if content is not None else str(m)))
+    return out
+
+
+# ---- Build LangGraph (kept tiny & robust) ----
+def build_graph(endpoint: str):
+    chat = ChatDatabricks(endpoint=endpoint, temperature=0.0, max_tokens=256)
+
+    def ensure_system(state: State) -> State:
+        pairs = _normalize_messages(state["messages"])
+        if not pairs or pairs[0][0] != "system":
+            pairs.insert(0, ("system", "You are a helpful assistant."))
+        return {"messages": pairs}
+
+    def llm_call(state: State) -> State:
+        pairs = state["messages"]
+        ai_msg = chat.invoke(pairs)
+        text = getattr(ai_msg, "content", str(ai_msg))
+        return {"messages": [("assistant", text)], "result": text}
+
+    g = StateGraph(State)
+    g.add_node("ensure_system", ensure_system)
+    g.add_node("llm_call", llm_call)
+    g.add_edge(START, "ensure_system")
+    g.add_edge("ensure_system", "llm_call")
+    g.add_edge("llm_call", END)
+    return g.compile()
+
+
+# ---- MLflow pyfunc wrapper (lazy-init + cred check) ----
+class LangGraphPyfunc(mlflow.pyfunc.PythonModel):
+    def __init__(self, endpoint_name: str):
+        self.endpoint_name = endpoint_name
+        self.graph = None
+
+    def load_context(self, context):
+        _require_dbx_creds()
+        self.graph = build_graph(self.endpoint_name)
+
+    def predict(self, context, model_input: pd.DataFrame) -> pd.DataFrame:
+        # In notebook/testing, load_context may not run; lazy build with cred check
+        if self.graph is None:
+            _require_dbx_creds()
+            self.graph = build_graph(self.endpoint_name)
+
+        results: List[str] = []
+        for msgs in model_input["messages"]:
+            out_state = self.graph.invoke({"messages": msgs})
+            results.append(out_state["result"])
+        return pd.DataFrame({"result": results})
+
+
+# ---- Log + Register to Unity Catalog ----
+mlflow.set_experiment(EXPERIMENT)
+mlflow.set_registry_uri("databricks-uc")
+
+ex_in  = pd.DataFrame({"messages": [[("user", "Hello there!")]]})
+# Signature schema only (no network call needed at train time)
+ex_out = pd.DataFrame({"result": ["dummy"]})
+sig    = infer_signature(ex_in, ex_out)
+
+registered_name = f"{CATALOG}.{SCHEMA}.{NAME}"
+
+with mlflow.start_run():
+    mlflow.pyfunc.log_model(
+        artifact_path="model",
+        python_model=LangGraphPyfunc(endpoint_name=ENDPOINT),
+        input_example=ex_in,
+        signature=sig,
+        registered_model_name=registered_name,
+        pip_requirements=[
+            "mlflow==3.5.1",
+            "pandas>=2.0.0",
+            "typing-extensions>=4.15.0",
+            "pydantic>=2.12.4",
+            "langgraph==1.0.3",
+            "databricks-langchain==0.9.0",
+            "langchain==1.0.5",
+        ],
+    )
+
+print(f"Registered: {registered_name}")
