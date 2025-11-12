@@ -10,14 +10,14 @@
   pydantic>=2.12.4 \
   typing-extensions>=4.15.0
 
-# ==== CONFIG: edit these ====
+# ==== CONFIG ====
 EXPERIMENT = "/Workspace/Users/prathap.kudupu@ecolab.com/cust_brief/src"
 CATALOG    = "industrial-data-science"
 SCHEMA     = "cbt"
 NAME       = "langgraph_model"
-ENDPOINT   = "databricks-gpt-oss-20b"    # your Databricks Serving endpoint name
+ENDPOINT   = "databricks-gpt-oss-20b"   # your Databricks Model Serving endpoint
 
-# ======================================
+# ===== Imports =====
 from __future__ import annotations
 import json
 from typing import Any, Dict, List, Tuple
@@ -27,96 +27,75 @@ import mlflow
 import mlflow.pyfunc
 from mlflow.models import infer_signature
 
-# LangGraph (no MessagesState import)
 from typing_extensions import TypedDict, Annotated
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
-
-# Databricks LLM client
 from databricks_langchain import ChatDatabricks
 
 
-# ---------- 1) State & helpers ----------
+# ===== 1) State + helpers =====
 class State(TypedDict):
-    # A list of chat messages. We annotate with add_messages so LangGraph appends properly.
-    messages: Annotated[list, add_messages]
-    # Final text result (assistant reply)
-    result: str
+    messages: Annotated[list, add_messages]  # chat history
+    result: str                               # final answer text
 
 def _normalize_messages(raw) -> List[Tuple[str, str]]:
-    """
-    Accepts:
-      - list[(role, content)]
-      - list[{role, content}]
-      - list[LC message objects with .type/.role & .content]
-      - str (treated as user message)
-    Returns list[(role, content)] in lower-case roles.
-    """
+    """Normalize inputs to list[(role, content)]."""
     if isinstance(raw, str):
         return [("user", raw)]
     out: List[Tuple[str, str]] = []
     for m in raw or []:
         if isinstance(m, tuple) and len(m) >= 2:
             out.append((str(m[0]).lower(), str(m[1])))
-            continue
-        if isinstance(m, dict) and "content" in m:
+        elif isinstance(m, dict) and "content" in m:
             role = str(m.get("role", m.get("type", "user"))).lower()
             out.append((role, str(m["content"])))
-            continue
-        # LangChain message-like
-        role = getattr(m, "type", getattr(m, "role", "user"))
-        content = getattr(m, "content", None)
-        if content is not None:
-            out.append((str(role).lower(), str(content)))
         else:
-            out.append(("user", str(m)))
+            role = getattr(m, "type", getattr(m, "role", "user"))
+            content = getattr(m, "content", None)
+            out.append((str(role).lower(), str(content) if content is not None else str(m)))
     return out
 
 
-# ---------- 2) Build the LangGraph ----------
-def build_graph(endpoint: str) -> Any:
+# ===== 2) Build LangGraph =====
+def build_graph(endpoint: str):
     chat = ChatDatabricks(endpoint=endpoint, temperature=0.0, max_tokens=256)
 
     def ensure_system(state: State) -> State:
         pairs = _normalize_messages(state["messages"])
         if not pairs or pairs[0][0] != "system":
             pairs.insert(0, ("system", "You are a helpful assistant."))
-        # Replace state.messages with normalized pairs
-        return {"messages": pairs}  # add_messages will handle appending in next node
+        return {"messages": pairs}
 
     def llm_call(state: State) -> State:
-        pairs = state["messages"]  # already normalized
-        ai_msg = chat.invoke(pairs)             # returns LC message object
+        pairs = state["messages"]
+        ai_msg = chat.invoke(pairs)
         text = getattr(ai_msg, "content", str(ai_msg))
-        # Append assistant message and set result
         return {"messages": [("assistant", text)], "result": text}
 
-    gb = StateGraph(State)
-    gb.add_node("ensure_system", ensure_system)
-    gb.add_node("llm_call", llm_call)
-    gb.add_edge(START, "ensure_system")
-    gb.add_edge("ensure_system", "llm_call")
-    gb.add_edge("llm_call", END)
-    return gb.compile()
+    g = StateGraph(State)
+    g.add_node("ensure_system", ensure_system)
+    g.add_node("llm_call", llm_call)
+    g.add_edge(START, "ensure_system")
+    g.add_edge("ensure_system", "llm_call")
+    g.add_edge("llm_call", END)
+    return g.compile()
 
 
-GRAPH = build_graph(ENDPOINT)
-
-
-# ---------- 3) MLflow pyfunc wrapper ----------
+# ===== 3) MLflow pyfunc wrapper (lazy-init fix) =====
 class LangGraphPyfunc(mlflow.pyfunc.PythonModel):
     def __init__(self, endpoint_name: str):
         self.endpoint_name = endpoint_name
+        self.graph = None  # will lazy-init in predict if needed
 
     def load_context(self, context):
-        # Rebuild graph at load/serve time
+        # Built when MLflow loads the model in serving env
         self.graph = build_graph(self.endpoint_name)
 
     def predict(self, context, model_input: pd.DataFrame) -> pd.DataFrame:
-        """
-        Expect a DataFrame with a column 'messages' (list/tuple/dict/str as described).
-        Returns a DataFrame with column 'result' (assistant reply text).
-        """
+        # Lazy init for notebook/local calls before load_context runs
+        if self.graph is None:
+            self.graph = build_graph(self.endpoint_name)
+
         results: List[str] = []
         for msgs in model_input["messages"]:
             out_state = self.graph.invoke({"messages": msgs})
@@ -124,14 +103,13 @@ class LangGraphPyfunc(mlflow.pyfunc.PythonModel):
         return pd.DataFrame({"result": results})
 
 
-# ---------- 4) Log + Register to Unity Catalog ----------
+# ===== 4) Log + Register to Unity Catalog =====
 mlflow.set_experiment(EXPERIMENT)
 mlflow.set_registry_uri("databricks-uc")
 
-# input example for signature
+# Example input; signature can use a dummy output with same schema
 ex_in  = pd.DataFrame({"messages": [[("user", "Hello there!")]]})
-# quick dry-run to get output example
-ex_out = LangGraphPyfunc(ENDPOINT).predict(None, ex_in)
+ex_out = pd.DataFrame({"result": ["dummy"]})
 sig    = infer_signature(ex_in, ex_out)
 
 registered_name = f"{CATALOG}.{SCHEMA}.{NAME}"
