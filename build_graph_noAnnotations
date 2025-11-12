@@ -1,150 +1,159 @@
-from typing import TypedDict, Optional, List, Dict, Any
+# ==== CONFIG: edit these ====
+EXPERIMENT = "/Workspace/Users/prathap.kudupu@ecolab.com/cust_brief/src"
+CATALOG    = "industrial-data-science"
+SCHEMA     = "cbt"
+NAME       = "langgraph_model"
+ENDPOINT   = "databricks-gpt-oss-20b"   # your Databricks LLM Serving endpoint
 
-from langchain_core.messages import BaseMessage, AIMessage, HumanMessage
-from langgraph.graph import StateGraph, START, END
-from langgraph.graph.message import add_messages  # reducer
+# ===== Imports =====
+from __future__ import annotations
+import os
+from typing import Any, Dict, List, Tuple, Optional
 
-# ---- State (no Annotated) ----
-class State(TypedDict):
-    messages: List[BaseMessage]
-    result: Optional[str]
-
-def chat_node(state: State) -> Dict[str, Any]:
-    last_human = next((m.content for m in reversed(state.get("messages", []))
-                       if isinstance(m, HumanMessage)), None)
-    reply = f"Hello! You said: {last_human}" if last_human else "Hello!"
-    return {"messages": [AIMessage(content=reply)], "result": reply}
-
-# ---- Build graph and wire reducer for the 'messages' channel ----
-builder = StateGraph(State, channels={"messages": add_messages})
-builder.add_node("chat", chat_node)
-builder.add_edge(START, "chat")
-builder.add_edge("chat", END)
-graph = builder.compile()
-
-# Smoke test in notebook
-state: State = {"messages": [HumanMessage(content="Hi")], "result": None}
-graph.invoke(state)
-
-
-from typing import TypedDict, Optional, List, Dict, Any
-
-from langchain_core.messages import BaseMessage, AIMessage, HumanMessage
-from langgraph.graph import StateGraph, START, END
-from langgraph.graph.message import add_messages  # reducer
-
-# ---- State (no Annotated) ----
-class State(TypedDict):
-    messages: List[BaseMessage]
-    result: Optional[str]
-
-def chat_node(state: State) -> Dict[str, Any]:
-    last_human = next((m.content for m in reversed(state.get("messages", []))
-                       if isinstance(m, HumanMessage)), None)
-    reply = f"Hello! You said: {last_human}" if last_human else "Hello!"
-    return {"messages": [AIMessage(content=reply)], "result": reply}
-
-# ---- Build graph and wire reducer for the 'messages' channel ----
-builder = StateGraph(State, channels={"messages": add_messages})
-builder.add_node("chat", chat_node)
-builder.add_edge(START, "chat")
-builder.add_edge("chat", END)
-graph = builder.compile()
-
-# Smoke test in notebook
-state: State = {"messages": [HumanMessage(content="Hi")], "result": None}
-graph.invoke(state)
-
-
-import json
+import pandas as pd
 import mlflow
 import mlflow.pyfunc
-from typing import Any, Dict, List, Optional
-from langchain_core.messages import BaseMessage, AIMessage, HumanMessage
+from mlflow.models import infer_signature
 
-# --- helpers to convert request payloads ---
-def _to_messages(payload: Dict[str, Any]) -> List[BaseMessage]:
-    if "messages" in payload:
-        out: List[BaseMessage] = []
-        for m in payload["messages"]:
-            role = (m.get("role") or "").lower()
-            content = m.get("content", "")
-            if role in ("human", "user"):
-                out.append(HumanMessage(content=content))
-            elif role in ("ai", "assistant"):
-                out.append(AIMessage(content=content))
-            else:
-                out.append(HumanMessage(content=content))
-        return out
-    if "text" in payload:
-        return [HumanMessage(content=str(payload["text"]))]
-    return []
+from typing_extensions import TypedDict
+from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
+from langgraph.graph import StateGraph, START, END
+from langgraph.graph.message import add_messages
+from databricks_langchain import ChatDatabricks
 
-def _run_graph(messages: List[BaseMessage]) -> Dict[str, Any]:
-    state: State = {"messages": messages, "result": None}
-    out = graph.invoke(state)
-    serializable = [{"role": "ai" if isinstance(m, AIMessage) else "human",
-                     "content": m.content} for m in out["messages"]]
-    return {"messages": serializable, "result": out.get("result")}
 
-# --- MLflow wrapper ---
-class LangGraphChatModel(mlflow.pyfunc.PythonModel):
-    def load_context(self, context):
-        self.graph = graph  # compiled above in notebook
-
-    def predict(self, context, model_input):
-        try:
-            import pandas as pd
-        except Exception:
-            pd = None
-
-        if isinstance(model_input, (dict, str)):
-            payload = json.loads(model_input) if isinstance(model_input, str) else model_input
-            return _run_graph(_to_messages(payload))
-
-        if pd is not None and hasattr(model_input, "iterrows"):
-            col = "payload" if "payload" in model_input.columns else model_input.columns[0]
-            results = []
-            for item in model_input[col]:
-                payload = json.loads(item) if isinstance(item, str) else item
-                results.append(_run_graph(_to_messages(payload)))
-            return results
-
-        # last-ditch
-        payload = dict(model_input)
-        return _run_graph(_to_messages(payload))
-
-# --- Log & optional register ---
-def log_and_register(model_name: Optional[str] = None):
-    with mlflow.start_run(run_name="langgraph-chat-pyfunc"):
-        mlflow.pyfunc.log_model(
-            artifact_path="model",
-            python_model=LangGraphChatModel(),
-            # We’re in-notebook; env already has pinned versions you installed.
-            pip_requirements=[
-                "mlflow==3.5.1",
-                "langgraph==1.0.3",
-                "databricks-langchain==0.9.0",
-                "langchain==1.0.5",
-                "pandas>=2.0.0",
-                "pydantic>=2.12.4",
-                "typing-extensions>=4.15.0",
-            ],
-            code_path=None,  # everything lives in this notebook context
+# ---- Credential guard (so failures are obvious at serve time) ----
+def _require_dbx_creds():
+    if not (
+        os.environ.get("DATABRICKS_HOST")
+        and os.environ.get("DATABRICKS_TOKEN")
+    ) and not os.environ.get("DATABRICKS_CONFIG_PROFILE"):
+        raise RuntimeError(
+            "Databricks credentials not found. Set DATABRICKS_HOST and DATABRICKS_TOKEN "
+            "(or DATABRICKS_CONFIG_PROFILE) in the serving environment."
         )
-        run = mlflow.active_run()
-        uri = f"runs:/{run.info.run_id}/model"
-        print("Logged model at:", uri)
 
-        if model_name:
-            reg = mlflow.register_model(uri, model_name)
-            print(f"Registered as {reg.name} v{reg.version}")
-            return reg
-        return uri
 
-# Example: log & register (set a name you want in Unity Catalog/Workspace Model Registry)
-registered = log_and_register(model_name="langgraph_chat_pyfunc_v1")
+# ---- LangGraph state (NO Annotated) & helpers ----
+class State(TypedDict):
+    messages: List[BaseMessage]          # chat history as LangChain messages
+    result: Optional[str]                # final answer text
 
-# Quick test via loaded model (not required for serving)
-loaded = mlflow.pyfunc.load_model(f"models:/{registered.name}/{registered.version}")
-print(loaded.predict({"text": "Hello from endpoint"}))
+def _to_messages(raw) -> List[BaseMessage]:
+    """
+    Normalize to List[BaseMessage].
+    Accepts:
+      - string: treated as a single human message
+      - list of tuples: [(role, content)]
+      - list of dicts: [{"role": "...", "content": "..."}]
+      - already-constructed BaseMessage objects
+    """
+    if isinstance(raw, str):
+        return [HumanMessage(content=raw)]
+
+    out: List[BaseMessage] = []
+    for m in raw or []:
+        if isinstance(m, BaseMessage):
+            out.append(m)
+            continue
+
+        if isinstance(m, tuple) and len(m) >= 2:
+            role, content = str(m[0]).lower(), str(m[1])
+        elif isinstance(m, dict) and "content" in m:
+            role = str(m.get("role", m.get("type", "user"))).lower()
+            content = str(m["content"])
+        else:
+            role = str(getattr(m, "role", getattr(m, "type", "user"))).lower()
+            content = str(getattr(m, "content", m))
+
+        if role in ("system",):
+            out.append(SystemMessage(content=content))
+        elif role in ("ai", "assistant"):
+            out.append(AIMessage(content=content))
+        else:
+            out.append(HumanMessage(content=content))
+    return out
+
+
+# ---- Build LangGraph (kept tiny & robust) ----
+def build_graph(endpoint: str):
+    chat = ChatDatabricks(endpoint=endpoint, temperature=0.0, max_tokens=256)
+
+    def llm_call(state: State) -> State:
+        # Convert whatever came in to BaseMessage list
+        msgs: List[BaseMessage] = _to_messages(state.get("messages", []))
+
+        # Ensure first is a system message (prepend locally; we are NOT mutating the channel)
+        if not msgs or not isinstance(msgs[0], SystemMessage):
+            msgs = [SystemMessage(content="You are a helpful assistant.")] + msgs
+
+        # Call the Databricks chat endpoint
+        ai = chat.invoke(msgs)
+        text = getattr(ai, "content", str(ai))
+
+        # Return ONLY the *new* AI message; the reducer will append it to the channel
+        return {"messages": [AIMessage(content=text)], "result": text}
+
+    # Map the messages reducer explicitly (this is the key change vs Annotated)
+    g = StateGraph(State, channels={"messages": add_messages})
+    g.add_node("llm_call", llm_call)
+    g.add_edge(START, "llm_call")
+    g.add_edge("llm_call", END)
+    return g.compile()
+
+
+# ---- MLflow pyfunc wrapper (lazy-init + cred check) ----
+class LangGraphPyfunc(mlflow.pyfunc.PythonModel):
+    def __init__(self, endpoint_name: str):
+        self.endpoint_name = endpoint_name
+        self.graph = None  # compiled graph
+
+    def load_context(self, context):
+        _require_dbx_creds()
+        self.graph = build_graph(self.endpoint_name)
+
+    def predict(self, context, model_input: pd.DataFrame) -> pd.DataFrame:
+        # Lazy init for notebook tests where load_context may not run
+        if self.graph is None:
+            _require_dbx_creds()
+            self.graph = build_graph(self.endpoint_name)
+
+        results: List[str] = []
+        for msgs in model_input["messages"]:
+            # Normalize to BaseMessage for the graph
+            in_state: State = {"messages": _to_messages(msgs), "result": None}
+            out_state = self.graph.invoke(in_state)
+            results.append(out_state["result"])
+        return pd.DataFrame({"result": results})
+
+
+# ---- Log + Register to Unity Catalog ----
+mlflow.set_experiment(EXPERIMENT)
+mlflow.set_registry_uri("databricks-uc")
+
+# Signature schema only (no network call needed at log time)
+ex_in  = pd.DataFrame({"messages": [[("user", "Hello there!")]]})
+ex_out = pd.DataFrame({"result": ["dummy"]})
+sig    = infer_signature(ex_in, ex_out)
+
+registered_name = f"{CATALOG}.{SCHEMA}.{NAME}"
+
+with mlflow.start_run():
+    mlflow.pyfunc.log_model(
+        artifact_path="model",
+        python_model=LangGraphPyfunc(endpoint_name=ENDPOINT),
+        input_example=ex_in,
+        signature=sig,
+        registered_model_name=registered_name,
+        pip_requirements=[
+            "mlflow==3.5.1",
+            "pandas>=2.0.0",
+            "typing-extensions>=4.15.0",
+            "pydantic>=2.12.4",
+            "langgraph==1.0.3",
+            "databricks-langchain==0.9.0",
+            "langchain==1.0.5",
+        ],
+    )
+
+print(f"Registered: {registered_name}")
