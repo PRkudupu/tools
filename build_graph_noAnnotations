@@ -1,0 +1,121 @@
+from typing import TypedDict, Optional, List, Dict, Any
+
+from langchain_core.messages import BaseMessage, AIMessage, HumanMessage
+from langgraph.graph import StateGraph, START, END
+from langgraph.graph.message import add_messages  # reducer
+
+# ---- State (no Annotated) ----
+class State(TypedDict):
+    messages: List[BaseMessage]
+    result: Optional[str]
+
+def chat_node(state: State) -> Dict[str, Any]:
+    last_human = next((m.content for m in reversed(state.get("messages", []))
+                       if isinstance(m, HumanMessage)), None)
+    reply = f"Hello! You said: {last_human}" if last_human else "Hello!"
+    return {"messages": [AIMessage(content=reply)], "result": reply}
+
+# ---- Build graph and wire reducer for the 'messages' channel ----
+builder = StateGraph(State, channels={"messages": add_messages})
+builder.add_node("chat", chat_node)
+builder.add_edge(START, "chat")
+builder.add_edge("chat", END)
+graph = builder.compile()
+
+# Smoke test in notebook
+state: State = {"messages": [HumanMessage(content="Hi")], "result": None}
+graph.invoke(state)
+
+
+import json
+import mlflow
+import mlflow.pyfunc
+from typing import Any, Dict, List, Optional
+from langchain_core.messages import BaseMessage, AIMessage, HumanMessage
+
+# --- helpers to convert request payloads ---
+def _to_messages(payload: Dict[str, Any]) -> List[BaseMessage]:
+    if "messages" in payload:
+        out: List[BaseMessage] = []
+        for m in payload["messages"]:
+            role = (m.get("role") or "").lower()
+            content = m.get("content", "")
+            if role in ("human", "user"):
+                out.append(HumanMessage(content=content))
+            elif role in ("ai", "assistant"):
+                out.append(AIMessage(content=content))
+            else:
+                out.append(HumanMessage(content=content))
+        return out
+    if "text" in payload:
+        return [HumanMessage(content=str(payload["text"]))]
+    return []
+
+def _run_graph(messages: List[BaseMessage]) -> Dict[str, Any]:
+    state: State = {"messages": messages, "result": None}
+    out = graph.invoke(state)
+    serializable = [{"role": "ai" if isinstance(m, AIMessage) else "human",
+                     "content": m.content} for m in out["messages"]]
+    return {"messages": serializable, "result": out.get("result")}
+
+# --- MLflow wrapper ---
+class LangGraphChatModel(mlflow.pyfunc.PythonModel):
+    def load_context(self, context):
+        self.graph = graph  # compiled above in notebook
+
+    def predict(self, context, model_input):
+        try:
+            import pandas as pd
+        except Exception:
+            pd = None
+
+        if isinstance(model_input, (dict, str)):
+            payload = json.loads(model_input) if isinstance(model_input, str) else model_input
+            return _run_graph(_to_messages(payload))
+
+        if pd is not None and hasattr(model_input, "iterrows"):
+            col = "payload" if "payload" in model_input.columns else model_input.columns[0]
+            results = []
+            for item in model_input[col]:
+                payload = json.loads(item) if isinstance(item, str) else item
+                results.append(_run_graph(_to_messages(payload)))
+            return results
+
+        # last-ditch
+        payload = dict(model_input)
+        return _run_graph(_to_messages(payload))
+
+# --- Log & optional register ---
+def log_and_register(model_name: Optional[str] = None):
+    with mlflow.start_run(run_name="langgraph-chat-pyfunc"):
+        mlflow.pyfunc.log_model(
+            artifact_path="model",
+            python_model=LangGraphChatModel(),
+            # We’re in-notebook; env already has pinned versions you installed.
+            pip_requirements=[
+                "mlflow==3.5.1",
+                "langgraph==1.0.3",
+                "databricks-langchain==0.9.0",
+                "langchain==1.0.5",
+                "pandas>=2.0.0",
+                "pydantic>=2.12.4",
+                "typing-extensions>=4.15.0",
+            ],
+            code_path=None,  # everything lives in this notebook context
+        )
+        run = mlflow.active_run()
+        uri = f"runs:/{run.info.run_id}/model"
+        print("Logged model at:", uri)
+
+        if model_name:
+            reg = mlflow.register_model(uri, model_name)
+            print(f"Registered as {reg.name} v{reg.version}")
+            return reg
+        return uri
+
+# Example: log & register (set a name you want in Unity Catalog/Workspace Model Registry)
+registered = log_and_register(model_name="langgraph_chat_pyfunc_v1")
+
+# Quick test via loaded model (not required for serving)
+loaded = mlflow.pyfunc.load_model(f"models:/{registered.name}/{registered.version}")
+print(loaded.predict({"text": "Hello from endpoint"}))
