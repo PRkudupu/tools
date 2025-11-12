@@ -13,33 +13,63 @@ Usage:
 from __future__ import annotations
 import argparse
 import json
+from typing import Any, Dict, List
+
 import pandas as pd
 import mlflow
 import mlflow.pyfunc
 from mlflow.models import infer_signature
-from typing import Any, Dict, List
+
+# ===== LangGraph / LangChain-Databricks imports =====
+from typing_extensions import TypedDict, Annotated
+from langgraph.graph import StateGraph, START, END
+from langgraph.graph.message import add_messages
+from langchain_databricks import ChatDatabricks
 
 
-# ===== 1) Your graph factory or import =====
-# Provide a function that returns a compiled LangGraph object with `.invoke(input)`
-# Replace this with your actual graph build.
-def build_graph():
-    # --- example stub ---
-    class EchoGraph:
-        def invoke(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-            # Expect payload {"messages": [{"role":"user","content":"..."}]}
-            msgs = payload.get("messages", [])
-            user_text = msgs[-1]["content"] if msgs else ""
-            return {"answer": f"Echo: {user_text}"}
-    return EchoGraph()
+# ===== 1) Your ACTUAL LangGraph =====
+class State(TypedDict):
+    # Conversation history carried through the graph
+    messages: Annotated[list, add_messages]
+
+
+def build_graph() -> Any:
+    # --- Create chat model hosted on Databricks Model Serving ---
+    chat_model = ChatDatabricks(
+        endpoint="databricks-gpt-oss-20b",  # e.g., "databricks-dbrx-instruct" or your custom endpoint
+        temperature=0.0,
+        max_tokens=256,
+    )
+
+    # --- Node: generate a reply from the model ---
+    def generate_reply(state: State) -> State:
+        # Extract and normalize messages
+        messages = state["messages"]
+        # Ensure a system prompt is at the start
+        if not messages or messages[0].get("role") != "system":
+            messages = [{"role": "system", "content": "Tell me a joke"}] + messages
+
+        # ChatDatabricks accepts a list of (role, content) tuples
+        assistant_message = chat_model.invoke([(m["role"], m["content"]) for m in messages])
+
+        # Return as a list so it appends to the state's messages via add_messages
+        return {"messages": [assistant_message]}
+
+    # --- Build the LangGraph ---
+    graph_builder = StateGraph(State)
+    graph_builder.add_node("chat_node", generate_reply)
+    graph_builder.add_edge(START, "chat_node")
+    graph_builder.add_edge("chat_node", END)
+    graph = graph_builder.compile()
+    return graph
 
 
 # ===== 2) MLflow PyFunc Wrapper =====
 class ChatGraphModel(mlflow.pyfunc.PythonModel):
     """
-    Generic pyfunc wrapper for a LangGraph (or similar) graph that exposes `.invoke(payload)`.
-    Accepts a pandas.DataFrame with a column 'messages' (list or JSON string).
-    Returns a DataFrame with a single column 'answer' (stringified JSON if dict).
+    Pyfunc wrapper for a LangGraph that exposes `.invoke(payload)`.
+    Input: pandas.DataFrame with a 'messages' column (list or JSON string).
+    Output: DataFrame with single 'answer' column (JSON string).
     """
 
     def __init__(self, graph):
@@ -48,25 +78,21 @@ class ChatGraphModel(mlflow.pyfunc.PythonModel):
     def _row_to_payload(self, row: pd.Series) -> Dict[str, Any]:
         val = row.get("messages", None)
         if isinstance(val, str):
-            # If user sent JSON-serialized messages
             try:
                 val = json.loads(val)
             except Exception:
-                # Treat the string as plain user content
                 val = [{"role": "user", "content": val}]
         if not isinstance(val, list):
-            # Fallback to a minimal user message
             val = [{"role": "user", "content": str(val)}]
         return {"messages": val}
 
     def predict(self, context, model_input: pd.DataFrame) -> pd.DataFrame:
-        outputs: List[str] = []
+        outs: List[str] = []
         for _, row in model_input.iterrows():
             payload = self._row_to_payload(row)
-            result = self.graph.invoke(payload)
-            # normalize result -> string for portability
-            outputs.append(json.dumps(result))
-        return pd.DataFrame({"answer": outputs})
+            result = self.graph.invoke(payload)  # returns the final state (with "messages")
+            outs.append(json.dumps(result))
+        return pd.DataFrame({"answer": outs})
 
 
 # ===== 3) Log + Register helper =====
@@ -76,17 +102,14 @@ def log_and_register_pyfunc(
     schema: str,
     name: str,
 ) -> str:
-    """
-    Logs a LangGraph pyfunc and registers to UC as <catalog>.<schema>.<name>.
-    Returns the registered model URI.
-    """
+    """Logs the LangGraph pyfunc and registers it to UC as <catalog>.<schema>.<name>."""
     mlflow.set_experiment(experiment)
     mlflow.set_registry_uri("databricks-uc")
 
     graph = build_graph()
     py_model = ChatGraphModel(graph)
 
-    # Input example as a DataFrame (pyfunc expects DataFrame)
+    # Example input (DataFrame) and signature
     ex_in = pd.DataFrame(
         [{
             "messages": [
@@ -95,9 +118,8 @@ def log_and_register_pyfunc(
             ]
         }]
     )
-    # Generate output for signature
-    tmp_out = py_model.predict(context=None, model_input=ex_in)
-    sig = infer_signature(ex_in, tmp_out)
+    ex_out = py_model.predict(context=None, model_input=ex_in)
+    sig = infer_signature(ex_in, ex_out)
 
     registered_name = f"{catalog}.{schema}.{name}"
 
@@ -108,14 +130,13 @@ def log_and_register_pyfunc(
             input_example=ex_in,
             signature=sig,
             registered_model_name=registered_name,
-            # Keep deps minimal; add others you actually need.
             pip_requirements=[
                 "mlflow>=2.9.0",
                 "pandas>=2.0.0",
                 "numpy>=1.24.0",
-                "langgraph>=0.2.0",      # your version
-                "langchain>=0.2.0",      # if your graph needs it
-                "pydantic>=2.0.0",
+                "langgraph>=0.2.0",
+                "langchain-databricks>=0.1.0",
+                "typing-extensions>=4.8.0",
             ],
         )
 
@@ -124,17 +145,17 @@ def log_and_register_pyfunc(
 
 
 # ===== 4) CLI =====
-def parse_args():
+def _args():
     ap = argparse.ArgumentParser(description="Log & register a LangGraph as MLflow pyfunc.")
     ap.add_argument("--experiment", required=True, help="MLflow experiment path")
-    ap.add_argument("--catalog", required=True, help="Unity Catalog name (e.g., industrial-data-science)")
-    ap.add_argument("--schema", required=True, help="Schema/database (e.g., cbt)")
-    ap.add_argument("--name", default="langgraph_model", help="Model object name")
+    ap.add_argument("--catalog", required=True, help="Unity Catalog name")
+    ap.add_argument("--schema", required=True, help="Schema/database name")
+    ap.add_argument("--name", default="langgraph_model", help="Registered model object name")
     return ap.parse_args()
 
 
 if __name__ == "__main__":
-    args = parse_args()
+    args = _args()
     log_and_register_pyfunc(
         experiment=args.experiment,
         catalog=args.catalog,
