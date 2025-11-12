@@ -1,59 +1,47 @@
 from typing import TypedDict, Annotated, List, Dict, Any
-from langgraph.graph import StateGraph, START, END
-from langgraph.graph.message import add_messages
 from databricks_langchain import ChatDatabricks
-from langchain_core.runnables import RunnableLambda
 import mlflow
 
-# Define the State schema with add_messages to accumulate conversation turns
+# Define input state
 class State(TypedDict):
-    messages: Annotated[List[Dict[str, Any]], add_messages]
+    messages: List[Dict[str, str]]  # [{"role": "user", "content": "..."}]
 
-# Instantiate the Databricks GPT OSS 20B model
-chat_model = ChatDatabricks(
-    endpoint="databricks-gpt-oss-20b",
-    temperature=0.1,
-    max_tokens=256
-)
+# Define stateless callable wrapper class
+class ChatResponder:
+    def __init__(self):
+        self.chat_model = ChatDatabricks(
+            endpoint="databricks-gpt-oss-20b",
+            temperature=0.1,
+            max_tokens=256
+        )
 
-# Node function to get latest user message and return AI response
-def generate_response(state: State) -> State:
-    user_text = ""
-    for m in reversed(state.get("messages", [])):
-        if m.get("role") == "user":
-            user_text = m.get("content", "")
-            break
-    ai = chat_model.invoke(user_text or "Say something")
-    return {"messages": [{"role": "assistant", "content": str(ai.content)}]}
+    def __call__(self, state: State) -> State:
+        user_text = ""
+        for m in reversed(state.get("messages", [])):
+            if m.get("role") == "user":
+                user_text = m.get("content", "")
+                break
+        ai = self.chat_model.invoke(user_text or "Say something")
+        return {"messages": [{"role": "assistant", "content": str(ai.content)}]}
 
-# Build and compile the LangGraph workflow
-workflow = StateGraph(State)
-workflow.add_node("call_llm", generate_response)
-workflow.add_edge(START, "call_llm")
-workflow.add_edge("call_llm", END)
-compiled_graph = workflow.compile()
-
-# Wrap in a RunnableLambda so it can be logged to MLflow
-graph_runnable = RunnableLambda(lambda state: compiled_graph.invoke(state))
-
-# Optional test
+# Optional: test locally
 if __name__ == "__main__":
-    input_state = {
-        "messages": [{"role": "user", "content": "What's the capital of France?"}]
-    }
-    result = compiled_graph.invoke(input_state)
+    responder = ChatResponder()
+    input_state = {"messages": [{"role": "user", "content": "Tell me a joke"}]}
+    result = responder(input_state)
     print("Assistant:", result["messages"][-1]["content"])
 
-# Log to MLflow (wrapped)
+# ✅ Log cleanly with MLflow
+responder = ChatResponder()
+
 with mlflow.start_run():
     mlflow.langchain.log_model(
-        lc_model=graph_runnable,
-        artifact_path="langchain_model",
+        lc_model=responder,
+        name="chat_model_responder",  # Recommended: use `name` instead of deprecated `artifact_path`
         pip_requirements=[
             "mlflow>=2.9",
             "langchain",
-            "langgraph",
             "databricks-langchain"
         ]
     )
-    print("✅ Chat model (wrapped) logged to MLflow.")
+    print("✅ Model logged to MLflow successfully.")
