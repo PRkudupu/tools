@@ -1,17 +1,5 @@
-# langgraph_pyfunc_register.py
-"""
-Wrap a LangGraph graph as an MLflow pyfunc model and register to Unity Catalog.
-
-Usage:
-  python langgraph_pyfunc_register.py \
-    --experiment "/Workspace/Users/<you>@<org>.com/cust_brief/src" \
-    --catalog industrial-data-science \
-    --schema cbt \
-    --name langgraph_model
-"""
-
+# ==== Notebook-friendly LangGraph -> MLflow pyfunc -> UC registration ====
 from __future__ import annotations
-import argparse
 import json
 from typing import Any, Dict, List
 
@@ -20,58 +8,59 @@ import mlflow
 import mlflow.pyfunc
 from mlflow.models import infer_signature
 
-# ===== LangGraph / LangChain-Databricks imports =====
+# LangGraph / LangChain-Databricks
 from typing_extensions import TypedDict, Annotated
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langchain_databricks import ChatDatabricks
 
+# ------------------------
+# 1) CONFIG (edit if needed)
+# ------------------------
+EXPERIMENT = "/Workspace/Users/prathap.kudupu@ecolab.com/cust_brief/src"
+CATALOG    = "industrial-data-science"
+SCHEMA     = "cbt"
+NAME       = "langgraph_model"  # registered object name under CATALOG.SCHEMA
 
-# ===== 1) Your ACTUAL LangGraph =====
+ENDPOINT   = "databricks-gpt-oss-20b"  # change to your serving endpoint (e.g., "databricks-dbrx-instruct")
+TEMPERATURE = 0.0
+MAX_TOKENS  = 256
+
+# ------------------------
+# 2) ACTUAL LangGraph
+# ------------------------
 class State(TypedDict):
-    # Conversation history carried through the graph
     messages: Annotated[list, add_messages]
 
-
 def build_graph() -> Any:
-    # --- Create chat model hosted on Databricks Model Serving ---
     chat_model = ChatDatabricks(
-        endpoint="databricks-gpt-oss-20b",  # e.g., "databricks-dbrx-instruct" or your custom endpoint
-        temperature=0.0,
-        max_tokens=256,
+        endpoint=ENDPOINT,
+        temperature=TEMPERATURE,
+        max_tokens=MAX_TOKENS,
     )
 
-    # --- Node: generate a reply from the model ---
     def generate_reply(state: State) -> State:
-        # Extract and normalize messages
         messages = state["messages"]
-        # Ensure a system prompt is at the start
         if not messages or messages[0].get("role") != "system":
             messages = [{"role": "system", "content": "Tell me a joke"}] + messages
-
-        # ChatDatabricks accepts a list of (role, content) tuples
         assistant_message = chat_model.invoke([(m["role"], m["content"]) for m in messages])
-
-        # Return as a list so it appends to the state's messages via add_messages
         return {"messages": [assistant_message]}
 
-    # --- Build the LangGraph ---
     graph_builder = StateGraph(State)
     graph_builder.add_node("chat_node", generate_reply)
     graph_builder.add_edge(START, "chat_node")
     graph_builder.add_edge("chat_node", END)
-    graph = graph_builder.compile()
-    return graph
+    return graph_builder.compile()
 
-
-# ===== 2) MLflow PyFunc Wrapper =====
+# ------------------------
+# 3) MLflow PyFunc wrapper
+# ------------------------
 class ChatGraphModel(mlflow.pyfunc.PythonModel):
     """
-    Pyfunc wrapper for a LangGraph that exposes `.invoke(payload)`.
-    Input: pandas.DataFrame with a 'messages' column (list or JSON string).
-    Output: DataFrame with single 'answer' column (JSON string).
+    Pyfunc for a LangGraph exposing .invoke(payload).
+    Input: DataFrame with 'messages' column (list[dict] or JSON str).
+    Output: DataFrame with 'answer' column (JSON string of final state).
     """
-
     def __init__(self, graph):
         self.graph = graph
 
@@ -90,34 +79,36 @@ class ChatGraphModel(mlflow.pyfunc.PythonModel):
         outs: List[str] = []
         for _, row in model_input.iterrows():
             payload = self._row_to_payload(row)
-            result = self.graph.invoke(payload)  # returns the final state (with "messages")
+            result = self.graph.invoke(payload)  # final state dict (includes "messages")
             outs.append(json.dumps(result))
         return pd.DataFrame({"answer": outs})
 
-
-# ===== 3) Log + Register helper =====
+# ------------------------
+# 4) Log + Register (notebook-safe)
+# ------------------------
 def log_and_register_pyfunc(
     experiment: str,
     catalog: str,
     schema: str,
     name: str,
 ) -> str:
-    """Logs the LangGraph pyfunc and registers it to UC as <catalog>.<schema>.<name>."""
-    mlflow.set_experiment(experiment)
+    """
+    Logs the LangGraph pyfunc and registers it to UC as <catalog>.<schema>.<name>.
+    Returns the versioned models URI.
+    """
     mlflow.set_registry_uri("databricks-uc")
+    mlflow.set_experiment(experiment)
 
     graph = build_graph()
     py_model = ChatGraphModel(graph)
 
-    # Example input (DataFrame) and signature
-    ex_in = pd.DataFrame(
-        [{
-            "messages": [
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": "Hello!"},
-            ]
-        }]
-    )
+    # Example input/output for signature (avoid warnings)
+    ex_in = pd.DataFrame([{
+        "messages": [
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": "Hello!"},
+        ]
+    }])
     ex_out = py_model.predict(context=None, model_input=ex_in)
     sig = infer_signature(ex_in, ex_out)
 
@@ -139,26 +130,18 @@ def log_and_register_pyfunc(
                 "typing-extensions>=4.8.0",
             ],
         )
-
+        # For convenience, return the versioned URI
+        run_id = mlflow.active_run().info.run_id
     print(f"Registered MLflow model: {registered_name}")
     return f"models:/{registered_name}"
 
-
-# ===== 4) CLI =====
-def _args():
-    ap = argparse.ArgumentParser(description="Log & register a LangGraph as MLflow pyfunc.")
-    ap.add_argument("--experiment", required=True, help="MLflow experiment path")
-    ap.add_argument("--catalog", required=True, help="Unity Catalog name")
-    ap.add_argument("--schema", required=True, help="Schema/database name")
-    ap.add_argument("--name", default="langgraph_model", help="Registered model object name")
-    return ap.parse_args()
-
-
-if __name__ == "__main__":
-    args = _args()
-    log_and_register_pyfunc(
-        experiment=args.experiment,
-        catalog=args.catalog,
-        schema=args.schema,
-        name=args.name,
-    )
+# ------------------------
+# 5) Execute (works in notebook; no CLI args needed)
+# ------------------------
+uri = log_and_register_pyfunc(
+    experiment=EXPERIMENT,
+    catalog=CATALOG,
+    schema=SCHEMA,
+    name=NAME,
+)
+print("Model URI:", uri)
