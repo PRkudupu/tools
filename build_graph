@@ -1,12 +1,7 @@
 # RUN THIS FIRST (Databricks)
 # Use %pip in Databricks to install into the cluster's Python env
-%pip install \
-  mlflow==2.9.0 \
-  pandas==2.0.0 \
-  numpy==1.24.0 \
-  langgraph==0.2.0 \
-  langchain-databricks==0.1.0 \
-  typing-extensions==4.8.0
+%pip install --upgrade langgraph==1.0.3 databricks-langchain==0.9.0 langchain==1.0.5 mlflow==3.5.1 pydantic==2.12.4 typing-extensions==4.15.0
+
 
 # ==== Notebook-friendly LangGraph -> MLflow pyfunc -> UC registration ====
 from __future__ import annotations
