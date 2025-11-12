@@ -1,82 +1,71 @@
-from typing import TypedDict, Annotated, List, Dict, Any
+from typing import TypedDict, Annotated
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
-from langchain_databricks import ChatDatabricks
-
-# ---- State: strictly primitives: list of {"role": str, "content": str}
-class State(TypedDict):
-    messages: Annotated[List[Dict[str, str]], add_messages]
-
-def call_llm(state: State) -> State:
-    chat = ChatDatabricks(
-        endpoint="databricks-gpt-oss-20b",  # change if needed
-        temperature=0.0,
-        max_tokens=256,
-    )
-
-    # get the last user message text
-    user_text = ""
-    for m in reversed(state.get("messages", [])):
-        if m.get("role") == "user":
-            user_text = m.get("content", "")
-            break
-
-    # invoke as a simple prompt; returns AIMessage with .content
-    ai = chat.invoke(user_text or "Tell me a joke")
-
-    # ✅ RETURN a dict update (LangGraph requirement)
-    return {"messages": [{"role": "assistant", "content": str(ai.content)}]}
-
-# build & compile the graph
-workflow = StateGraph(State)
-workflow.add_node("call_llm", call_llm)
-workflow.add_edge(START, "call_llm")
-workflow.add_edge("call_llm", END)
-graph = workflow.compile()
-
-
+from langgraph.graph.state import CompiledStateGraph
+from databricks_langchain import ChatDatabricks
 import mlflow
-from mlflow.pyfunc import PythonModel
-from typing import Any
 
-class ChatGraphModel(PythonModel):
-    # MLflow requires explicit element type: list[dict[str, Any]]
-    def predict(self, context, model_input: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        out: list[dict[str, Any]] = []
+# 1. Define the State schema with a messages field using add_messages reducer
+class State(TypedDict):
+    """Shared state for the chat system, containing the conversation messages."""
+    messages: Annotated[list, add_messages]  # list of chat messages (user/assistant), using reducer to append new messages
 
-        for item in model_input:
-            # normalize to primitives
-            msgs = item.get("messages", [])
-            norm_msgs: List[Dict[str, str]] = [
-                {"role": str(m.get("role", "user")), "content": str(m.get("content", ""))}
-                for m in msgs
-            ]
-            state_in: State = {"messages": norm_msgs}
+# 2. Initialize the Databricks chat model (GPT OSS 20B) via ChatDatabricks
+#    - Inside Databricks, no explicit host/token needed (uses workspace credentials).
+chat_model = ChatDatabricks(
+    endpoint="databricks-gpt-oss-20b",  # target the GPT OSS 20B foundation model endpoint:contentReference[oaicite:11]{index=11}
+    temperature=0.1,
+    max_tokens=256
+)
 
-            # LangGraph returns a dict state
-            state_out: State = graph.invoke(state_in)
+# 3. Define the function to generate an AI response using the chat model
+def generate_response(state: State) -> dict:
+    """
+    Takes the current state (with conversation messages) and returns a new state 
+    update containing the AI's response to the latest user message.
+    """
+    # The latest user message is assumed to be the last item in state["messages"].
+    # We invoke the Databricks chat model with the full message history to get a reply.
+    ai_message = chat_model.invoke(state["messages"])
+    # Return the new AI message as an update. The add_messages reducer will append it to the state.
+    return {"messages": [ai_message]}
 
-            # ensure JSON-serializable dict for pyfunc
-            out.append({"messages": state_out.get("messages", [])})
+# 4. Build the StateGraph with a single node for response generation
+graph_builder = StateGraph(State)
+graph_builder.add_node("generate_response", generate_response)
+graph_builder.add_edge(START, "generate_response")
+graph_builder.add_edge("generate_response", END)
+# Compile the graph to get an executable object (CompiledStateGraph)
+chat_graph: CompiledStateGraph = graph_builder.compile()
 
-        return out
-# --- Register in UC ---
-mlflow.set_experiment("/Users/<your_username>/langgraph_experiments")
-mlflow.set_registry_uri("databricks-uc")   # ensure UC registry
+# 5. (Optional) Test the chat system by invoking the graph with an example conversation
+if __name__ == "__main__":
+    # Example initial user message
+    initial_state = {"messages": [{"role": "user", "content": "Hello, chatbot!"}]}
+    result_state = chat_graph.invoke(initial_state)
+    # Print the assistant's reply from the result state
+    assistant_reply = result_state["messages"][-1]["content"] if result_state["messages"] else None
+    print(f"User: {initial_state['messages'][0]['content']}")
+    print(f"Assistant: {assistant_reply}")
 
-registered_name = "main.default.langgraph_llm_model"  # catalog.schema.model
+    # Continue the conversation with another user message to demonstrate state persistence
+    followup_state = {"messages": result_state["messages"] + [{"role": "user", "content": "How are you today?"}]}
+    result_state2 = chat_graph.invoke(followup_state)
+    assistant_reply2 = result_state2["messages"][-1]["content"] if result_state2["messages"] else None
+    print(f"User: {followup_state['messages'][-1]['content']}")
+    print(f"Assistant: {assistant_reply2}")
 
-# input_example must match predict type: list[dict[str, Any]]
-input_example = [
-    {"messages": [{"role": "user", "content": "Tell me a joke"}]}
-]
-
+# 6. Log the compiled chat graph as an MLflow model with LangChain flavor
 with mlflow.start_run():
-    mlflow.pyfunc.log_model(
-        artifact_path="langgraph_model",
-        python_model=ChatGraphModel(),
-        input_example=input_example,        # primitives only
-        registered_model_name=registered_name,
+    mlflow.langchain.log_model(
+        lc_model=chat_graph,
+        artifact_path="langchain_model",
+        # Specify pip requirements for the model environment
+        pip_requirements=[
+            "mlflow>=2.9",             # MLflow with LangChain support (2.9+ for LLM integrations)
+            "langchain",               # Core LangChain library (for message schemas, etc.)
+            "langgraph",               # LangGraph for StateGraph functionality
+            "databricks-langchain"     # Databricks LangChain integration (provides ChatDatabricks)
+        ]
     )
-
-print(f"✅ Registered to UC: {registered_name}")
+    print("Logged the chat graph to MLflow with LangChain flavor.")
