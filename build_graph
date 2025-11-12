@@ -3,150 +3,206 @@
 %pip install --upgrade langgraph==1.0.3 databricks-langchain==0.9.0 langchain==1.0.5 mlflow==3.5.1 pydantic==2.12.4 typing-extensions==4.15.0
 
 
-# ==== Notebook-friendly LangGraph -> MLflow pyfunc -> UC registration ====
-from __future__ import annotations
-import json
-from typing import Any, Dict, List
+# ---------------------------------------------------------
+# Configuration: MLflow experiment & model registry details
+# ---------------------------------------------------------
+experiment_path = "/Users/<username>/experiments/langgraph_demo"    # MLflow experiment location
+catalog_name    = "your_catalog"    # Unity Catalog name
+schema_name     = "your_schema"     # Schema under the catalog
+model_name      = "chatgraph_model" # Registered model name (in <catalog>.<schema>)
+endpoint_name   = "databricks-gpt-oss-20b"  # Databricks Model Serving endpoint for ChatDatabricks LLM
 
-import pandas as pd
+# ---------------------------
+# Imports and Setup
+# ---------------------------
 import mlflow
-import mlflow.pyfunc
-from mlflow.models import infer_signature
+import pandas as pd
 
-# LangGraph / LangChain-Databricks
-from typing_extensions import TypedDict, Annotated
+# LangChain & LangGraph imports
+from databricks_langchain import ChatDatabricks
+from langchain.schema import BaseMessage, AIMessage, HumanMessage, SystemMessage
 from langgraph.graph import StateGraph, START, END
-from langgraph.graph.message import add_messages
-from langchain_databricks import ChatDatabricks
+from langgraph.graph.message import MessagesState
 
-# ------------------------
-# 1) CONFIG (edit if needed)
-# ------------------------
-EXPERIMENT = "/Workspace/Users/prathap.kudupu@ecolab.com/cust_brief/src"
-CATALOG    = "industrial-data-science"
-SCHEMA     = "cbt"
-NAME       = "langgraph_model"  # registered object name under CATALOG.SCHEMA
+from typing import Any, List, Dict
+from typing_extensions import TypedDict
 
-ENDPOINT   = "databricks-gpt-oss-20b"  # change to your serving endpoint (e.g., "databricks-dbrx-instruct")
-TEMPERATURE = 0.0
-MAX_TOKENS  = 256
+# --------------------------------------------
+# Define LangGraph state schema using MessagesState
+# --------------------------------------------
+class State(MessagesState):
+    """Combined state holding conversation messages and LLM result."""
+    result: str  # will store the assistant response text
 
-# ------------------------
-# 2) ACTUAL LangGraph
-# ------------------------
-class State(TypedDict):
-    messages: Annotated[list, add_messages]
+class OutputState(TypedDict):
+    """Output schema for the graph (only the final result)."""
+    result: str
 
-def build_graph() -> Any:
-    chat_model = ChatDatabricks(
-        endpoint=ENDPOINT,
-        temperature=TEMPERATURE,
-        max_tokens=MAX_TOKENS,
-    )
+# --------------------------------------------
+# Build the LangGraph with message handling
+# --------------------------------------------
+# Create the LLM instance (ChatDatabricks) for the graph. 
+# This wraps a Databricks serving endpoint (must support OpenAI chat format).
+chat_model = ChatDatabricks(endpoint=endpoint_name)  # e.g., wraps a 20B OSS model endpoint
 
-    def generate_reply(state: State) -> State:
-        messages = state["messages"]
-        if not messages or messages[0].get("role") != "system":
-            messages = [{"role": "system", "content": "Tell me a joke"}] + messages
-        assistant_message = chat_model.invoke([(m["role"], m["content"]) for m in messages])
-        return {"messages": [assistant_message]}
+# Define graph node: ensure a system prompt is present
+def ensure_system_node(state: Dict[str, Any]) -> Dict[str, Any]:
+    """If no system message in the conversation, prepend a default system prompt."""
+    msgs = state["messages"]
+    converted_msgs: List[BaseMessage] = []
+    for m in msgs:
+        # Convert tuples or dicts into LangChain message objects for uniformity
+        if isinstance(m, BaseMessage):
+            converted_msgs.append(m)
+        elif isinstance(m, tuple) and len(m) >= 2:
+            role, content = m[0], m[1]
+            if role in ("system", "assistant", "user", "human", "ai"):
+                if role == "system":
+                    converted_msgs.append(SystemMessage(content=content))
+                elif role == "user" or role == "human":
+                    converted_msgs.append(HumanMessage(content=content))
+                elif role == "assistant" or role == "ai":
+                    converted_msgs.append(AIMessage(content=content))
+            else:
+                converted_msgs.append(HumanMessage(content=content))
+        elif isinstance(m, dict) and "content" in m:
+            # Accept dict format with 'role' or 'type'
+            role = m.get("role", m.get("type", "")).lower()
+            content = m["content"]
+            if role == "system":
+                converted_msgs.append(SystemMessage(content=content))
+            elif role == "user" or role == "human":
+                converted_msgs.append(HumanMessage(content=content))
+            elif role == "assistant" or role == "ai":
+                converted_msgs.append(AIMessage(content=content))
+            else:
+                converted_msgs.append(HumanMessage(content=content))
+        else:
+            # Fallback: treat any unknown format as a human message
+            converted_msgs.append(HumanMessage(content=str(m)))
+    # Inject default system message if none exists
+    if not any(isinstance(msg, SystemMessage) for msg in converted_msgs):
+        converted_msgs.insert(0, SystemMessage(content="You are a helpful assistant."))
+    return {"messages": converted_msgs}
 
-    graph_builder = StateGraph(State)
-    graph_builder.add_node("chat_node", generate_reply)
-    graph_builder.add_edge(START, "chat_node")
-    graph_builder.add_edge("chat_node", END)
-    return graph_builder.compile()
+# Define graph node: call the ChatDatabricks LLM and append its response
+def llm_response_node(state: Dict[str, Any]) -> Dict[str, Any]:
+    """Call the LLM on the accumulated messages and return the assistant's reply."""
+    msgs = state["messages"]
+    # Invoke the chat model (returns an AIMessage)
+    ai_message: BaseMessage = chat_model.invoke(msgs)
+    # Append the AI response message and also set the result text
+    return {"messages": [ai_message], "result": ai_message.content}
 
-# ------------------------
-# 3) MLflow PyFunc wrapper
-# ------------------------
-class ChatGraphModel(mlflow.pyfunc.PythonModel):
-    """
-    Pyfunc for a LangGraph exposing .invoke(payload).
-    Input: DataFrame with 'messages' column (list[dict] or JSON str).
-    Output: DataFrame with 'answer' column (JSON string of final state).
-    """
-    def __init__(self, graph):
-        self.graph = graph
+# Build the graph structure using StateGraph
+builder = StateGraph(State, input_schema=MessagesState, output_schema=OutputState)
+builder.add_node("ensure_system", ensure_system_node)
+builder.add_node("llm_call", llm_response_node)
+builder.add_edge(START, "ensure_system")
+builder.add_edge("ensure_system", "llm_call")
+builder.add_edge("llm_call", END)
+graph = builder.compile()
 
-    def _row_to_payload(self, row: pd.Series) -> Dict[str, Any]:
-        val = row.get("messages", None)
-        if isinstance(val, str):
-            try:
-                val = json.loads(val)
-            except Exception:
-                val = [{"role": "user", "content": val}]
-        if not isinstance(val, list):
-            val = [{"role": "user", "content": str(val)}]
-        return {"messages": val}
+# ---------------------------------------------------
+# Define an MLflow pyfunc model class wrapping the graph
+# ---------------------------------------------------
+class LangGraphModel(mlflow.pyfunc.PythonModel):
+    def load_context(self, context):
+        """
+        Initialize resources when the model is loaded.
+        Re-create the ChatDatabricks model and compiled graph for the production environment.
+        """
+        # Note: If running outside Databricks, ensure DATABRICKS_HOST and DATABRICKS_TOKEN env vars are set.
+        self.chat_model = ChatDatabricks(endpoint=self.endpoint_name)
+        # Re-build the graph nodes (ensuring we use the ChatDatabricks instance above)
+        def _ensure_system(state: Dict[str, Any]) -> Dict[str, Any]:
+            # (Same logic as ensure_system_node defined earlier)
+            msgs = state["messages"]
+            converted_msgs: List[BaseMessage] = []
+            for m in msgs:
+                if isinstance(m, BaseMessage):
+                    converted_msgs.append(m)
+                elif isinstance(m, tuple) and len(m) >= 2:
+                    role, content = m[0], m[1]
+                    if role == "system":
+                        converted_msgs.append(SystemMessage(content=content))
+                    elif role == "user" or role == "human":
+                        converted_msgs.append(HumanMessage(content=content))
+                    elif role == "assistant" or role == "ai":
+                        converted_msgs.append(AIMessage(content=content))
+                    else:
+                        converted_msgs.append(HumanMessage(content=content))
+                elif isinstance(m, dict) and "content" in m:
+                    role = m.get("role", m.get("type", "")).lower()
+                    content = m["content"]
+                    if role == "system":
+                        converted_msgs.append(SystemMessage(content=content))
+                    elif role == "user" or role == "human":
+                        converted_msgs.append(HumanMessage(content=content))
+                    elif role == "assistant" or role == "ai":
+                        converted_msgs.append(AIMessage(content=content))
+                    else:
+                        converted_msgs.append(HumanMessage(content=content))
+                else:
+                    converted_msgs.append(HumanMessage(content=str(m)))
+            if not any(isinstance(msg, SystemMessage) for msg in converted_msgs):
+                converted_msgs.insert(0, SystemMessage(content="You are a helpful assistant."))
+            return {"messages": converted_msgs}
+        def _llm_call(state: Dict[str, Any]) -> Dict[str, Any]:
+            msgs = state["messages"]
+            ai_msg = self.chat_model.invoke(msgs)
+            return {"messages": [ai_msg], "result": ai_msg.content}
+        # Build graph for this model instance
+        builder = StateGraph(State, input_schema=MessagesState, output_schema=OutputState)
+        builder.add_node("ensure_system", _ensure_system)
+        builder.add_node("llm_call", _llm_call)
+        builder.add_edge(START, "ensure_system")
+        builder.add_edge("ensure_system", "llm_call")
+        builder.add_edge("llm_call", END)
+        self.graph = builder.compile()
+
+    def __init__(self, endpoint_name: str):
+        # Store the serving endpoint name (for use in load_context)
+        self.endpoint_name = endpoint_name
 
     def predict(self, context, model_input: pd.DataFrame) -> pd.DataFrame:
-        outs: List[str] = []
-        for _, row in model_input.iterrows():
-            payload = self._row_to_payload(row)
-            result = self.graph.invoke(payload)  # final state dict (includes "messages")
-            outs.append(json.dumps(result))
-        return pd.DataFrame({"answer": outs})
+        """
+        Apply the LangGraph model to each row of input DataFrame.
+        Expects a 'messages' column containing a list of messages (tuples, dicts, or BaseMessage objects).
+        Returns a DataFrame with a 'result' column (assistant response text).
+        """
+        results: List[str] = []
+        # Iterate over each input (each row represents one conversation/messages list)
+        for messages in model_input["messages"]:
+            # Invoke the graph with the given messages
+            output_state = self.graph.invoke({"messages": messages})
+            # Extract the assistant response text from the output state
+            results.append(output_state["result"])
+        return pd.DataFrame({"result": results})
 
-# ------------------------
-# 4) Log + Register (notebook-safe)
-# ------------------------
-def log_and_register_pyfunc(
-    experiment: str,
-    catalog: str,
-    schema: str,
-    name: str,
-) -> str:
-    """
-    Logs the LangGraph pyfunc and registers it to UC as <catalog>.<schema>.<name>.
-    Returns the versioned models URI.
-    """
-    mlflow.set_registry_uri("databricks-uc")
-    mlflow.set_experiment(experiment)
+# ---------------------------------------------------
+# Log the model to MLflow and register to Unity Catalog
+# ---------------------------------------------------
+# Set MLflow experiment (creates it if not already exists)
+mlflow.set_experiment(experiment_path)
+# Ensure using Unity Catalog for registry
+mlflow.set_registry_uri("databricks-uc")
 
-    graph = build_graph()
-    py_model = ChatGraphModel(graph)
+# Prepare an example input DataFrame for model signature and testing
+example_messages = [("user", "Hello, world!")]  # sample conversation (no system message provided)
+input_example = pd.DataFrame({"messages": [ example_messages ]})
+# Generate an example output (dummy) for signature inference
+output_example = pd.DataFrame({"result": ["Hello!"]})
 
-    # Example input/output for signature (avoid warnings)
-    ex_in = pd.DataFrame([{
-        "messages": [
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": "Hello!"},
-        ]
-    }])
-    ex_out = py_model.predict(context=None, model_input=ex_in)
-    sig = infer_signature(ex_in, ex_out)
+# Infer MLflow model signature from example input and output
+signature = mlflow.models.infer_signature(input_example, output_example)
 
-    registered_name = f"{catalog}.{schema}.{name}"
-
-    with mlflow.start_run():
-        mlflow.pyfunc.log_model(
-            artifact_path="langgraph_model",
-            python_model=py_model,
-            input_example=ex_in,
-            signature=sig,
-            registered_model_name=registered_name,
-            pip_requirements=[
-                "mlflow>=2.9.0",
-                "pandas>=2.0.0",
-                "numpy>=1.24.0",
-                "langgraph>=0.2.0",
-                "langchain-databricks>=0.1.0",
-                "typing-extensions>=4.8.0",
-            ],
-        )
-        # For convenience, return the versioned URI
-        run_id = mlflow.active_run().info.run_id
-    print(f"Registered MLflow model: {registered_name}")
-    return f"models:/{registered_name}"
-
-# ------------------------
-# 5) Execute (works in notebook; no CLI args needed)
-# ------------------------
-uri = log_and_register_pyfunc(
-    experiment=EXPERIMENT,
-    catalog=CATALOG,
-    schema=SCHEMA,
-    name=NAME,
-)
-print("Model URI:", uri)
+# Start an MLflow run and log the pyfunc model
+with mlflow.start_run():
+    mlflow.pyfunc.log_model(
+        artifact_path="model",
+        python_model=LangGraphModel(endpoint_name=endpoint_name),
+        signature=signature,
+        input_example=input_example,
+        registered_model_name=f"{catalog_name}.{schema_name}.{model_name}"
+    )
