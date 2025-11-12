@@ -1,47 +1,220 @@
-from typing import TypedDict, Annotated, List, Dict, Any
-from databricks_langchain import ChatDatabricks
+%pip install langchain langgraph mlflow databricks-sdk
+
+from typing import TypedDict, Annotated, List, Any
+from langgraph.graph import StateGraph, START, END
+from langchain.chat_models import ChatDatabricks
+from langchain.schema import HumanMessage, AIMessage, SystemMessage
 import mlflow
+import pandas as pd
+from dataclasses import dataclass
 
-# Define input state
+# Define the state
 class State(TypedDict):
-    messages: List[Dict[str, str]]  # [{"role": "user", "content": "..."}]
+    messages: Annotated[List[dict], "add_messages"]
 
-# Define stateless callable wrapper class
-class ChatResponder:
+# Create chat model using Databricks endpoint
+def build_graph() -> Any:
+    chat_model = ChatDatabricks(
+        endpoint="databricks-llama-2-70b-chat",  # Use your available endpoint
+        temperature=0.7,
+        max_tokens=256
+    )
+    
+    # Chat reply function
+    def generate_reply(state: State):
+        # Extract the conversation messages list from state
+        messages = state["messages"]
+        
+        # Ensure a system prompt is included
+        if not messages or messages[0].get("role") != "system":
+            messages = [{"role": "system", "content": "You are a helpful assistant. Provide concise and helpful responses."}] + messages
+        
+        # Convert to LangChain message format
+        lc_messages = []
+        for msg in messages:
+            if msg["role"] == "system":
+                lc_messages.append(SystemMessage(content=msg["content"]))
+            elif msg["role"] == "user":
+                lc_messages.append(HumanMessage(content=msg["content"]))
+            elif msg["role"] == "assistant":
+                lc_messages.append(AIMessage(content=msg["content"]))
+        
+        # Get response from Databricks endpoint
+        assistant_message = chat_model.invoke(lc_messages)
+        
+        # Return the assistant message
+        return {"messages": [{"role": "assistant", "content": assistant_message.content}]}
+    
+    # Build LangGraph
+    graph_builder = StateGraph(State)
+    graph_builder.add_node("chat_node", generate_reply)
+    graph_builder.add_edge(START, "chat_node")
+    graph_builder.add_edge("chat_node", END)
+    
+    # Compile the graph
+    graph = graph_builder.compile()
+    return graph
+
+# Initialize the graph
+chat_graph = build_graph()
+
+import mlflow.pyfunc
+
+class DatabricksChatModel(mlflow.pyfunc.PythonModel):
     def __init__(self):
-        self.chat_model = ChatDatabricks(
-            endpoint="databricks-gpt-oss-20b",
-            temperature=0.1,
-            max_tokens=256
-        )
+        self.graph = build_graph()
+    
+    def predict(self, context, model_input):
+        """
+        Expected input: pandas DataFrame with 'message' column
+        Returns: pandas Series with responses
+        """
+        if isinstance(model_input, dict):
+            user_message = model_input.get('message', '')
+        else:
+            user_message = model_input.iloc[0]['message'] if len(model_input) > 0 else ''
+        
+        # Run through LangGraph
+        result = self.graph.invoke({
+            "messages": [
+                {"role": "user", "content": user_message}
+            ]
+        })
+        
+        # Extract the last assistant message
+        assistant_messages = [msg for msg in result["messages"] if msg["role"] == "assistant"]
+        response = assistant_messages[-1]["content"] if assistant_messages else "No response generated"
+        
+        return [response]
 
-    def __call__(self, state: State) -> State:
-        user_text = ""
-        for m in reversed(state.get("messages", [])):
-            if m.get("role") == "user":
-                user_text = m.get("content", "")
-                break
-        ai = self.chat_model.invoke(user_text or "Say something")
-        return {"messages": [{"role": "assistant", "content": str(ai.content)}]}
+# Define model signature
+from mlflow.models.signature import ModelSignature
+from mlflow.types.schema import Schema, ColSpec
 
-# Optional: test locally
-if __name__ == "__main__":
-    responder = ChatResponder()
-    input_state = {"messages": [{"role": "user", "content": "Tell me a joke"}]}
-    result = responder(input_state)
-    print("Assistant:", result["messages"][-1]["content"])
+input_schema = Schema([
+    ColSpec("string", "message")
+])
 
-# ✅ Log cleanly with MLflow
-responder = ChatResponder()
+output_schema = Schema([
+    ColSpec("string")
+])
 
+signature = ModelSignature(inputs=input_schema, outputs=output_schema)
+
+# Test the chat model
+def test_chat():
+    test_graph = build_graph()
+    
+    # Test conversation
+    result = test_graph.invoke({
+        "messages": [
+            {"role": "user", "content": "Hello! How are you today?"}
+        ]
+    })
+    
+    print("User: Hello! How are you today?")
+    for msg in result["messages"]:
+        if msg["role"] == "assistant":
+            print(f"Assistant: {msg['content']}")
+    
+    return result
+
+# Run test
+test_result = test_chat()
+
+# Log the model with MLflow
 with mlflow.start_run():
-    mlflow.langchain.log_model(
-        lc_model=responder,
-        name="chat_model_responder",  # Recommended: use `name` instead of deprecated `artifact_path`
-        pip_requirements=[
-            "mlflow>=2.9",
-            "langchain",
-            "databricks-langchain"
+    # Create and log the model
+    chat_model = DatabricksChatModel()
+    
+    mlflow.pyfunc.log_model(
+        artifact_path="model",
+        python_model=chat_model,
+        signature=signature,
+        registered_model_name="databricks_chat_model"
+    )
+    
+    print("Model logged and registered successfully!")
+
+# Load the registered model
+model_uri = f"models:/databricks_chat_model/1"
+loaded_model = mlflow.pyfunc.load_model(model_uri)
+
+from databricks.sdk import WorkspaceClient
+from databricks.sdk.service.serving import EndpointCoreConfigInput, ServedModelInput
+
+# Initialize workspace client
+w = WorkspaceClient()
+
+# Create serving endpoint
+endpoint_name = "simple-chat-endpoint"
+
+try:
+    # Create endpoint configuration
+    endpoint_config = EndpointCoreConfigInput(
+        name=endpoint_name,
+        served_models=[
+            ServedModelInput(
+                model_name="databricks_chat_model",
+                model_version="1",
+                workload_size="Small",
+                scale_to_zero_enabled=True
+            )
         ]
     )
-    print("✅ Model logged to MLflow successfully.")
+    
+    # Create or update endpoint
+    w.serving_endpoints.create_and_wait(
+        name=endpoint_name,
+        config=endpoint_config
+    )
+    
+    print(f"Endpoint '{endpoint_name}' created successfully!")
+    
+except Exception as e:
+    print(f"Endpoint creation failed: {e}")
+    # If endpoint exists, update it
+    w.serving_endpoints.update_config_and_wait(
+        name=endpoint_name,
+        served_models=[
+            ServedModelInput(
+                model_name="databricks_chat_model",
+                model_version="1",
+                workload_size="Small",
+                scale_to_zero_enabled=True
+            )
+        ]
+    )
+    print(f"Endpoint '{endpoint_name}' updated successfully!")
+# Test the deployed endpoint
+def test_endpoint():
+    import requests
+    import json
+    
+    # Get endpoint URL (you might need to adjust this based on your workspace)
+    endpoint_url = f"{w.config.host}/serving-endpoints/{endpoint_name}/invocations"
+    
+    # Prepare request
+    headers = {
+        "Authorization": f"Bearer {w.config.token}",
+        "Content-Type": "application/json"
+    }
+    
+    data = {
+        "dataframe_records": [
+            {"message": "What is machine learning?"}
+        ]
+    }
+    
+    response = requests.post(endpoint_url, headers=headers, json=data)
+    
+    if response.status_code == 200:
+        result = response.json()
+        print("Endpoint response:", result)
+    else:
+        print(f"Error: {response.status_code}, {response.text}")
+    
+    return response
+
+# Test the endpoint
+test_endpoint()
