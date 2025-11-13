@@ -1,0 +1,198 @@
+# =======================
+# CONFIG (edit these)
+# =======================
+EXPERIMENT = "/Workspace/Users/prathap.kudupu@ecolab.com/cust_brief/src"
+CATALOG    = "industrial-data-science"
+SCHEMA     = "cbt"
+NAME       = "langgraph_model"
+ENDPOINT   = "databricks-gpt-oss-20b"   # Databricks LLM Serving endpoint
+
+# <<< ADD/EDIT PROMPT HERE >>> (Global default in code; can be overridden by env and per-request)
+DEFAULT_SYSTEM_PROMPT = (
+    "You are a helpful, concise assistant. "
+    "Prefer bullet points and include code snippets where useful."
+)
+
+# =======================
+# Imports
+# =======================
+# NOTE: do NOT use "from __future__ import annotations"
+import os, json
+from typing import List, Optional
+
+import pandas as pd
+from typing_extensions import TypedDict
+
+from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
+from langgraph.graph import StateGraph, START, END
+from langgraph.graph.message import add_messages
+from databricks_langchain import ChatDatabricks
+
+import mlflow
+import mlflow.pyfunc
+from mlflow.models import infer_signature
+
+# =======================
+# Prompt resolution
+# =======================
+# ENV override for the global prompt:
+# In Model Serving > Environment Variables, set SYSTEM_PROMPT to change this at runtime.
+GLOBAL_PROMPT = os.getenv("SYSTEM_PROMPT", DEFAULT_SYSTEM_PROMPT)  # <<< ADD/EDIT PROMPT VIA ENV HERE >>>
+
+# =======================
+# Utilities
+# =======================
+def _require_dbx_creds():
+    if not (
+        os.environ.get("DATABRICKS_HOST") and os.environ.get("DATABRICKS_TOKEN")
+    ) and not os.environ.get("DATABRICKS_CONFIG_PROFILE"):
+        raise RuntimeError(
+            "Databricks credentials not found. Set DATABRICKS_HOST and DATABRICKS_TOKEN "
+            "OR DATABRICKS_CONFIG_PROFILE in the serving environment."
+        )
+
+def _as_text(x) -> str:
+    if x is None: return ""
+    if isinstance(x, (str, int, float, bool)): return str(x)
+    try: return json.dumps(x, ensure_ascii=False)
+    except Exception: return str(x)
+
+def _extract_text(ai_obj) -> str:
+    return _as_text(getattr(ai_obj, "content", ai_obj))
+
+# =======================
+# State (NO Annotated)
+# =======================
+class State(TypedDict):
+    messages: List[BaseMessage]
+    result: Optional[str]
+
+def _to_messages(raw) -> List[BaseMessage]:
+    """
+    Normalize to List[BaseMessage].
+    You can also pass a system message as the FIRST item in 'messages'
+    to set a per-request prompt:
+      [{"role":"system","content":"<your prompt>"},
+       {"role":"user","content":"hi"}]
+    """
+    if isinstance(raw, str):
+        return [HumanMessage(content=_as_text(raw))]
+
+    out: List[BaseMessage] = []
+    for m in raw or []:
+        if isinstance(m, BaseMessage):
+            m.content = _as_text(m.content); out.append(m); continue
+
+        if isinstance(m, tuple) and len(m) >= 2:
+            role, content = str(m[0]).lower(), m[1]
+        elif isinstance(m, dict) and "content" in m:
+            role = str(m.get("role", m.get("type", "user"))).lower()
+            content = m["content"]
+        else:
+            role = str(getattr(m, "role", getattr(m, "type", "user"))).lower()
+            content = getattr(m, "content", m)
+
+        content_s = _as_text(content)
+        if role == "system":
+            out.append(SystemMessage(content=content_s))
+        elif role in ("ai", "assistant"):
+            out.append(AIMessage(content=content_s))
+        else:
+            out.append(HumanMessage(content=content_s))
+    return out
+
+# =======================
+# Build LangGraph
+# =======================
+def build_graph(endpoint_name: str):
+    chat = ChatDatabricks(endpoint=endpoint_name, temperature=0.0, max_tokens=256)
+
+    def llm_call(state: State) -> State:
+        msgs = _to_messages(state.get("messages", []))
+
+        # If the first message is not system, prepend the GLOBAL prompt
+        # (per-request system message takes precedence if already provided)
+        if not msgs or not isinstance(msgs[0], SystemMessage):
+            msgs = [SystemMessage(content=_as_text(GLOBAL_PROMPT))] + msgs  # <<< GLOBAL PROMPT APPLIED HERE >>>
+
+        ai = chat.invoke(msgs)
+        text = _extract_text(ai)
+        return {"messages": [AIMessage(content=text)], "result": text}
+
+    g = StateGraph(State, channels={"messages": add_messages})  # reducer mapping (no Annotated)
+    g.add_node("llm_call", llm_call)
+    g.add_edge(START, "llm_call")
+    g.add_edge("llm_call", END)
+    return g.compile()
+
+# Optional smoke test:
+# _graph = build_graph(ENDPOINT)
+# _graph.invoke({"messages": [HumanMessage(content="Hi")], "result": None})
+
+# =======================
+# MLflow pyfunc model
+# =======================
+class LangGraphPyfunc(mlflow.pyfunc.PythonModel):
+    def __init__(self, endpoint_name: str):
+        self.endpoint_name = endpoint_name
+        self.graph = None
+
+    def load_context(self, context):
+        _require_dbx_creds()
+        self.graph = build_graph(self.endpoint_name)
+
+    def predict(self, context, model_input: pd.DataFrame) -> pd.DataFrame:
+        # Lazy init for notebook runs
+        if self.graph is None:
+            _require_dbx_creds()
+            self.graph = build_graph(self.endpoint_name)
+
+        results: List[str] = []
+        use_sys_col = "system_prompt" in model_input.columns  # <<< PER-REQUEST PROMPT VIA COLUMN
+
+        for _, row in model_input.iterrows():
+            msgs = _to_messages(row["messages"])
+
+            # If a per-row prompt is provided, apply it unless caller already sent a system message
+            if use_sys_col:
+                sys_p = row.get("system_prompt")
+                if sys_p and (not msgs or not isinstance(msgs[0], SystemMessage)):
+                    msgs = [SystemMessage(content=_as_text(sys_p))] + msgs  # <<< ADD/EDIT PROMPT PER REQUEST HERE >>>
+
+            out = self.graph.invoke({"messages": msgs, "result": None})
+            results.append(out["result"])
+
+        return pd.DataFrame({"result": results})
+
+# =======================
+# Log & Register (Unity Catalog)
+# =======================
+mlflow.set_experiment(EXPERIMENT)
+mlflow.set_registry_uri("databricks-uc")
+
+registered_name = f"{CATALOG}.{SCHEMA}.{NAME}"
+
+# Signature only; no network call at log time
+ex_in  = pd.DataFrame({"messages": [[{"role":"user","content":"Hello there!"}]]})
+ex_out = pd.DataFrame({"result": ["dummy"]})
+sig    = infer_signature(ex_in, ex_out)
+
+with mlflow.start_run(run_name="langgraph-chat-pyfunc"):
+    mlflow.pyfunc.log_model(
+        artifact_path="model",
+        python_model=LangGraphPyfunc(endpoint_name=ENDPOINT),
+        input_example=ex_in,
+        signature=sig,
+        registered_model_name=registered_name,
+        pip_requirements=[
+            "mlflow==3.5.1",
+            "pandas>=2.0.0",
+            "typing-extensions>=4.15.0",
+            "pydantic>=2.12.4",
+            "langgraph==1.0.3",
+            "databricks-langchain==0.9.0",
+            "langchain==1.0.5",
+        ],
+    )
+
+print(f"Registered: {registered_name}")
