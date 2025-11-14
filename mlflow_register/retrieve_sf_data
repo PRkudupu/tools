@@ -1,47 +1,192 @@
+# =======================
+# CONFIG — edit these
+# =======================
+EXPERIMENT = "/Workspace/Users/prathap.kudupu@ecolab.com/cust_brief/src"
+CATALOG    = "industrial-data-science"
+SCHEMA     = "cbt"
+NAME       = "langgraph_model"
+ENDPOINT   = "databricks-gpt-oss-20b"     # Databricks Model Serving endpoint
+
+# =======================
+# Imports
+# =======================
+from __future__ import annotations
+import os, json
+from typing import Any, Dict, List, Tuple
+import pandas as pd
+import mlflow
+import mlflow.pyfunc
+from mlflow.models import infer_signature
+
+from typing_extensions import TypedDict, Annotated
+from langgraph.graph import StateGraph, START, END
+from langgraph.graph.message import add_messages
+from databricks_langchain import ChatDatabricks
+
+
+# =======================
+# Credential guard
+# =======================
+def _require_dbx_creds():
+    if not (
+        os.environ.get("DATABRICKS_HOST") and os.environ.get("DATABRICKS_TOKEN")
+    ) and not os.environ.get("DATABRICKS_CONFIG_PROFILE"):
+        raise RuntimeError(
+            "Databricks credentials not found. Set DATABRICKS_HOST and DATABRICKS_TOKEN "
+            "(or DATABRICKS_CONFIG_PROFILE) in the serving environment."
+        )
+
+
+# =======================
+# State schema
+# =======================
+class State(TypedDict):
+    messages: Annotated[list, add_messages]   # chat history reducer
+    site_id: str
+    sf_feed: dict
+    result: str
+
+
+# =======================
+# Utilities
+# =======================
+def _to_pairs(raw) -> List[Tuple[str, str]]:
+    """Normalize messages to list[(role, content)]."""
+    if isinstance(raw, str):
+        return [("user", raw)]
+    out: List[Tuple[str, str]] = []
+    for m in raw or []:
+        if isinstance(m, tuple) and len(m) >= 2:
+            out.append((str(m[0]).lower(), str(m[1])))
+        elif isinstance(m, dict) and "content" in m:
+            role = str(m.get("role", m.get("type", "user"))).lower()
+            out.append((role, str(m["content"])))
+        else:
+            role = getattr(m, "type", getattr(m, "role", "user"))
+            content = getattr(m, "content", None)
+            out.append((str(role).lower(), str(content) if content is not None else str(m)))
+    return out
+
+
+# =======================
+# Prompt template (STRING)
+# =======================
+GLOBAL_PROMPT = (
+    "You are a helpful assistant.\n"
+    "Use the Salesforce feed for site {site_id} to answer precisely.\n"
+    "Salesforce Feed:\n{sf_feed}\n"
+    "Be concise."
+)
+
+
+# =======================
+# Your SF feed loader (stub -> replace with real)
+# =======================
+def load_salesforce_feed(site_id: str) -> dict:
+    # >>> Replace with real retrieval <<<
+    # Return a small dict that can be JSON-serialized
+    return {"site_id": site_id, "open_cases": 3, "latest_note": "Pump vibration alert yesterday."}
+
+
+# =======================
+# Build LangGraph
+# =======================
 def build_graph(endpoint_name: str):
-    chat = ChatDatabricks(
-        endpoint=endpoint_name,
-        temperature=0.0,
-        max_tokens=256
+    chat = ChatDatabricks(endpoint=endpoint_name, temperature=0.0, max_tokens=256)
+
+    def get_salesforce_feed(state: State) -> dict:
+        try:
+            site_id = state.get("site_id", "")
+            sf = load_salesforce_feed(site_id)
+        except Exception as e:
+            print("SF exception:", e)
+            sf = {"error": "Exception"}
+        # return partial-state (do NOT mutate state in place)
+        return {"sf_feed": sf}
+
+    def llm_call(state: State) -> dict:
+        site_id = state.get("site_id", "")
+        sf_feed = state.get("sf_feed", {})
+        msgs    = _to_pairs(state.get("messages", []))
+
+        # format the STRING prompt with sf_feed & site_id
+        feed_text = json.dumps(sf_feed, ensure_ascii=False, indent=2)
+        sys_prompt = GLOBAL_PROMPT.format(site_id=site_id, sf_feed=feed_text)
+
+        # prepend system prompt if first message isn't system
+        if not msgs or msgs[0][0] != "system":
+            msgs = [("system", sys_prompt)] + msgs
+
+        ai = chat.invoke(msgs)
+        text = getattr(ai, "content", str(ai))
+        return {"messages": [("assistant", text)], "result": text}
+
+    g = StateGraph(State, channels={"messages": add_messages})
+    g.add_node("get_salesforce_feed", get_salesforce_feed)
+    g.add_node("llm_call", llm_call)
+
+    g.add_edge(START, "get_salesforce_feed")
+    g.add_edge("get_salesforce_feed", "llm_call")
+    g.add_edge("llm_call", END)
+    return g.compile()
+
+
+# =======================
+# MLflow PyFunc wrapper
+# =======================
+class LangGraphPyfunc(mlflow.pyfunc.PythonModel):
+    def __init__(self, endpoint_name: str):
+        self.endpoint_name = endpoint_name
+        self.graph = None
+
+    def load_context(self, context):
+        _require_dbx_creds()
+        self.graph = build_graph(self.endpoint_name)
+
+    def predict(self, context, model_input: pd.DataFrame) -> pd.DataFrame:
+        # Lazy init (lets you test predict locally too)
+        if self.graph is None:
+            _require_dbx_creds()
+            self.graph = build_graph(self.endpoint_name)
+        results: List[str] = []
+        for msgs in model_input["messages"]:
+            out = self.graph.invoke({"messages": msgs, "site_id": model_input.get("site_id", [""])[0], "sf_feed": {}, "result": ""})
+            results.append(out["result"])
+        return pd.DataFrame({"result": results})
+
+
+# =======================
+# Log + Register to Unity Catalog
+# =======================
+mlflow.set_experiment(EXPERIMENT)
+mlflow.set_registry_uri("databricks-uc")
+
+# example input/output for signature (no network call needed)
+ex_in  = pd.DataFrame({
+    "messages": [[("user", "Summarize today’s customer issues.")]],
+    "site_id": ["8391413"]
+})
+ex_out = pd.DataFrame({"result": ["dummy"]})
+sig    = infer_signature(ex_in, ex_out)
+
+registered_name = f"{CATALOG}.{SCHEMA}.{NAME}"
+
+with mlflow.start_run():
+    mlflow.pyfunc.log_model(
+        artifact_path="model",
+        python_model=LangGraphPyfunc(endpoint_name=ENDPOINT),
+        input_example=ex_in,
+        signature=sig,
+        registered_model_name=registered_name,
+        pip_requirements=[
+            "mlflow==3.5.1",
+            "pandas>=2.0.0",
+            "typing-extensions>=4.15.0",
+            "pydantic>=2.12.4",
+            "langgraph==1.0.3",
+            "databricks-langchain==0.9.0",
+            "langchain==1.0.5",
+        ],
     )
 
-    # =====================
-    # LLM Call
-    # =====================
-    def llm_call(state: State) -> State:
-        site_id     = state.get("site_id", "")
-        sf_feed     = state.get("sf_feed", "{}")
-        analytic    = state.get("analytic_data", "{}")
-        user_input  = state.get("user_input", "")
-        msgs        = _to_messages(state.get("messages", []))
-
-        # ========= VALUES FOR PROMPT TEMPLATING =========
-        values = {
-            "sf_feed": sf_feed,
-            "analytic_data": analytic,
-            "site_id": site_id,
-            "input_user_input": user_input
-        }
-
-        # ========= FORMAT GLOBAL PROMPT =========
-        formatted_prompt = GLOBAL_PROMPT.format(**values)
-
-        # ========= PREPEND SYSTEM MESSAGE IF MISSING =========
-        if not msgs or not isinstance(msgs[0], SystemMessage):
-            if not msgs or not isinstance(msgs[0], SystemMessage):
-                msgs = [SystemMessage(content=formatted_prompt)] + msgs
-
-        # ========= CALL LLM =========
-        ai = chat.invoke(msgs)
-
-        # ========= APPEND RESPONSE =========
-        msgs = msgs + [ai]
-
-        # ========= RETURN UPDATED STATE =========
-        return {
-            **state,
-            "messages": msgs,
-            "output": ai.content
-        }
-
-    return llm_call
+print(f"Registered: {registered_name}")
