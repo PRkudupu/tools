@@ -1,0 +1,43 @@
+class LangGraphPyfunc(mlflow.pyfunc.PythonModel):
+    def __init__(self, endpoint_name: str):
+        self.endpoint_name = endpoint_name
+        self.graph = None
+
+    def load_context(self, context):
+        _require_dbx_creds()
+        self.graph = build_graph(self.endpoint_name)
+
+    def predict(self, context, model_input: pd.DataFrame) -> pd.DataFrame:
+        # Lazy init for notebook runs
+        if self.graph is None:
+            _require_dbx_creds()
+            self.graph = build_graph(self.endpoint_name)
+
+        results: List[str] = []
+
+        use_sys_col  = "system_prompt" in model_input.columns
+        use_site_col = "site_id" in model_input.columns   # <<< NEW
+
+        for _, row in model_input.iterrows():
+            msgs = _to_messages(row["messages"])
+
+            # --- system_prompt handling stays the same ---
+            if use_sys_col:
+                sys_p = row.get("system_prompt")
+                if sys_p and (not msgs or not isinstance(msgs[0], SystemMessage)):
+                    msgs = [SystemMessage(content=_as_text(sys_p))] + msgs
+
+            # --- build state for graph.invoke ---
+            state = {
+                "messages": msgs,
+                "result": None,
+            }
+
+            # take site_id from the row instead of hard-coding
+            if use_site_col:
+                state["site_id"] = int(row["site_id"])   # <<< NEW
+
+            out = self.graph.invoke(state)
+            results.append(out["result"])
+
+        return pd.DataFrame({"result": results})
