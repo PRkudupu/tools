@@ -1,0 +1,62 @@
+from databricks import sql
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import os
+from typing import Dict, Any
+
+
+def get_analytic_data(state: State) -> State:
+    print("###########################  START GETTING ANALYTIC DATA  ###########################")
+
+    site_id = state.get("site_id", "")
+    catalog = "industrial-data-science"
+    schema = "cbt"
+
+    # ---- Build parameterised queries (fully qualified tables) ----
+    q: Dict[str, str] = {
+        "site_account_mapping": f"""
+            SELECT * 
+            FROM {catalog}.{schema}.site_account_mapping 
+            WHERE siteid = '{site_id}'
+        """,
+        "mpl_spl_penetration": f"""
+            SELECT * 
+            FROM {catalog}.{schema}.mpl_spl_penetration 
+            WHERE siteid = '{site_id}'
+        """,
+        # add more tables here if needed...
+        # "another_metric": f"SELECT * FROM {catalog}.{schema}.another_metric WHERE siteid = '{site_id}'",
+    }
+
+    analytic_data: Dict[str, Any] = {}
+
+    # ---- Helper to run a single query against SQL Warehouse ----
+    def execute_query(name: str, query: str):
+        try:
+            with sql.connect(
+                server_hostname=os.environ["DATABRICKS_SERVER_HOSTNAME"],
+                http_path=os.environ["DATABRICKS_WAREHOUSE_HTTP_PATH"],
+                access_token=os.environ["DATABRICKS_TOKEN"],
+            ) as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute(query)
+                    rows = cursor.fetchall()
+                    cols = [d[0] for d in cursor.description]  # column names
+                    # convert to list[dict] so it's JSON-serialisable
+                    result = [dict(zip(cols, row)) for row in rows]
+            return name, result
+        except Exception as e:
+            return name, {"error": str(e)}
+
+    # ---- Run the queries "in parallel" from Python (warehouse handles concurrency) ----
+    max_workers = min(8, max(1, len(q)))   # 8 is usually enough
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+        futures = [
+            pool.submit(execute_query, name, query)
+            for name, query in q.items()
+        ]
+        for fut in as_completed(futures):
+            name, result = fut.result()
+            analytic_data[name] = result
+
+    # analytic_data is now a dict of lists of row dicts – safe to JSON-dump
+    return {"analytic_data": analytic_data}
