@@ -1,0 +1,46 @@
+def build_graph(endpoint_name: str):
+    chat = ChatDatabricks(
+        endpoint=endpoint_name,
+        temperature=0.0,
+        max_tokens=256
+    )
+
+    # =====================
+    # LLM Call
+    # =====================
+    def llm_call(state: State) -> State:
+        site_id     = state.get("site_id", "")
+        sf_feed     = state.get("sf_feed", "{}")
+        analytic    = state.get("analytic_data", "{}")
+        user_input  = state.get("user_input", "")
+        msgs        = _to_messages(state.get("messages", []))
+
+        # ========= VALUES FOR PROMPT TEMPLATING =========
+        values = {
+            "sf_feed": sf_feed,
+            "analytic_data": analytic,
+            "site_id": site_id,
+            "input_user_input": user_input
+        }
+
+        # ========= FORMAT GLOBAL PROMPT =========
+        formatted_prompt = GLOBAL_PROMPT.format(**values)
+
+        # ========= PREPEND SYSTEM MESSAGE IF MISSING =========
+        if not msgs or not isinstance(msgs[0], SystemMessage):
+            msgs = [SystemMessage(content_as_text(formatted_prompt))] + msgs
+
+        # ========= CALL LLM =========
+        ai = chat.invoke(msgs)
+
+        # ========= APPEND RESPONSE =========
+        msgs = msgs + [ai]
+
+        # ========= RETURN UPDATED STATE =========
+        return {
+            **state,
+            "messages": msgs,
+            "output": ai.content
+        }
+
+    return llm_call
