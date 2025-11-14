@@ -29,7 +29,7 @@ def build_graph(endpoint_name: str):
         # ========= PREPEND SYSTEM MESSAGE IF MISSING =========
         if not msgs or not isinstance(msgs[0], SystemMessage):
             if not msgs or not isinstance(msgs[0], SystemMessage):
-            msgs = [SystemMessage(content=formatted_prompt)] + msgs
+                msgs = [SystemMessage(content=formatted_prompt)] + msgs
 
         # ========= CALL LLM =========
         ai = chat.invoke(msgs)
