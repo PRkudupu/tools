@@ -1,11 +1,40 @@
-def run_query(query: str):
-    with sql.connect(
-        server_hostname=os.environ["DATABRICKS_SERVER_HOSTNAME"],
-        http_path=os.environ["DATABRICKS_WAREHOUSE_HTTP_PATH"],
-        access_token=os.environ["DATABRICKS_TOKEN"],
-    ) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(query)
-            rows = cursor.fetchall()
-            cols = [d[0] for d in cursor.description]
-            return [dict(zip(cols, row)) for row in rows]
+from typing import Dict, Any
+import os
+from databricks import sql
+
+def get_analytic_data(state: State) -> State:
+    print("#################### START GETTING ANALYTIC DATA ####################")
+
+    site_id = state.get("site_id", "")
+    catalog = "industrial-data-science"
+    schema = "cbt"
+
+    # ---- Build parametrised query (fully qualified table) ----
+    query = f"""
+        SELECT *
+        FROM {catalog}.{schema}.site_account_mapping
+        WHERE siteid = '{site_id}'
+    """
+
+    try:
+        with sql.connect(
+            server_hostname=os.environ["DATABRICKS_SERVER_HOSTNAME"],
+            http_path=os.environ["DATABRICKS_WAREHOUSE_HTTP_PATH"],
+            access_token=os.environ["DATABRICKS_TOKEN"],
+        ) as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(query)
+                rows = cursor.fetchall()
+                cols = [d[0] for d in cursor.description]  # column names
+                result = [dict(zip(cols, row)) for row in rows]
+    except Exception as e:
+        # if something goes wrong, capture the error
+        result = {"error": str(e)}
+
+    # keep same structure as before: dict[table_name] -> list[rows]
+    analytic_data: Dict[str, Any] = {
+        "site_account_mapping": result
+    }
+
+    # LangGraph node returns partial state to merge
+    return {"analytic_data": analytic_data}
