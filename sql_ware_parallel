@@ -1,0 +1,66 @@
+from typing import Dict, Any, Tuple, List
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from databricks import sql
+import os
+
+HOSTNAME   = os.getenv("DBX_HOST")      # e.g. adb-....azuredatabricks.net
+HTTP_PATH  = os.getenv("DBX_WAREHOUSE") # /sql/1.0/warehouses/xxxx
+ACCESS_TOKEN = os.getenv("DBX_TOKEN")
+
+def run_query(table_name: str, query: str) -> Tuple[str, List[Dict[str, Any]], str | None]:
+    """Run a single query and return (table_name, rows, error)."""
+    try:
+        with sql.connect(
+            server_hostname=HOSTNAME,
+            http_path=HTTP_PATH,
+            access_token=ACCESS_TOKEN,
+        ) as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(query)
+                rows = cursor.fetchall()
+                cols = [d[0] for d in cursor.description]
+                data = [dict(zip(cols, row)) for row in rows]
+        return table_name, data, None
+    except Exception as e:
+        return table_name, [], str(e)
+
+
+def get_analytic_data(state: State) -> State:
+    site_id = state.get("site_id", "")
+    catalog = "industrial-data-science"
+    schema  = "cbt"
+
+    # ---- All queries you want to run ----
+    queries: Dict[str, str] = {
+        "site_account_mapping": f"""
+            SELECT *
+            FROM `{catalog}`.`{schema}`.site_account_mapping
+            WHERE siteid = '{site_id}'
+        """,
+        "another_table": f"""
+            SELECT *
+            FROM `{catalog}`.`{schema}`.another_table
+            WHERE siteid = '{site_id}'
+        """,
+        # add more tables...
+    }
+
+    analytic_data: Dict[str, Any] = {}
+
+    # ---- Run in parallel ----
+    max_workers = min(4, len(queries))  # tune this based on warehouse size
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {
+            executor.submit(run_query, tbl, qry): tbl
+            for tbl, qry in queries.items()
+        }
+
+        for future in as_completed(futures):
+            table_name, data, err = future.result()
+            if err:
+                analytic_data[table_name] = {"error": err}
+            else:
+                analytic_data[table_name] = data
+
+    state["analytic_data"] = analytic_data
+    return state
