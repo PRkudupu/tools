@@ -1,0 +1,65 @@
+catalog = "industrial-data-science"
+schema  = "cbt"
+
+# ---- All queries you want to run ----
+queries: Dict[str, str] = {
+    "site_account_mapping": f"""
+        SELECT *
+        FROM `{catalog}`.`{schema}`.site_account_mapping
+        WHERE siteid = '{site_id}'
+    """,
+
+    "mpl_spl_penetration": f"""
+        SELECT *
+        FROM `{catalog}`.`{schema}`.mpl_spl_penetration
+        WHERE siteid = '{site_id}'
+    """,
+
+    "last_interaction": f"""
+        SELECT *
+        FROM `{catalog}`.`{schema}`.last_interaction
+        WHERE siteid = '{site_id}'
+    """,
+
+    "solution_price_change": f"""
+        SELECT *
+        FROM `{catalog}`.`{schema}`.solution_sales_change
+        WHERE siteid = '{site_id}'
+    """,
+
+    "sales_wrt_last_year": f"""
+        SELECT *
+        FROM `{catalog}`.`{schema}`.sales_wrt_last_year
+        WHERE siteid = '{site_id}'
+    """,
+
+    "pending_services": f"""
+        SELECT *
+        FROM `{catalog}`.`{schema}`.latest_service_pending
+        WHERE siteid = '{site_id}'
+    """,
+
+    "percentage_solution_sales_change": f"""
+        SELECT *
+        FROM `{catalog}`.`{schema}`.percentage_solution_sales_change
+        WHERE siteid = '{site_id}'
+    """,
+
+    "asset_location": f"""
+        SELECT *
+        FROM `{catalog}`.`{schema}`.asset_location
+        WHERE siteid = '{site_id}'
+    """,
+
+    "sales_info_mtd": f"""
+        SELECT *
+        FROM `{catalog}`.`{schema}`.sales_info_mtd
+        WHERE siteid = '{site_id}'
+    """,
+
+    "sales_info_ytd_r12": f"""
+        SELECT *
+        FROM `{catalog}`.`{schema}`.sales_info_ytd_r12
+        WHERE siteid = '{site_id}'
+    """,
+}
