@@ -1,0 +1,47 @@
+from typing import Dict, Any
+from databricks import sql
+
+def get_analytic_data(state: State) -> State:
+    site_id = state.get("site_id", "")
+    catalog = "industrial-data-science"
+    schema = "cbt"
+
+    # --- All queries you want to run (one per table) ---
+    queries: Dict[str, str] = {
+        "site_account_mapping": f"""
+            SELECT *
+            FROM `{catalog}`.`{schema}`.site_account_mapping
+            WHERE siteid = '{site_id}'
+        """,
+        "another_table": f"""
+            SELECT *
+            FROM `{catalog}`.`{schema}`.another_table
+            WHERE siteid = '{site_id}'
+        """,
+        # add more tables here...
+    }
+
+    analytic_data: Dict[str, Any] = {}
+
+    try:
+        with sql.connect(
+            server_hostname="adb-1355704782079007.7.fg.net",
+            http_path="/sql/1.0/warehouses/aa8ca9405a7cb961",
+            access_token="fgf-3"
+        ) as conn:
+            with conn.cursor() as cursor:
+                for table_name, query in queries.items():
+                    cursor.execute(query)
+                    rows = cursor.fetchall()
+                    cols = [d[0] for d in cursor.description]
+                    analytic_data[table_name] = [
+                        dict(zip(cols, row)) for row in rows
+                    ]
+
+    except Exception as e:
+        # if something goes wrong, capture the error for all tables
+        analytic_data = {"error": str(e)}
+
+    # keep same overall structure on state
+    state["analytic_data"] = analytic_data
+    return state
