@@ -1,7 +1,45 @@
-def build_site_queries(site_id: str | int) -> Dict[str, str]:
-    base = f"`{CATALOG}`.`{SCHEMA}`"
-    site_id = str(site_id)
-    return {
-        tbl: f"SELECT * FROM {base}.{tbl} WHERE siteid = '{site_id}'"
-        for tbl in TABLES
-    }
+import re
+from typing import Any, List, Tuple
+
+# =====================
+# Utilities
+# =====================
+def _to_pairs(raw: Any) -> List[Tuple[str, str]]:
+    """Normalize messages to list[(role, content)]."""
+    if isinstance(raw, str):
+        return [("user", raw)]
+    out: List[Tuple[str, str]] = []
+    for m in raw or []:
+        if isinstance(m, tuple) and len(m) >= 2:
+            out.append((str(m[0]).lower(), str(m[1])))
+        elif isinstance(m, dict) and "content" in m:
+            role = str(m.get("role", m.get("type", "user"))).lower()
+            out.append((role, str(m["content"])))
+        else:
+            role = getattr(m, "type", getattr(m, "role", "user"))
+            content = getattr(m, "content", None)
+            out.append(
+                (str(role).lower(), str(content) if content is not None else str(m))
+            )
+    return out
+
+
+# =====================
+# Extract site_id
+# =====================
+def extract_site_id(messages: Any) -> str:
+    """
+    Look through the conversation and return the most recent numeric site id.
+
+    Prefer a number appearing after 'site_id' or 'site', but if that isn't
+    present, fall back to any number in the latest user message.
+    """
+    pairs = _to_pairs(messages)          # <-- use your normalizer here
+
+    # walk from latest to earliest
+    for role, content in reversed(pairs):
+        if role == "user":
+            m = re.search(r'(?:site_id|site)\s*(\d+)|(\d+)', content)
+            if m:
+                return m.group(1) or m.group(2)
+    return ""
