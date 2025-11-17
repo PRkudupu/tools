@@ -1,55 +1,120 @@
+from typing import TypedDict, Annotated, Literal, List, Dict, Any
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
-from typing import TypedDict, Annotated, Literal, List
+
+# ---------- State ----------
 
 class State(TypedDict):
     messages: Annotated[List[tuple], add_messages]
-    chat_type: Literal["RAG", "SIMPLE"]
+    site_id: str
+    sf_feed: Dict[str, Any]
+    analytic_data: Dict[str, Any]
+    chat_type: Literal["SIMPLE", "RAG"]
     result: str
 
-def decide_chat_type(state: State) -> State:
-    # toy example: if user message contains "rag" then use RAG
-    user_msg = state["messages"][-1][1].lower()
-    state["chat_type"] = "RAG" if "rag" in user_msg else "SIMPLE"
-    return state
 
-def call_llm_simple(state: State) -> State:
-    state["result"] = "Simple answer"
-    return state
-
-def call_llm_rag(state: State) -> State:
-    state["result"] = "RAG answer (with context)"
-    return state
-
-def route_from_chat_type(state: State) -> str:
-    return state.get("chat_type", "SIMPLE")
-
-g = StateGraph(State, channels={"messages": add_messages})
-g.add_node("decide_chat_type", decide_chat_type)
-g.add_node("call_llm_simple", call_llm_simple)
-g.add_node("call_llm_rag", call_llm_rag)
-
-g.add_edge(START, "decide_chat_type")
-
-g.add_conditional_edges(
-    "decide_chat_type",
-    route_from_chat_type,
-    {
-        "SIMPLE": "call_llm_simple",
-        "RAG": "call_llm_rag",
-    },
-)
-
-g.add_edge("call_llm_simple", END)
-g.add_edge("call_llm_rag", END)
-
-graph = g.compile()
-
+# ---------- Nodes ----------
 
 def decide_chat_type(state: State) -> State:
+    """
+    Decide whether this turn should be SIMPLE or RAG and store it in state.
+    """
     msgs = _to_pairs(state.get("messages", []))
+
     if not extract_site_id(msgs):
         state["chat_type"] = "SIMPLE"
     else:
         state["chat_type"] = "RAG"
+
     return state
+
+
+def rag_fanout(state: State) -> State:
+    """
+    Dummy node used as the entry point to the RAG branch.
+    It just forwards the state; fan-out happens via graph edges.
+    """
+    return state
+
+
+def call_llm(state: State) -> State:
+    """
+    Your existing call_llm, but now it *uses* state["chat_type"]
+    instead of recomputing it.
+    """
+    try:
+        site_id       = state.get("site_id", "")
+        sf_feed       = state.get("sf_feed", {})
+        analytic_data = state.get("analytic_data", {})
+
+        msgs = _to_pairs(state.get("messages", []))
+        feed_text = dumps(sf_feed, ensure_ascii=False, indent=2)
+
+        if state.get("chat_type") == "SIMPLE":
+            sys_prompt = SIMPLE_PROMPT
+        else:  # "RAG"
+            sys_prompt = DEFAULT_SYSTEM_PROMPT.format(
+                site_id=site_id,
+                sf_feed=feed_text,
+                analytic_data=analytic_data,
+            )
+
+        if not msgs or msgs[0][0] != "system":
+            msgs = [("system", sys_prompt)] + msgs
+
+        ai = chat.invoke(msgs)
+        text = getattr(ai, "content", str(ai))
+
+        return {"messages": [("assistant", text)], "result": text}
+    except Exception as e:
+        print("There was an error:", e)
+        return {
+            "messages": [("assistant", f"There was an error {e}")],
+            "result": str(e),
+        }
+
+
+# ---------- Router + Graph ----------
+
+def route_from_chat_type(state: State) -> str:
+    # must return one of the keys in the mapping below
+    return state.get("chat_type", "SIMPLE")
+
+
+def build_graph():
+    g = StateGraph(State, channels={"messages": add_messages})
+
+    # Nodes
+    g.add_node("decide_chat_type", decide_chat_type)
+    g.add_node("rag_fanout", rag_fanout)
+    g.add_node("get_analytic_data", get_analytic_data)
+    g.add_node("get_salesforce_feed", get_salesforce_feed)
+    g.add_node("call_llm", call_llm)
+
+    # Start → decide mode
+    g.add_edge(START, "decide_chat_type")
+
+    # Conditional fan-out: SIMPLE vs RAG
+    g.add_conditional_edges(
+        "decide_chat_type",
+        route_from_chat_type,
+        {
+            # SIMPLE: go straight to LLM
+            "SIMPLE": "call_llm",
+            # RAG: enter the RAG branch
+            "RAG": "rag_fanout",
+        },
+    )
+
+    # RAG path: fan out from rag_fanout to both data nodes (runs in parallel)
+    g.add_edge("rag_fanout", "get_analytic_data")
+    g.add_edge("rag_fanout", "get_salesforce_feed")
+
+    # Both data nodes feed into call_llm; LangGraph will merge state
+    g.add_edge("get_analytic_data", "call_llm")
+    g.add_edge("get_salesforce_feed", "call_llm")
+
+    # Final
+    g.add_edge("call_llm", END)
+
+    return g.compile()
