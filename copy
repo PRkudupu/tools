@@ -1,45 +1,55 @@
-import re
-from typing import Any, List, Tuple
+from langgraph.graph import StateGraph, START, END
+from langgraph.graph.message import add_messages
+from typing import TypedDict, Annotated, Literal, List
 
-# =====================
-# Utilities
-# =====================
-def _to_pairs(raw: Any) -> List[Tuple[str, str]]:
-    """Normalize messages to list[(role, content)]."""
-    if isinstance(raw, str):
-        return [("user", raw)]
-    out: List[Tuple[str, str]] = []
-    for m in raw or []:
-        if isinstance(m, tuple) and len(m) >= 2:
-            out.append((str(m[0]).lower(), str(m[1])))
-        elif isinstance(m, dict) and "content" in m:
-            role = str(m.get("role", m.get("type", "user"))).lower()
-            out.append((role, str(m["content"])))
-        else:
-            role = getattr(m, "type", getattr(m, "role", "user"))
-            content = getattr(m, "content", None)
-            out.append(
-                (str(role).lower(), str(content) if content is not None else str(m))
-            )
-    return out
+class State(TypedDict):
+    messages: Annotated[List[tuple], add_messages]
+    chat_type: Literal["RAG", "SIMPLE"]
+    result: str
+
+def decide_chat_type(state: State) -> State:
+    # toy example: if user message contains "rag" then use RAG
+    user_msg = state["messages"][-1][1].lower()
+    state["chat_type"] = "RAG" if "rag" in user_msg else "SIMPLE"
+    return state
+
+def call_llm_simple(state: State) -> State:
+    state["result"] = "Simple answer"
+    return state
+
+def call_llm_rag(state: State) -> State:
+    state["result"] = "RAG answer (with context)"
+    return state
+
+def route_from_chat_type(state: State) -> str:
+    return state.get("chat_type", "SIMPLE")
+
+g = StateGraph(State, channels={"messages": add_messages})
+g.add_node("decide_chat_type", decide_chat_type)
+g.add_node("call_llm_simple", call_llm_simple)
+g.add_node("call_llm_rag", call_llm_rag)
+
+g.add_edge(START, "decide_chat_type")
+
+g.add_conditional_edges(
+    "decide_chat_type",
+    route_from_chat_type,
+    {
+        "SIMPLE": "call_llm_simple",
+        "RAG": "call_llm_rag",
+    },
+)
+
+g.add_edge("call_llm_simple", END)
+g.add_edge("call_llm_rag", END)
+
+graph = g.compile()
 
 
-# =====================
-# Extract site_id
-# =====================
-def extract_site_id(messages: Any) -> str:
-    """
-    Look through the conversation and return the most recent numeric site id.
-
-    Prefer a number appearing after 'site_id' or 'site', but if that isn't
-    present, fall back to any number in the latest user message.
-    """
-    pairs = _to_pairs(messages)          # <-- use your normalizer here
-
-    # walk from latest to earliest
-    for role, content in reversed(pairs):
-        if role == "user":
-            m = re.search(r'(?:site_id|site)\s*(\d+)|(\d+)', content)
-            if m:
-                return m.group(1) or m.group(2)
-    return ""
+def decide_chat_type(state: State) -> State:
+    msgs = _to_pairs(state.get("messages", []))
+    if not extract_site_id(msgs):
+        state["chat_type"] = "SIMPLE"
+    else:
+        state["chat_type"] = "RAG"
+    return state
