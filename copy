@@ -1,5 +1,6 @@
-def build_site_queries(site_id: str) -> dict[str, str]:
+def build_site_queries(site_id: str | int) -> Dict[str, str]:
     base = f"`{CATALOG}`.`{SCHEMA}`"
+    site_id = str(site_id)
     return {
         tbl: f"SELECT * FROM {base}.{tbl} WHERE siteid = '{site_id}'"
         for tbl in TABLES
