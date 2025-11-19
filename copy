@@ -1,6 +1,7 @@
 from typing import TypedDict, Annotated, Literal, List, Dict, Any
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
+from json import dumps
 
 # ---------- State ----------
 
@@ -13,51 +14,34 @@ class State(TypedDict):
     result: str
 
 
-# ---------- Nodes ----------
+# ---------- Router (fast, runs at START) ----------
 
-def decide_chat_type(state: State) -> State:
+def route_from_chat_type(state: State) -> str:
     """
-    Decide whether this turn should be SIMPLE or RAG and store it in state.
+    Decide SIMPLE vs RAG directly from the incoming state.
+
+    NOTE: LangGraph treats this as a pure function, so keep it cheap.
+    Setting chat_type here is OK but don't do any network calls.
     """
     msgs = _to_pairs(state.get("messages", []))
+    chat_type = "RAG" if extract_site_id(msgs) else "SIMPLE"
 
-    if not extract_site_id(msgs):
-        state["chat_type"] = "SIMPLE"
-    else:
-        state["chat_type"] = "RAG"
-
-    return state
+    # store for downstream nodes / logging
+    state["chat_type"] = chat_type
+    return chat_type
 
 
-def rag_fanout(state: State) -> State:
+# ---------- Nodes ----------
+
+def call_llm_simple(state: State) -> State:
     """
-    Dummy node used as the entry point to the RAG branch.
-    It just forwards the state; fan-out happens via graph edges.
-    """
-    return state
-
-
-def call_llm(state: State) -> State:
-    """
-    Your existing call_llm, but now it *uses* state["chat_type"]
-    instead of recomputing it.
+    Lightweight SIMPLE mode. No analytics, no big JSON dumps.
     """
     try:
-        site_id       = state.get("site_id", "")
-        sf_feed       = state.get("sf_feed", {})
-        analytic_data = state.get("analytic_data", {})
-
         msgs = _to_pairs(state.get("messages", []))
-        feed_text = dumps(sf_feed, ensure_ascii=False, indent=2)
 
-        if state.get("chat_type") == "SIMPLE":
-            sys_prompt = SIMPLE_PROMPT
-        else:  # "RAG"
-            sys_prompt = DEFAULT_SYSTEM_PROMPT.format(
-                site_id=site_id,
-                sf_feed=feed_text,
-                analytic_data=analytic_data,
-            )
+        # Just basic system prompt
+        sys_prompt = SIMPLE_PROMPT
 
         if not msgs or msgs[0][0] != "system":
             msgs = [("system", sys_prompt)] + msgs
@@ -65,56 +49,91 @@ def call_llm(state: State) -> State:
         ai = chat.invoke(msgs)
         text = getattr(ai, "content", str(ai))
 
-        return {"messages": [("assistant", text)], "result": text}
+        state["result"] = text
+        state["messages"] = [("assistant", text)]
+        return state
     except Exception as e:
-        print("There was an error:", e)
-        return {
-            "messages": [("assistant", f"There was an error {e}")],
-            "result": str(e),
-        }
+        print("There was an error (simple):", e)
+        state["result"] = str(e)
+        state["messages"] = [("assistant", f"There was an error {e}")]
+        return state
 
 
-# ---------- Router + Graph ----------
+def call_llm_rag(state: State) -> State:
+    """
+    RAG mode: assumes sf_feed & analytic_data already populated.
+    """
+    try:
+        site_id       = state.get("site_id", "")
+        sf_feed       = state.get("sf_feed", {})
+        analytic_data = state.get("analytic_data", {})
 
-def route_from_chat_type(state: State) -> str:
-    # must return one of the keys in the mapping below
-    return state.get("chat_type", "SIMPLE")
+        msgs = _to_pairs(state.get("messages", []))
 
+        # faster, more compact JSON (no pretty indent)
+        feed_text = dumps(sf_feed, ensure_ascii=False, separators=(",", ":"))
+
+        sys_prompt = DEFAULT_SYSTEM_PROMPT.format(
+            site_id=site_id,
+            sf_feed=feed_text,
+            analytic_data=analytic_data,
+        )
+
+        if not msgs or msgs[0][0] != "system":
+            msgs = [("system", sys_prompt)] + msgs
+
+        ai = chat.invoke(msgs)
+        text = getattr(ai, "content", str(ai))
+
+        state["result"] = text
+        state["messages"] = [("assistant", text)]
+        return state
+    except Exception as e:
+        print("There was an error (rag):", e)
+        state["result"] = str(e)
+        state["messages"] = [("assistant", f"There was an error {e}")]
+        return state
+
+
+def get_analytic_data(state: State) -> State:
+    # your existing implementation
+    return get_analytic_data_impl(state)
+
+
+def get_salesforce_feed(state: State) -> State:
+    # your existing implementation
+    return get_salesforce_feed_impl(state)
+
+
+# ---------- Graph ----------
 
 def build_graph():
     g = StateGraph(State, channels={"messages": add_messages})
 
     # Nodes
-    g.add_node("decide_chat_type", decide_chat_type)
-    g.add_node("rag_fanout", rag_fanout)
     g.add_node("get_analytic_data", get_analytic_data)
     g.add_node("get_salesforce_feed", get_salesforce_feed)
-    g.add_node("call_llm", call_llm)
+    g.add_node("call_llm_simple", call_llm_simple)
+    g.add_node("call_llm_rag", call_llm_rag)
 
-    # Start → decide mode
-    g.add_edge(START, "decide_chat_type")
-
-    # Conditional fan-out: SIMPLE vs RAG
+    # Conditional routing directly from START:
+    # SIMPLE  -> call_llm_simple
+    # RAG     -> get_analytic_data & get_salesforce_feed (in parallel) -> call_llm_rag
     g.add_conditional_edges(
-        "decide_chat_type",
+        START,
         route_from_chat_type,
         {
-            # SIMPLE: go straight to LLM
-            "SIMPLE": "call_llm",
-            # RAG: enter the RAG branch
-            "RAG": "rag_fanout",
+            "SIMPLE": "call_llm_simple",
+            "RAG": "get_analytic_data",  # entry to RAG branch
         },
     )
 
-    # RAG path: fan out from rag_fanout to both data nodes (runs in parallel)
-    g.add_edge("rag_fanout", "get_analytic_data")
-    g.add_edge("rag_fanout", "get_salesforce_feed")
+    # RAG branch fan-out & merge
+    g.add_edge("get_analytic_data", "get_salesforce_feed")
+    g.add_edge("get_salesforce_feed", "call_llm_rag")
 
-    # Both data nodes feed into call_llm; LangGraph will merge state
-    g.add_edge("get_analytic_data", "call_llm")
-    g.add_edge("get_salesforce_feed", "call_llm")
-
-    # Final
-    g.add_edge("call_llm", END)
+    # Both paths end here
+    g.add_edge("call_llm_simple", END)
+    g.add_edge("call_llm_rag", END)
 
     return g.compile()
