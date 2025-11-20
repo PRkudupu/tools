@@ -1,92 +1,196 @@
-<script>
-  const chatHistory = document.getElementById("chat");
-  const userInput = document.getElementById("user-input");
-  const sendBtn = document.getElementById("send-btn");
-
-  sendBtn.addEventListener("click", sendMessage);
-  userInput.addEventListener("keydown", function (e) {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      sendMessage();
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Ecolab – RAG Chat</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f4f8ff;        /* soft Ecolab-blue background */
+      margin: 0;
+      padding: 10px;
+      color: #000;
     }
-  });
 
-  function sendMessage() {
-    const messageText = userInput.value.trim();
-    if (messageText === "") return;
+    /* Chat container */
+    .chat-history {
+      border: 1px solid #006bd3;  /* Ecolab blue border */
+      background: #ffffff;
+      border-radius: 5px;
+      padding: 10px;
+      height: 400px;
+      overflow-y: auto;
+      margin: 10px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
 
-    appendMessage(messageText, "user");
-    userInput.value = "";
+    .message {
+      max-width: 70%;
+      padding: 8px 12px;
+      margin: 5px 0;
+      border-radius: 5px;
+      line-height: 1.4;
+      font-size: 0.95rem;
+      white-space: pre-wrap;
+    }
+    .message.user {
+      background-color: #006bd3;  /* Ecolab blue */
+      color: #fff;
+      margin-left: auto;          /* right side */
+      text-align: left;
+    }
+    .message.bot {
+      background-color: #e6f0ff;  /* light blue for bot */
+      color: #002b5c;
+      margin-right: auto;         /* left side */
+      text-align: left;
+    }
 
-    // DEBUG marker
-    console.log("➡️ Sending message to proxy:", messageText);
+    /* Input area */
+    .input-area {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .input-area input {
+      flex: 1;
+      padding: 8px;
+      font-size: 1em;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+    }
+    .input-area button {
+      padding: 8px 15px;
+      font-size: 1em;
+      background-color: #006bd3;
+      color: #fff;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .input-area button:hover {
+      background-color: #0050a5;
+    }
 
-    const payload = {
-      dataframe_split: {
-        columns: ["site_id", "sf_feed", "analytic_data", "messages"],
-        data: [
-          [
-            8391413, // site_id
-            "",      // sf_feed
-            "",      // analytic_data
+    /* Optional simple title */
+    h1 {
+      margin: 0 0 8px 0;
+      font-size: 1.2rem;
+      color: #006bd3;
+    }
+  </style>
+</head>
+<body>
+  <h1>My Ecolab – RAG Chat</h1>
+
+  <!-- Chat history -->
+  <div id="chat" class="chat-history"></div>
+
+  <!-- Input row -->
+  <div class="input-area">
+    <input
+      id="user-input"
+      type="text"
+      placeholder="Ask something about the site..."
+    />
+    <button id="send-btn">Send</button>
+  </div>
+
+  <script>
+    const chatHistory = document.getElementById("chat");
+    const userInput = document.getElementById("user-input");
+    const sendBtn = document.getElementById("send-btn");
+
+    // send on button click
+    sendBtn.addEventListener("click", sendMessage);
+    // send on Enter
+    userInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    function sendMessage() {
+      const messageText = userInput.value.trim();
+      if (messageText === "") return;
+
+      // show user message
+      appendMessage(messageText, "user");
+      userInput.value = "";
+
+      console.log("➡️ Sending message to proxy:", messageText);
+
+      // payload expected by your Databricks endpoint
+      const payload = {
+        dataframe_split: {
+          columns: ["site_id", "sf_feed", "analytic_data", "messages"],
+          data: [
             [
-              {
-                role: "user",
-                content: messageText
-              }
+              8391413, // site_id (change if you want to make this dynamic)
+              "",      // sf_feed
+              "",      // analytic_data
+              [
+                {
+                  role: "user",
+                  content: messageText
+                }
+              ]
             ]
           ]
-        ]
-      }
-    };
-
-    fetch("http://localhost:3000/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    })
-      .then((response) => {
-        console.log("⬅️ Proxy response status:", response.status);
-        if (!response.ok) {
-          // Still try to read body so we can show Databricks error text
-          return response.text().then((text) => {
-            throw new Error("HTTP " + response.status + ": " + text);
-          });
         }
-        return response.json();
+      };
+
+      // call the local proxy server – NOT Databricks directly
+      fetch("http://localhost:3000/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
       })
-      .then((data) => {
-        console.log("⬅️ Proxy JSON:", data);
+        .then((response) => {
+          console.log("⬅️ Proxy response status:", response.status);
+          if (!response.ok) {
+            return response.text().then((text) => {
+              throw new Error("HTTP " + response.status + ": " + text);
+            });
+          }
+          return response.json();
+        })
+        .then((data) => {
+          console.log("⬅️ Proxy JSON:", data);
 
-        let replyText = "";
+          let replyText = "";
 
-        // Adjust based on your endpoint’s actual response schema
-        if (data && data.choices && data.choices.length > 0) {
-          replyText = data.choices[0].message.content;
-        } else if (data && data.messages) {
-          const assistantMsg = data.messages.find(
-            (m) => m.role === "assistant"
-          );
-          replyText = assistantMsg ? assistantMsg.content : JSON.stringify(data);
-        } else {
-          replyText = JSON.stringify(data);
-        }
+          // Adjust this based on your Databricks response schema
+          if (data && data.choices && data.choices.length > 0) {
+            replyText = data.choices[0].message.content;
+          } else if (data && data.messages) {
+            const assistantMsg = data.messages.find(
+              (m) => m.role === "assistant"
+            );
+            replyText = assistantMsg ? assistantMsg.content : JSON.stringify(data);
+          } else {
+            replyText = JSON.stringify(data);
+          }
 
-        appendMessage(replyText, "bot");
-      })
-      .catch((error) => {
-        console.error("❌ Fetch error:", error);
-        appendMessage("Error from server: " + error.message, "bot");
-      });
-  }
+          appendMessage(replyText, "bot");
+        })
+        .catch((error) => {
+          console.error("❌ Fetch error:", error);
+          appendMessage("Error from server: " + error.message, "bot");
+        });
+    }
 
-  function appendMessage(text, sender) {
-    const msgDiv = document.createElement("div");
-    msgDiv.className = "message " + (sender === "user" ? "user" : "bot");
-    msgDiv.textContent = text;
-    chatHistory.appendChild(msgDiv);
-    chatHistory.scrollTop = chatHistory.scrollHeight;
-  }
-</script>
+    function appendMessage(text, sender) {
+      const msgDiv = document.createElement("div");
+      msgDiv.className = "message " + (sender === "user" ? "user" : "bot");
+      msgDiv.textContent = text;
+      chatHistory.appendChild(msgDiv);
+      chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+  </script>
+</body>
+</html>
