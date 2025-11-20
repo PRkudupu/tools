@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Databricks RAG Chat Interface</title>
   <style>
-    /* Ecolab blue/white color theme (#006BD3) applied for accents */
     body {
       font-family: sans-serif;
       background: #FFFFFF;
@@ -13,32 +12,19 @@
       padding: 10px;
       color: #000;
     }
-    .token-area {
-      margin-bottom: 10px;
+    .banner {
+      width: 100%;
+      padding: 10px;
+      background-color: #ffffff;
+      border-bottom: 1px solid #ccc;
+      text-align: center;
     }
-    .token-area label {
-      font-weight: bold;
-      margin-right: 5px;
+    .banner img {
+      max-height: 40px;
     }
-    .token-area input {
-      padding: 5px;
-      width: 300px;
-    }
-    .token-area button {
-      padding: 5px 10px;
-      background-color: #006BD3;
-      color: #fff;
-      border: none;
-      border-radius: 3px;
-      cursor: pointer;
-    }
-    .token-area button:hover {
-      background-color: #005bb5; /* slightly darker on hover */
-    }
-
     .chat-history {
       border: 1px solid #ccc;
-      background: #F0F8FF;  /* very light blue background for chat area */
+      background: #F0F8FF;
       border-radius: 5px;
       padding: 10px;
       height: 400px;
@@ -53,18 +39,17 @@
       line-height: 1.4;
     }
     .message.user {
-      background-color: #006BD3; /* Ecolab blue for user messages */
+      background-color: #006BD3;
       color: #fff;
-      margin-left: auto;        /* align user messages to the right */
+      margin-left: auto;
       text-align: left;
     }
     .message.bot {
-      background-color: #e9e9e9; /* light gray for bot messages (on white background) */
+      background-color: #e9e9e9;
       color: #000;
-      margin-right: auto;       /* align bot messages to the left */
+      margin-right: auto;
       text-align: left;
     }
-
     .input-area {
       display: flex;
       align-items: center;
@@ -92,50 +77,23 @@
   </style>
 </head>
 <body>
-
-  <!-- Token Input Area -->
-  <div class="token-area">
-    <label for="token">API Token:</label>
-    <input id="token" type="password" placeholder="Enter Databricks PAT" />
-    <button id="set-token">Set Token</button>
+  <div class="banner">
+    <img src="/mnt/data/6b3e6d7a-316f-4f1a-8958-ad694b2c48e1.png" alt="My Ecolab Banner" />
   </div>
-
-  <!-- Chat History Area -->
-  <div id="chat" class="chat-history">
-    <!-- Messages will appear here -->
-  </div>
-
-  <!-- User Input Area -->
+  <div id="chat" class="chat-history"></div>
   <div class="input-area">
     <input id="user-input" type="text" placeholder="Type your message..." />
     <button id="send-btn">Send</button>
   </div>
-
   <script>
     const chatHistory = document.getElementById('chat');
     const userInput = document.getElementById('user-input');
     const sendBtn = document.getElementById('send-btn');
-    const tokenInput = document.getElementById('token');
-    const setTokenBtn = document.getElementById('set-token');
 
-    let apiToken = "";  // will hold the Databricks PAT after setting
+    // Hardcoded Databricks token
+    const apiToken = "dapic6854bd4f0c39e91b51b99a2edfd86f1..."; // REPLACE with full valid PAT
 
-    // Handle setting the API token
-    setTokenBtn.addEventListener('click', () => {
-      const tokenVal = tokenInput.value.trim();
-      if (tokenVal !== "") {
-        apiToken = tokenVal;
-        alert("API token set. You can now send messages.");
-        // Optionally, disable token input after setting (to prevent accidental change)
-        // tokenInput.disabled = true;
-      } else {
-        alert("Please enter a valid token.");
-      }
-    });
-
-    // Send message on button click
     sendBtn.addEventListener('click', sendMessage);
-    // Also allow pressing Enter to send the message
     userInput.addEventListener('keydown', function(e) {
       if (e.key === 'Enter') {
         e.preventDefault();
@@ -146,25 +104,24 @@
     function sendMessage() {
       const messageText = userInput.value.trim();
       if (!apiToken) {
-        alert("Please set your API token before sending a message.");
+        alert("API token not set.");
         return;
       }
-      if (messageText === "") {
-        return;  // do nothing if input is empty
-      }
+      if (messageText === "") return;
 
-      // Append user's message to the chat history
       appendMessage(messageText, "user");
-      userInput.value = "";  // clear input field
+      userInput.value = "";
 
-      // Prepare the payload for Databricks RAG endpoint
       const payload = {
-        messages: [{ role: "user", content: messageText }],
-        stream: false  // get full response in one chunk (no streaming)
+        "dataframe_split": {
+          "columns": ["site_id", "sf_feed", "analytic_data", "messages"],
+          "data": [
+            [8391413, "", "", [{ role: "user", content: messageText }]]
+          ]
+        }
       };
 
-      // Send POST request to the Databricks serving endpoint
-      fetch("https://adb-1355704782079007.7.azuredatabricks.net/serving-endpoints/customer_pre_brief/invocations", {
+      fetch("https://adb-1355704782079007.7.azuredatabricks.net/serving-endpoints/cbt_1/invocations", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -173,45 +130,31 @@
         body: JSON.stringify(payload)
       })
       .then(response => {
-        if (!response.ok) {
-          // If the server returns an error status, throw to catch block
-          throw new Error("Request failed: " + response.status + " " + response.statusText);
-        }
+        if (!response.ok) throw new Error("Request failed: " + response.status);
         return response.json();
       })
       .then(data => {
-        console.log("Response data:", data);  // for debugging (optional)
         let replyText = "";
         if (data && data.choices && data.choices.length > 0) {
-          // Extract the assistant's reply content from the first choice
           replyText = data.choices[0].message.content;
-        } else if (data && data.messages) {
-          // Some endpoints might return a messages array with the assistant response
-          const assistantMsg = data.messages.find(m => m.role === "assistant");
-          replyText = assistantMsg ? assistantMsg.content : "";
         } else {
-          // Fallback: if format is unexpected, show entire JSON as string
           replyText = JSON.stringify(data);
         }
-        // Append assistant's reply to the chat
         appendMessage(replyText, "bot");
       })
       .catch(error => {
         console.error("Error during fetch:", error);
-        // Display error message in chat
         appendMessage("Error: " + error.message, "bot");
       });
     }
 
-    // Helper function to append a message to the chat history
     function appendMessage(text, sender) {
       const msgDiv = document.createElement('div');
       msgDiv.className = "message " + (sender === "user" ? "user" : "bot");
       msgDiv.textContent = text;
       chatHistory.appendChild(msgDiv);
-      chatHistory.scrollTop = chatHistory.scrollHeight;  // auto-scroll to bottom
+      chatHistory.scrollTop = chatHistory.scrollHeight;
     }
   </script>
-
 </body>
 </html>
