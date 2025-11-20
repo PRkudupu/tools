@@ -1,0 +1,23 @@
+import requests
+
+# ---- 1) Request details (copy from Postman collection) ----
+url = "https://<your-auth-url-here>/oauth2/token"  # put the URL from the collection
+
+form_data = {
+    "grant_type": "client_credentials",
+    "client_id": "<your_client_id>",
+    "client_secret": "<your_client_secret>",
+}
+
+# ---- 2) Send request ----
+response = requests.post(url, data=form_data)
+
+# ---- 3) Assert like the Postman test ----
+if response.status_code in (200, 201):
+    print("✅ Successful POST request")
+else:
+    print(f"❌ Failed: status={response.status_code}")
+    print("Body:", response.text)
+
+# Optional: inspect JSON token, etc.
+# print(response.json())
