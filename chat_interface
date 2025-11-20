@@ -3,56 +3,67 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Databricks RAG Chat Interface</title>
+  <title>My Ecolab – RAG Chat</title>
   <style>
     body {
       font-family: sans-serif;
-      background: #FFFFFF;
+      background: #ffffff;
       margin: 0;
       padding: 10px;
       color: #000;
     }
+
+    /* Banner */
     .banner {
       width: 100%;
-      padding: 10px;
+      padding: 10px 0;
       background-color: #ffffff;
       border-bottom: 1px solid #ccc;
-      text-align: center;
+      text-align: left;
     }
     .banner img {
       max-height: 40px;
+      margin-left: 10px;
     }
+
+    /* Chat container */
     .chat-history {
       border: 1px solid #ccc;
-      background: #F0F8FF;
+      background: #f0f8ff;        /* very light blue */
       border-radius: 5px;
       padding: 10px;
       height: 400px;
       overflow-y: auto;
-      margin-bottom: 10px;
+      margin: 10px 0;
     }
+
     .message {
       max-width: 70%;
       padding: 8px 12px;
       margin: 5px 0;
       border-radius: 5px;
       line-height: 1.4;
+      font-size: 0.95rem;
+      white-space: pre-wrap;
     }
     .message.user {
-      background-color: #006BD3;
+      background-color: #006bd3;   /* Ecolab blue */
       color: #fff;
-      margin-left: auto;
+      margin-left: auto;           /* right side */
       text-align: left;
     }
     .message.bot {
       background-color: #e9e9e9;
       color: #000;
-      margin-right: auto;
+      margin-right: auto;          /* left side */
       text-align: left;
     }
+
+    /* Input area */
     .input-area {
       display: flex;
       align-items: center;
+      gap: 6px;
     }
     .input-area input {
       flex: 1;
@@ -63,9 +74,8 @@
     }
     .input-area button {
       padding: 8px 15px;
-      margin-left: 5px;
       font-size: 1em;
-      background-color: #006BD3;
+      background-color: #006bd3;
       color: #fff;
       border: none;
       border-radius: 3px;
@@ -77,25 +87,35 @@
   </style>
 </head>
 <body>
+  <!-- Banner -->
   <div class="banner">
-    <img src="/mnt/data/6b3e6d7a-316f-4f1a-8958-ad694b2c48e1.png" alt="My Ecolab Banner" />
+    <!-- Put your banner file in the same folder and update the src name if needed -->
+    <img src="my-ecolab-banner.png" alt="My Ecolab" />
   </div>
+
+  <!-- Chat history -->
   <div id="chat" class="chat-history"></div>
+
+  <!-- Input row -->
   <div class="input-area">
-    <input id="user-input" type="text" placeholder="Type your message..." />
+    <input
+      id="user-input"
+      type="text"
+      placeholder="Ask something about the site..."
+    />
     <button id="send-btn">Send</button>
   </div>
+
   <script>
-    const chatHistory = document.getElementById('chat');
-    const userInput = document.getElementById('user-input');
-    const sendBtn = document.getElementById('send-btn');
+    const chatHistory = document.getElementById("chat");
+    const userInput = document.getElementById("user-input");
+    const sendBtn = document.getElementById("send-btn");
 
-    // Hardcoded Databricks token
-    const apiToken = "dapic6854bd4f0c39e91b51b99a2edfd86f1..."; // REPLACE with full valid PAT
-
-    sendBtn.addEventListener('click', sendMessage);
-    userInput.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') {
+    // send on button click
+    sendBtn.addEventListener("click", sendMessage);
+    // send on Enter
+    userInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
         e.preventDefault();
         sendMessage();
       }
@@ -103,53 +123,71 @@
 
     function sendMessage() {
       const messageText = userInput.value.trim();
-      if (!apiToken) {
-        alert("API token not set.");
-        return;
-      }
       if (messageText === "") return;
 
+      // show user message
       appendMessage(messageText, "user");
       userInput.value = "";
 
+      // payload expected by your Databricks endpoint
       const payload = {
-        "dataframe_split": {
-          "columns": ["site_id", "sf_feed", "analytic_data", "messages"],
-          "data": [
-            [8391413, "", "", [{ role: "user", content: messageText }]]
+        dataframe_split: {
+          columns: ["site_id", "sf_feed", "analytic_data", "messages"],
+          data: [
+            [
+              8391413,          // site_id (hard-coded; change if needed)
+              "",               // sf_feed
+              "",               // analytic_data
+              [
+                {
+                  role: "user",
+                  content: messageText
+                }
+              ]
+            ]
           ]
         }
       };
 
-      fetch("https://adb-1355704782079007.7.azuredatabricks.net/serving-endpoints/cbt_1/invocations", {
+      // call the local proxy server – NOT Databricks directly
+      fetch("http://localhost:3000/chat", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiToken}`
+          "Content-Type": "application/json"
         },
         body: JSON.stringify(payload)
       })
-      .then(response => {
-        if (!response.ok) throw new Error("Request failed: " + response.status);
-        return response.json();
-      })
-      .then(data => {
-        let replyText = "";
-        if (data && data.choices && data.choices.length > 0) {
-          replyText = data.choices[0].message.content;
-        } else {
-          replyText = JSON.stringify(data);
-        }
-        appendMessage(replyText, "bot");
-      })
-      .catch(error => {
-        console.error("Error during fetch:", error);
-        appendMessage("Error: " + error.message, "bot");
-      });
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Request failed: " + response.status);
+          }
+          return response.json();
+        })
+        .then((data) => {
+          let replyText = "";
+
+          // adjust this depending on how your Databricks model returns data
+          if (data && data.choices && data.choices.length > 0) {
+            replyText = data.choices[0].message.content;
+          } else if (data && data.messages) {
+            const assistantMsg = data.messages.find(
+              (m) => m.role === "assistant"
+            );
+            replyText = assistantMsg ? assistantMsg.content : JSON.stringify(data);
+          } else {
+            replyText = JSON.stringify(data);
+          }
+
+          appendMessage(replyText, "bot");
+        })
+        .catch((error) => {
+          console.error("Error during fetch:", error);
+          appendMessage("Error: " + error.message, "bot");
+        });
     }
 
     function appendMessage(text, sender) {
-      const msgDiv = document.createElement('div');
+      const msgDiv = document.createElement("div");
       msgDiv.className = "message " + (sender === "user" ? "user" : "bot");
       msgDiv.textContent = text;
       chatHistory.appendChild(msgDiv);
