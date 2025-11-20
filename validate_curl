@@ -1,0 +1,15 @@
+curl -X POST http://localhost:3000/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "dataframe_split": {
+      "columns": ["site_id", "sf_feed", "analytic_data", "messages"],
+      "data": [
+        [
+          8391413,
+          "",
+          "",
+          [{ "role": "user", "content": "Test from curl" }]
+        ]
+      ]
+    }
+  }'
