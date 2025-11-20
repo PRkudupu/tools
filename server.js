@@ -6,23 +6,26 @@ const cors = require('cors');
 const app = express();
 const port = 3000;
 
-// 🔐 TODO: paste your full Databricks PAT
+// 🔐 TODO: paste your FULL Databricks PAT here (no "..." at the end)
 const DATABRICKS_PAT = 'PASTE_FULL_TOKEN_HERE';
 
-// 🔗 TODO: make sure this matches the URL that works in Postman
+// 🔗 TODO: make sure this EXACTLY matches the URL that works in Postman
+// e.g. "customer_pre_brief" or "cbt_1" depending on what you use there.
 const DATABRICKS_ENDPOINT =
-  'https://adb-1355704782079007.7.azuredatabricks.net/serving-endpoints/cbt_1/invocations';
-// or: 'https://adb-1355704782079007.7.azuredatabricks.net/serving-endpoints/customer_pre_brief/invocations';
+  'https://adb-1355704782079007.7.azuredatabricks.net/serving-endpoints/customer_pre_brief/invocations';
+// If you actually use cbt_1 in Postman, then use this instead:
+// const DATABRICKS_ENDPOINT =
+//   'https://adb-1355704782079007.7.azuredatabricks.net/serving-endpoints/cbt_1/invocations';
 
 app.use(cors());
 app.use(express.json());
 
-// Simple health check
+// Simple health check so we can test the server without Databricks
 app.get('/health', (req, res) => {
   res.send('OK');
 });
 
-// Proxy endpoint
+// Proxy endpoint that the HTML calls
 app.post('/chat', async (req, res) => {
   try {
     console.log('➡️  Incoming /chat payload:', JSON.stringify(req.body));
