@@ -35,3 +35,7 @@ app.post('/chat', async (req, res) => {
 app.listen(port, () => {
   console.log(`Databricks proxy server listening at http://localhost:${port}`);
 });
+
+
+npm init -y
+npm install express axios cors
