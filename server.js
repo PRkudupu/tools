@@ -6,28 +6,33 @@ const cors = require('cors');
 const app = express();
 const port = 3000;
 
-// ✅ CHANGE ME: paste your FULL Databricks PAT here (no ... at the end)
+// 🔐 TODO: paste your full Databricks PAT
 const DATABRICKS_PAT = 'PASTE_FULL_TOKEN_HERE';
 
-// ✅ CHANGE ME: make sure this EXACTLY matches the URL that works in Postman
+// 🔗 TODO: make sure this matches the URL that works in Postman
 const DATABRICKS_ENDPOINT =
   'https://adb-1355704782079007.7.azuredatabricks.net/serving-endpoints/cbt_1/invocations';
-// or e.g.
-// 'https://adb-1355704782079007.7.azuredatabricks.net/serving-endpoints/customer_pre_brief/invocations';
+// or: 'https://adb-1355704782079007.7.azuredatabricks.net/serving-endpoints/customer_pre_brief/invocations';
 
 app.use(cors());
 app.use(express.json());
 
+// Simple health check
+app.get('/health', (req, res) => {
+  res.send('OK');
+});
+
+// Proxy endpoint
 app.post('/chat', async (req, res) => {
   try {
-    console.log('➡️  Incoming /chat request payload:', JSON.stringify(req.body));
+    console.log('➡️  Incoming /chat payload:', JSON.stringify(req.body));
 
     const response = await axios.post(DATABRICKS_ENDPOINT, req.body, {
       headers: {
-        'Authorization': `Bearer ${DATABRICKS_PAT}`,
+        Authorization: `Bearer ${DATABRICKS_PAT}`,
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
+        Accept: 'application/json',
+      },
     });
 
     console.log('✅ Databricks response status:', response.status);
@@ -47,6 +52,7 @@ app.post('/chat', async (req, res) => {
 app.listen(port, () => {
   console.log(`🚀 Databricks proxy server listening at http://localhost:${port}`);
 });
+
 
 
 npm init -y
