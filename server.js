@@ -2,38 +2,50 @@
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
+
 const app = express();
 const port = 3000;
 
-// Replace this with your real Databricks PAT
-const DATABRICKS_PAT = 'dapic6854bd4f0c39e91b51b99a2edfd86f1...';
+// ✅ CHANGE ME: paste your FULL Databricks PAT here (no ... at the end)
+const DATABRICKS_PAT = 'PASTE_FULL_TOKEN_HERE';
 
-// Allow cross-origin requests from browser
+// ✅ CHANGE ME: make sure this EXACTLY matches the URL that works in Postman
+const DATABRICKS_ENDPOINT =
+  'https://adb-1355704782079007.7.azuredatabricks.net/serving-endpoints/cbt_1/invocations';
+// or e.g.
+// 'https://adb-1355704782079007.7.azuredatabricks.net/serving-endpoints/customer_pre_brief/invocations';
+
 app.use(cors());
 app.use(express.json());
 
-// Proxy endpoint
 app.post('/chat', async (req, res) => {
   try {
-    const response = await axios.post(
-      'https://adb-1355704782079007.7.azuredatabricks.net/serving-endpoints/cbt_1/invocations',
-      req.body,
-      {
-        headers: {
-          'Authorization': `Bearer ${DATABRICKS_PAT}`,
-          'Content-Type': 'application/json'
-        }
+    console.log('➡️  Incoming /chat request payload:', JSON.stringify(req.body));
+
+    const response = await axios.post(DATABRICKS_ENDPOINT, req.body, {
+      headers: {
+        'Authorization': `Bearer ${DATABRICKS_PAT}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       }
-    );
-    res.json(response.data);
+    });
+
+    console.log('✅ Databricks response status:', response.status);
+    res.status(response.status).json(response.data);
   } catch (error) {
-    console.error('Proxy error:', error.message);
-    res.status(error.response?.status || 500).json({ error: error.message });
+    if (error.response) {
+      console.error('❌ Databricks error status:', error.response.status);
+      console.error('❌ Databricks error data:', error.response.data);
+      res.status(error.response.status).json(error.response.data);
+    } else {
+      console.error('❌ Proxy error:', error.message);
+      res.status(500).json({ error: error.message });
+    }
   }
 });
 
 app.listen(port, () => {
-  console.log(`Databricks proxy server listening at http://localhost:${port}`);
+  console.log(`🚀 Databricks proxy server listening at http://localhost:${port}`);
 });
 
 
