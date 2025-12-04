@@ -4,15 +4,20 @@ pool:
 steps:
 - checkout: self
 
-# Install Databricks CLI
+# -------------------------------------------------------
+# Install Databricks CLI (Correct Binary - No ZIP)
+# -------------------------------------------------------
 - script: |
-    curl -LJO "https://github.com/databricks/cli/releases/latest/download/databricks_cli_linux_amd64.zip"
-    unzip databricks_cli_linux_amd64.zip
+    echo "Downloading Databricks CLI..."
+    curl -L -o databricks "https://github.com/databricks/cli/releases/latest/download/databricks_linux_amd64"
     chmod +x databricks
     echo "##vso[task.prependpath]$PWD"
+    databricks version
   displayName: 'Install Databricks CLI'
 
-# Login
+# -------------------------------------------------------
+# Authenticate to Databricks
+# -------------------------------------------------------
 - script: |
     databricks auth login \
       --host "$(DATABRICKS_HOST)" \
@@ -22,14 +27,18 @@ steps:
     DATABRICKS_HOST: $(DATABRICKS_HOST)
     DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
 
-# Validate
+# -------------------------------------------------------
+# Validate Bundle
+# -------------------------------------------------------
 - script: |
     databricks bundle validate --target dev
-  displayName: 'Validate Bundle'
+  displayName: 'Validate Databricks Bundle'
 
-# Deploy
+# -------------------------------------------------------
+# Deploy Bundle
+# -------------------------------------------------------
 - script: |
     databricks bundle deploy --target dev
-  displayName: 'Deploy Bundle'
+  displayName: 'Deploy Databricks Bundle'
   env:
     DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
