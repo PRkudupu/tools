@@ -6,22 +6,18 @@ targets:
     default: true
     workspace:
       host: https://<your-workspace>.azuredatabricks.net
-    run_as:
-      # Use your user or (better) a service principal
-      service_principal_name: <sp-name-or-app-id>
 
 resources:
   jobs:
     customer_pre_brief_job:
-      name: "[DEV] Customer Pre Brief"
+      name: "Customer Pre Brief"
       tasks:
         - task_key: run_customer_pre_brief
-          job_cluster_key: single_node_cluster
+          job_cluster_key: simple_cluster
           notebook_task:
-            # Path *inside the bundle repo*
             notebook_path: ./src/customer_pre_brief.ipynb
       job_clusters:
-        - job_cluster_key: single_node_cluster
+        - job_cluster_key: simple_cluster
           new_cluster:
             spark_version: 14.3.x-scala2.12
             node_type_id: Standard_DS3_v2
