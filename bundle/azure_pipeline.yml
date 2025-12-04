@@ -1,0 +1,35 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - group: DatabricksSecrets   # <-- must match your Variable Group name
+
+steps:
+  - checkout: self
+
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.10'
+
+  - script: |
+      python -m pip install --upgrade pip
+      pip install databricks-cli
+
+      databricks auth login \
+        --host https://adb-13555704782079087.7.azuredatabricks.net \
+        --token $(DATABRICKS_TOKEN)
+
+      databricks bundle validate --target dev
+      databricks bundle deploy --target dev
+
+      # OPTIONAL: run notebook job after deployment
+      databricks bundle run customer_pre_brief_job --target dev
+
+    env:
+      DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
+    displayName: "Deploy Databricks bundle"
