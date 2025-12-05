@@ -1,11 +1,1 @@
-It has been a pleasure working with you at Ecolab — the team has been great and I truly enjoy contributing.
-
-I wanted to bring an important matter to your attention.
-I operate through my own S-Corp and typically work on a C2C basis. In the current arrangement, I am engaged through a consulting company, which in turn is contracted with EnableData.
-
-So far, I have only received payment for August. The invoices for September, October, and November are still outstanding. As a result, I have been waiting for my payments for nearly 90 days, which is creating a significant financial strain. I normally pay my consultants every two weeks, and the delay is impacting my ability to do so.
-
-I would sincerely appreciate your help in escalating this matter or guiding me on how to get it resolved.
-
-Thank you for your understanding and support.
-Prathap
+setx PATH "$($env:PATH);C:\Users\kuduppr\.local\bin"
