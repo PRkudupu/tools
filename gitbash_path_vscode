@@ -1,7 +1,2 @@
-"terminal.integrated.profiles.windows": {
-    "Git Bash": {
-      "path": "C:\\Users\\kuduppr\\AppData\\Local\\Programs\\Git\\bin\\bash.exe",
-      "args": ["--login", "-i"]
-    }
-  },
-  "terminal.integrated.defaultProfile.windows": "Git Bash"
+"terminal.integrated.shell.windows": "C:\\Users\\kuduppr\\AppData\\Local\\Programs\\Git\\bin\\bash.exe",
+"terminal.integrated.shellArgs.windows": ["--login", "-i"]
