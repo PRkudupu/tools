@@ -1,2 +1,1 @@
-$newPath = "C:\Users\kuduppr\AppData\Local\Microsoft\WindowsApps;C:\Users\kuduppr\.local\bin"
-[Environment]::SetEnvironmentVariable("Path", $newPath, "User")
+$newPath = "C:\Users\kuduppr\AppData\Local\Microsoft\WindowsApps;C:\Users\kuduppr\.local\bin"; [Environment]::SetEnvironmentVariable("Path", $newPath, "User")
