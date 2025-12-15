@@ -1,0 +1,74 @@
+%pip install msal
+dbutils.library.restartPython()
+
+# ================================
+# SIMPLE SINGLE-CELL TEMPLATE
+# ================================
+
+import msal
+import requests
+import json
+
+# -------------------------
+# CONFIG
+# -------------------------
+DATABRICKS_HOST = "https://adb-1355704782079007.7.azuredatabricks.net"
+ENDPOINT_NAME   = "custbrief__serving_endpoint"
+
+SECRET_SCOPE = "sp-scope"      # change to your scope name
+TENANT_ID    = dbutils.secrets.get(SECRET_SCOPE, "tenant_id")
+CLIENT_ID    = dbutils.secrets.get(SECRET_SCOPE, "client_id")
+CLIENT_SECRET = dbutils.secrets.get(SECRET_SCOPE, "client_secret")
+
+# -------------------------
+# GET TOKEN USING MSAL
+# -------------------------
+app = msal.ConfidentialClientApplication(
+    client_id=CLIENT_ID,
+    authority=f"https://login.microsoftonline.com/{TENANT_ID}",
+    client_credential=CLIENT_SECRET,
+)
+
+token = app.acquire_token_for_client(
+    scopes=["2ff814a6-3304-4ab8-85cb-cd0e6f879c1d/.default"]     # Azure Databricks resource
+)
+
+if "access_token" not in token:
+    raise Exception(f"SP authentication failed: {token}")
+
+access_token = token["access_token"]
+
+# -------------------------
+# BUILD REQUEST PAYLOAD
+# -------------------------
+payload = {
+    "dataframe_split": {
+        "columns": ["site_id", "sf_feed", "analytic_data", "messages"],
+        "data": [
+            [
+                8391413,
+                "",
+                "",
+                [{"role": "user", "content": "site id=8391413"}]
+            ]
+        ]
+    }
+}
+
+# -------------------------
+# CALL SERVING ENDPOINT
+# -------------------------
+url = f"{DATABRICKS_HOST}/serving-endpoints/{ENDPOINT_NAME}/invocations"
+
+response = requests.post(
+    url,
+    headers={"Authorization": f"Bearer {access_token}",
+             "Content-Type": "application/json"},
+    json=payload
+)
+
+print("STATUS:", response.status_code)
+try:
+    print(json.dumps(response.json(), indent=2))
+except:
+    print(response.text)
