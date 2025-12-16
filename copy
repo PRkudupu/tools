@@ -1,1 +1,1 @@
-setx PATH "$($env:PATH);C:\Users\kuduppr\.local\bin"
+curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sudo sh
