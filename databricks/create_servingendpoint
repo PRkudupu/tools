@@ -1,0 +1,80 @@
+import requests
+import json
+
+host = "https://your-workspace.databricks.com"  # e.g., adb-XXXXXXXXXXXXXXXX.X.azuredatabricks.net
+token = "dapiXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"  # Service principal PAT
+
+headers = {"Authorization": f"Bearer {token}"}
+
+response = requests.get(f"{host}/api/2.0/serving-endpoints", headers=headers)
+
+if response.status_code == 200:
+    endpoints_json = response.json()
+    print(json.dumps(endpoints_json, indent=2))  # Full JSON list of endpoints
+else:
+    print(f"Error: {response.status_code} - {response.text}")
+
+
+# create endpoint
+import requests
+import json
+
+host = "https://your-workspace.databricks.com"  # e.g., adb-XXXXXXXXXXXXXXXX.X.azuredatabricks.net
+token = "dapiXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"  # Service principal PAT
+
+headers = {
+    "Authorization": f"Bearer {token}",
+    "Content-Type": "application/json"
+}
+
+# Example payload for a Unity Catalog model (recommended)
+payload = {
+    "name": "custbrief_serving_endpoint",  # Your desired endpoint name
+    "config": {
+        "served_entities": [
+            {
+                "entity_name": "industrial-data-science.cbt.custbrief_rag_agent",  # Full 3-level name: catalog.schema.model_name
+                "entity_version": "2",  # From your screenshot
+                "workload_size": "Small",  # Or "Medium", "Large"; or use custom concurrency
+                "scale_to_zero_enabled": True  # Scales to zero when idle (your screenshot shows "Scaled to zero")
+            }
+        ],
+        # Optional: traffic allocation if multiple entities, rate limits, etc.
+    }
+}
+
+response = requests.post(
+    f"{host}/api/2.0/serving-endpoints",
+    headers=headers,
+    data=json.dumps(payload)
+)
+
+print(response.status_code)
+print(response.json())
+
+from databricks.sdk import WorkspaceClient
+from databricks.sdk.service.serving import CreateServingEndpoint
+
+w = WorkspaceClient(
+    host="https://your-workspace.databricks.com",
+    token="dapiXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"  # Service principal PAT
+    # Or use client_id/client_secret for OAuth
+)
+
+endpoint = w.serving_endpoints.create(
+    CreateServingEndpoint(
+        name="custbrief_serving_endpoint",
+        config={
+            "served_entities": [
+                {
+                    "entity_name": "industrial-data-science.cbt.custbrief_rag_agent",
+                    "entity_version": "2",
+                    "workload_size": "Small",
+                    "scale_to_zero_enabled": True
+                }
+            ]
+        }
+    )
+)
+
+print(endpoint)
