@@ -1,0 +1,18 @@
+import os
+import mlflow
+
+# ----------------------------
+# Filesystem path (artifacts / temp files)
+# ----------------------------
+BASE_PATH = os.getenv("CUST_BRIEF_FS_PATH", "/tmp/customer-brief")
+os.makedirs(BASE_PATH, exist_ok=True)
+
+# ----------------------------
+# MLflow experiment (tracking)
+# ----------------------------
+EXPERIMENT_PATH = os.getenv(
+    "CUST_BRIEF_EXPERIMENT",
+    "/Shared/mlflow/customer-brief"
+)
+
+mlflow.set_experiment(EXPERIMENT_PATH)
