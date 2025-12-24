@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Usage:
+#   ./deploy_run.sh dev
+#   ./deploy_run.sh stg
+#   ./deploy_run.sh prod
+
+ENVIRONMENT="${1:-dev}"                   # dev|stg|prod
+PROFILE="SP_CUSTBRIEF_${ENVIRONMENT^^}"   # e.g., SP_CUSTBRIEF_DEV
+JOB_NAME="cust_brief_sp"                  # bundle run target/job name
+
+if [[ ! "$ENVIRONMENT" =~ ^(dev|stg|prod)$ ]]; then
+  echo "❌ Invalid environment: $ENVIRONMENT"
+  echo "Usage: $0 [dev|stg|prod]"
+  exit 1
+fi
+
+echo "----------------------------------------"
+echo "🚀 ENV   : $ENVIRONMENT"
+echo "🔐 PROF  : $PROFILE"
+echo "🧩 JOB   : $JOB_NAME"
+echo "----------------------------------------"
+
+# 1) DESTROY (auto-confirm)
+echo "🧹 Destroying existing resources (auto-confirm)..."
+yes y | databricks bundle destroy --target "$ENVIRONMENT" --profile "$PROFILE" \
+  || echo "⚠️ Destroy step: nothing to destroy (continuing)"
+
+# 2) DEPLOY
+echo "📦 Deploying bundle..."
+databricks bundle deploy --target "$ENVIRONMENT" --profile "$PROFILE"
+
+# 3) RUN
+echo "▶️ Running job..."
+databricks bundle run "$JOB_NAME" --target "$ENVIRONMENT" --profile "$PROFILE"
+
+echo "✅ Done: destroy + deploy + run completed"
