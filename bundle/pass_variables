@@ -1,0 +1,27 @@
+# Define widget names
+keys = [
+    "MODEL_NAME",
+    "SERVING_ENDPOINT_NAME",
+    "CATALOG",
+    "SCHEMA",
+    "DBX_HTTP_PATH",
+    "USER_ACCESS",
+]
+
+# Create widgets + fetch values
+params = {}
+for k in keys:
+    dbutils.widgets.text(k, "")
+    params[k] = dbutils.widgets.get(k)
+
+# Assign to variables (optional but readable)
+MODEL_NAME            = params["MODEL_NAME"]
+SERVING_ENDPOINT_NAME = params["SERVING_ENDPOINT_NAME"]
+CATALOG               = params["CATALOG"]
+SCHEMA                = params["SCHEMA"]
+DBX_HTTP_PATH         = params["DBX_HTTP_PATH"]
+USER_ACCESS           = params["USER_ACCESS"]
+
+# Print
+for k, v in params.items():
+    print(f"{k}: {v}")
