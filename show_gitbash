@@ -1,0 +1,17 @@
+{
+  "database-client.autoSync": true,
+  "python.analysis.extraPaths": [
+    "src"
+  ],
+  "python.defaultInterpreterPath": "c:\\Users\\kudupp\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+  "databricks.lastActiveConnection": "Databricks Extension",
+  "claudeCode.preferredLocation": "panel",
+
+  "terminal.integrated.profiles.windows": {
+    "Git Bash": {
+      "path": "C:\\Program Files\\Git\\bin\\bash.exe",
+      "args": []
+    }
+  },
+  "terminal.integrated.defaultProfile.windows": "Git Bash"
+}
