@@ -14,139 +14,138 @@ parameters:
   default: dev
   values: [dev, stg, prd, all]
 
-variables:
-  - name: matrixEnvs
-    value: >
-      {
-        "dev": { "BUNDLE_TARGET": "dev", "VAR_GROUP": "AIF_DBX_CUSTBRIEF_AGENT_DEV" },
-        "stg": { "BUNDLE_TARGET": "stg", "VAR_GROUP": "AIF_DBX_CUSTBRIEF_AGENT_STG" },
-        "prd": { "BUNDLE_TARGET": "prd", "VAR_GROUP": "AIF_DBX_CUSTBRIEF_AGENT_PRD" }
-      }
-
 stages:
 - stage: validate
-  displayName: Validate Bundle
+  displayName: Validate
   jobs:
-  - job: validate_matrix
-    displayName: Validate (Matrix)
+  - job: validate
+    displayName: DAB Validate (matrix)
     pool:
       name: AdvancedAnalytics
       demands:
         - Agent.Name -equals USEAGTFSVBL23P1
+
     strategy:
-      matrix: $[ variables['matrixEnvs'] ]
+      matrix:
+        dev: { BUNDLE_TARGET: dev }
+        stg: { BUNDLE_TARGET: stg }
+        prd: { BUNDLE_TARGET: prd }
+
+    # Run only selected env, or all
     condition: |
       or(
-        eq('${{ parameters.targetEnv }}', 'all'),
-        eq(variables['BUNDLE_TARGET'], '${{ parameters.targetEnv }}')
+        eq('${{ parameters.targetEnv }}','all'),
+        eq(variables['BUNDLE_TARGET'],'${{ parameters.targetEnv }}')
       )
+
+    # pick correct variable group for each env
     variables:
-      - group: ${{ variables['VAR_GROUP'] }}
+    - ${{ if eq(variables['BUNDLE_TARGET'], 'dev') }}:
+      - group: AIF_DBX_CUSTBRIEF_AGENT_DEV
+    - ${{ if eq(variables['BUNDLE_TARGET'], 'stg') }}:
+      - group: AIF_DBX_CUSTBRIEF_AGENT_STG
+    - ${{ if eq(variables['BUNDLE_TARGET'], 'prd') }}:
+      - group: AIF_DBX_CUSTBRIEF_AGENT_PRD
+
     steps:
-      - template: templates/validate-steps.yml
+    - checkout: self
+
+    - task: PowerShell@2
+      displayName: "Preflight + Validate"
+      inputs:
+        pwsh: true
+        targetType: inline
+        workingDirectory: "$(Build.SourcesDirectory)"
+        script: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+
+          function Require($name) { if (-not (Get-Item "Env:$name" -ErrorAction SilentlyContinue)) { throw "Missing env var: $name" } }
+          function RunDab($cmd) {
+            Write-Host "##[command]databricks bundle $cmd -t $(BUNDLE_TARGET)"
+            & databricks bundle @($cmd.Split(' ')) -t "$(BUNDLE_TARGET)"
+            if ($LASTEXITCODE -ne 0) { throw "Failed: databricks bundle $cmd -t $(BUNDLE_TARGET)" }
+          }
+
+          Require DATABRICKS_HOST
+          Require DATABRICKS_CLIENT_ID
+          Require DATABRICKS_CLIENT_SECRET
+
+          Write-Host "##[group]Info"
+          Write-Host "Branch: $(Build.SourceBranch) | Reason: $(Build.Reason) | Target: $(BUNDLE_TARGET)"
+          databricks --version
+          Write-Host "Repo root: $((Get-Location).Path)"
+          Write-Host "##[endgroup]"
+
+          RunDab "validate"
+      env:
+        DATABRICKS_HOST: $(DATABRICKS_HOST)
+        DATABRICKS_CLIENT_ID: $(DATABRICKS_CLIENT_ID)
+        DATABRICKS_CLIENT_SECRET: $(DATABRICKS_CLIENT_SECRET)
 
 - stage: deploy
-  displayName: Deploy + Run Pipeline
+  displayName: Deploy + Run
   dependsOn: validate
   condition: succeeded()
   jobs:
-  - deployment: deploy_matrix
-    displayName: Deploy/Run (Matrix)
+  - job: deploy
+    displayName: Deploy/Run (matrix)
     pool:
       name: AdvancedAnalytics
       demands:
         - Agent.Name -equals USEAGTFSVBL23P1
-    environment: ${{ variables['BUNDLE_TARGET'] }}  # Use separate Azure DevOps environments for approvals
+
     strategy:
-      matrix: $[ variables['matrixEnvs'] ]
+      matrix:
+        dev: { BUNDLE_TARGET: dev }
+        stg: { BUNDLE_TARGET: stg }
+        prd: { BUNDLE_TARGET: prd }
+
     condition: |
       or(
-        eq('${{ parameters.targetEnv }}', 'all'),
-        eq(variables['BUNDLE_TARGET'], '${{ parameters.targetEnv }}')
+        eq('${{ parameters.targetEnv }}','all'),
+        eq(variables['BUNDLE_TARGET'],'${{ parameters.targetEnv }}')
       )
+
     variables:
-      - group: ${{ variables['VAR_GROUP'] }}
-    steps:
-      - template: templates/deploy-steps.yml
+    - ${{ if eq(variables['BUNDLE_TARGET'], 'dev') }}:
+      - group: AIF_DBX_CUSTBRIEF_AGENT_DEV
+    - ${{ if eq(variables['BUNDLE_TARGET'], 'stg') }}:
+      - group: AIF_DBX_CUSTBRIEF_AGENT_STG
+    - ${{ if eq(variables['BUNDLE_TARGET'], 'prd') }}:
+      - group: AIF_DBX_CUSTBRIEF_AGENT_PRD
 
     steps:
-- checkout: self
-  clean: true
+    - checkout: self
 
-- task: PowerShell@2
-  displayName: "Preflight + Validate"
-  inputs:
-    pwsh: true
-    targetType: inline
-    workingDirectory: "$(Build.SourcesDirectory)"
-  script: |
-    $ErrorActionPreference = 'Stop'
-    Set-StrictMode -Version Latest
+    - task: PowerShell@2
+      displayName: "Deploy + Run custbrief_pipeline"
+      inputs:
+        pwsh: true
+        targetType: inline
+        workingDirectory: "$(Build.SourcesDirectory)"
+        script: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
 
-    function Require($name) {
-      if (-not (Get-Item "Env:$name" -ErrorAction SilentlyContinue)) {
-        throw "Missing env var: $name"
-      }
-    }
+          function Require($name) { if (-not (Get-Item "Env:$name" -ErrorAction SilentlyContinue)) { throw "Missing env var: $name" } }
+          function RunDab($cmd) {
+            Write-Host "##[command]databricks bundle $cmd -t $(BUNDLE_TARGET)"
+            & databricks bundle @($cmd.Split(' ')) -t "$(BUNDLE_TARGET)"
+            if ($LASTEXITCODE -ne 0) { throw "Failed: databricks bundle $cmd -t $(BUNDLE_TARGET)" }
+          }
 
-    function RunDab($cmd) {
-      Write-Host "##[command]databricks bundle $cmd -t $(BUNDLE_TARGET)"
-      & databricks bundle @($cmd.Split(' ')) -t "$(BUNDLE_TARGET)"
-      if ($LASTEXITCODE -ne 0) { throw "Failed: databricks bundle $cmd -t $(BUNDLE_TARGET)" }
-    }
+          Require DATABRICKS_HOST
+          Require DATABRICKS_CLIENT_ID
+          Require DATABRICKS_CLIENT_SECRET
 
-    Require DATABRICKS_HOST
-    Require DATABRICKS_CLIENT_ID
-    Require DATABRICKS_CLIENT_SECRET
+          Write-Host "##[group]Deploy/Run"
+          Write-Host "Target: $(BUNDLE_TARGET)"
+          Write-Host "##[endgroup]"
 
-    Write-Host "##[group]Validation Info"
-    Write-Host "Branch: $(Build.SourceBranch) | Reason: $(Build.Reason) | Target: $(BUNDLE_TARGET)"
-    databricks --version
-    Write-Host "Repo root: $((Get-Location).Path)"
-    Write-Host "##[endgroup]"
-
-    RunDab "validate"
-  env:
-    DATABRICKS_HOST: $(DATABRICKS_HOST)
-    DATABRICKS_CLIENT_ID: $(DATABRICKS_CLIENT_ID)
-    DATABRICKSsteps:
-- checkout: self
-  clean: true
-
-- task: PowerShell@2
-  displayName: "Deploy + Run custbrief_pipeline"
-  inputs:
-    pwsh: true
-    targetType: inline
-    workingDirectory: "$(Build.SourcesDirectory)"
-  script: |
-    $ErrorActionPreference = 'Stop'
-    Set-StrictMode -Version Latest
-
-    function Require($name) {
-      if (-not (Get-Item "Env:$name" -ErrorAction SilentlyContinue)) {
-        throw "Missing env var: $name"
-      }
-    }
-
-    function RunDab($cmd) {
-      Write-Host "##[command]databricks bundle $cmd -t $(BUNDLE_TARGET)"
-      & databricks bundle @($cmd.Split(' ')) -t "$(BUNDLE_TARGET)"
-      if ($LASTEXITCODE -ne 0) { throw "Failed: databricks bundle $cmd -t $(BUNDLE_TARGET)" }
-    }
-
-    Require DATABRICKS_HOST
-    Require DATABRICKS_CLIENT_ID
-    Require DATABRICKS_CLIENT_SECRET
-
-    Write-Host "##[group]Deploy/Run Info"
-    Write-Host "Target: $(BUNDLE_TARGET)"
-    Write-Host "##[endgroup]"
-
-    RunDab "deploy"
-    RunDab "run custbrief_pipeline"
-  env:
-    DATABRICKS_HOST: $(DATABRICKS_HOST)
-    DATABRICKS_CLIENT_ID: $(DATABRICKS_CLIENT_ID)
-    DATABRICKS_CLIENT_SECRET: $(DATABRICKS_CLIENT_SECRET)_CLIENT_SECRET: $(DATABRICKS_CLIENT_SECRET)
-    
+          RunDab "deploy"
+          RunDab "run custbrief_pipeline"
+      env:
+        DATABRICKS_HOST: $(DATABRICKS_HOST)
+        DATABRICKS_CLIENT_ID: $(DATABRICKS_CLIENT_ID)
+        DATABRICKS_CLIENT_SECRET: $(DATABRICKS_CLIENT_SECRET)
