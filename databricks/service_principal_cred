@@ -1,0 +1,38 @@
+from databricks import sql
+import os
+
+try:
+    # Service Principal credentials
+    DATABRICKS_HOST = os.getenv("DATABRICKS_HOST")          # https://adb-xxxx.azuredatabricks.net
+    HTTP_PATH = os.getenv("DATABRICKS_HTTP_PATH")           # /sql/1.0/warehouses/xxxx
+    AZURE_CLIENT_ID = os.getenv("AZURE_CLIENT_ID")
+    AZURE_CLIENT_SECRET = os.getenv("AZURE_CLIENT_SECRET")
+    AZURE_TENANT_ID = os.getenv("AZURE_TENANT_ID")
+
+    # Establish connection using Azure AD Service Principal (OAuth)
+    with sql.connect(
+        server_hostname=DATABRICKS_HOST.replace("https://", ""),
+        http_path=HTTP_PATH,
+        auth_type="oauth",
+        oauth_client_id=AZURE_CLIENT_ID,
+        oauth_client_secret=AZURE_CLIENT_SECRET,
+        oauth_tenant_id=AZURE_TENANT_ID,
+    ) as conn:
+
+        with conn.cursor() as cursor:
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            cols = [col[0] for col in cursor.description]
+            data = [dict(zip(cols, row)) for row in rows]
+
+    return table_name, data, None
+
+except Exception as e:
+    return table_name, None, str(e)
+
+export DATABRICKS_HOST=https://adb-xxxxxxxx.azuredatabricks.net
+export DATABRICKS_HTTP_PATH=/sql/1.0/warehouses/xxxxxxxx
+export AZURE_CLIENT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+export AZURE_CLIENT_SECRET=xxxxxxxxxxxxxxxx
+export AZURE_TENANT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+
