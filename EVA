@@ -1,0 +1,426 @@
+# EVA Agent Orchestration & Agent Registry – Design Document
+
+**Status:** Draft / Work in Progress
+**Last Updated:** *TBD*
+**Audience:** Architecture, Platform, AI Engineering, Security, DevOps
+
+---
+
+## 1. Purpose & Scope
+
+This document consolidates **all meeting notes and follow‑up clarifications** to define the **end‑to‑end design** of the EVA Agent Orchestration platform, with special focus on:
+
+* Planner‑based agent orchestration (A2A)
+* Agent Registry Microservice (ARS)
+* Runtime execution model on Databricks + Azure
+* Authorization, memory, observability, and CI/CD
+
+The goal is to establish a **clear, implementable contract** across platform, agents, UI, and infrastructure.
+
+---
+
+## 2. High‑Level Architecture Overview
+
+EVA is a **planner‑driven, serverless agent orchestration system**.
+
+### Key principles
+
+* Users authenticate via **SSO (Azure Entra ID)**
+* **Planner Agent** decides *what agent to call* and *how*
+* Sub‑agents **do not call LLMs directly** unless explicitly designed
+* Databricks is used for **job execution, UC catalogs, Delta tables, MLflow tracing**
+* Agent lifecycle is controlled via **Agent Registry Service (ARS)**
+
+---
+
+## 3. Core Components
+
+### 3.1 EVA Initiator (Entry Agent)
+
+* Entry point for all user requests (Web / Teams)
+* Handles:
+
+  * Authentication context
+  * Session + request metadata
+  * Routing to Planner Agent
+
+---
+
+### 3.2 Planner Agent (A2A)
+
+**Role:** Central decision‑maker and orchestrator.
+
+#### Responsibilities
+
+* Read *historical conversation metadata* (not full memory)
+* Determine intent and authorization
+* Select appropriate sub‑agent
+* Orchestrate execution
+* Synthesize final response
+
+#### Key constraints (from latest notes)
+
+* ❌ Planner **does not call LLMs directly**
+* ❌ Config agents should not invoke LLMs directly
+* ✅ Planner triggers **Databricks Jobs** instead of inline execution
+* ✅ Supports scaling by routing to **multiple jobs (e.g., 4 jobs)**
+* ✅ Cluster‑based execution is acceptable
+
+Planner operates as an **A2A (Agent‑to‑Agent) controller**, not a reasoning LLM endpoint.
+
+---
+
+### 3.3 Sub‑Agents
+
+Examples:
+
+* ServiceNow Agent
+* UC Catalog Agent
+* Retail / Sales / Domain agents
+
+#### Execution model
+
+* Invoked by Planner
+* Can:
+
+  * Read memory
+  * Call tools / APIs
+  * Execute Databricks jobs
+
+#### Important rule
+
+* **UC Catalog agent responds as an agent, not a chat agent**
+* It is invoked during runtime and returns structured output
+
+---
+
+## 4. Agent Registry Service (ARS)
+
+ARS is a **platform microservice** that manages the full lifecycle of agents.
+
+### 4.1 Responsibilities
+
+* Register, edit, delete agents
+* Maintain metadata and permissions
+* Support **dev / stage / prod** environments
+* Expose APIs consumed by:
+
+  * EVA Planner
+  * UI (registry front‑end)
+
+---
+
+### 4.2 Agent Registration Flow (Expanded)
+
+Additional steps clarified from notes:
+
+1. Agent metadata entry added to **Delta tables**
+2. Agent name may change at registration time
+3. Agent becomes visible in **front‑end registry UI**
+4. Pipeline runs:
+
+   * Dev
+   * Stage
+   * Prod
+5. CD only allowed via **Agent Registry Platform**
+6. Creator owns **dev / stg / prod** versions
+7. Registration order:
+
+   * Register in dev
+   * Promote/register in stage
+   * Promote/register in prod
+8. Scripts must work in **all 3 environments**
+9. APIs exposed separately for dev / stg / prod
+10. Registry UI lists:
+
+    * Agents
+    * Metadata
+    * User permissions
+    * Cards / summaries
+
+---
+
+### 4.3 Types of Agents (Clarified)
+
+Registry supports **two types of agents**:
+
+1. **Fully‑served agents**
+
+   * Exposed via endpoint
+   * Runtime callable
+
+2. **Model‑based / earlier‑version agents**
+
+   * Represent agent logic
+   * Orchestration layer supports reading in Python
+   * Platform supplies execution context
+
+---
+
+### 4.4 ARS APIs (Contract‑First)
+
+> **Important:** API contracts must remain stable. UI and agents must adapt to the contract—not vice‑versa.
+
+Core endpoints:
+
+* `POST /agents`
+* `PUT /agents/{id}`
+* `DELETE /agents/{id}` (soft delete)
+* `GET /agents?env=`
+* `POST /access-policies`
+* `GET /access-policies`
+
+API Registry exists **to keep UI decoupled** from platform logic.
+
+---
+
+## 5. Runtime Execution Model
+
+### 5.1 Databricks Execution
+
+* Agents are executed via **Databricks jobs**
+* Planner dispatches jobs instead of calling code inline
+* Supports:
+
+  * Horizontal scaling
+  * Isolation
+  * Cost control
+
+---
+
+### 5.2 Input / Output Contract
+
+Structured input between agents is **mandatory**.
+
+#### Required fields
+
+* `user_id`
+* `asset_id`
+
+If not provided:
+
+* Agent continues with limited context
+
+Planner always expects **structured responses**, not free‑form chat.
+
+---
+
+## 6. Memory Architecture
+
+### 6.1 Current State
+
+* Memory is:
+
+  * Tightly coupled
+  * Shared compute
+  * Monolithic
+
+### 6.2 Memory Types
+
+1. Conversation memory (30 min)
+2. Tier‑2 memory
+3. Tier‑3 memory
+4. Long‑term memory
+
+### 6.3 Access Rules (Critical)
+
+* ❌ Planner **cannot read memory**
+* ✅ Sub‑agents can read memory
+* Planner only:
+
+  * Stores references
+  * Writes metadata
+
+---
+
+## 7. Observability & Tracing
+
+### 7.1 MLflow Tracing
+
+* Planner‑level tracing (primary)
+* Sub‑agent runs as child spans
+* Each UC agent has its **own experiment**
+
+### 7.2 Catalog Tables
+
+Example:
+
+* `eva_a2a_orchestrator`
+
+  * Logs planner decisions
+  * Stores agent routing
+
+---
+
+## 8. Feedback Microservice
+
+* Secondary system (Q2)
+* All agents feed into it
+* Provides:
+
+  * Thumbs up / down
+  * Technical flow assessments
+* Exposed via middle‑tier APIs
+
+---
+
+## 9. Security & User Management
+
+### 9.1 Authentication
+
+* Azure Entra ID (SSO)
+
+### 9.2 Authorization (MVP)
+
+* Azure AD Groups
+* Manual invite supported
+* SCIM planned for future
+
+### 9.3 Group Management
+
+* Small groups initially
+* Manage users one‑by‑one
+
+---
+
+## 10. CI/CD & Environments
+
+### Environments
+
+* Dev
+* Stage
+* Prod
+
+### CI/CD
+
+* Azure DevOps pipelines
+* Pipelines deploy:
+
+  * Azure Function Apps (API)
+  * Static Web App (Registry UI)
+  * Databricks DDL / jobs
+
+---
+
+## 11. Interfaces
+
+### Channels
+
+* Web client
+* Microsoft Teams
+
+### UI Scope
+
+* EVA Registry front‑end (Retail AI UI)
+* No tight coupling to orchestration logic
+
+---
+
+## 12. Open Items & Future Enhancements
+
+* MCP integration (future)
+* Pub/Sub orchestration
+* SCIM automation
+* Long‑term memory refactor
+* Advanced policy engine
+
+---
+
+## 13. Design Diagrams
+
+### 13.1 High-Level Architecture
+
+```mermaid
+graph TD
+    User[User / Teams / Web] -->|SSO| EVA[EVA Initiator]
+    EVA --> Planner[Planner Agent A2A]
+
+    Planner -->|Select & Orchestrate| ARS[Agent Registry Service]
+    Planner -->|Dispatch Job| DBX[Databricks Jobs]
+
+    DBX --> Agent1[ServiceNow Agent]
+    DBX --> Agent2[UC Catalog Agent]
+    DBX --> AgentN[Other Domain Agents]
+
+    Agent1 --> Planner
+    Agent2 --> Planner
+    AgentN --> Planner
+
+    Planner --> Response[Final Synthesized Response]
+    Response --> User
+
+    Planner --> Logs[MLflow + UC Logs]
+    Planner --> Feedback[Feedback Service]
+```
+
+---
+
+### 13.2 Query Processing Sequence
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant E as EVA Initiator
+    participant P as Planner Agent
+    participant R as Agent Registry
+    participant D as Databricks Job
+    participant A as Sub-Agent
+
+    U->>E: User Query
+    E->>P: Session + Query Context
+    P->>R: Fetch Authorized Agents
+    R-->>P: Agent Metadata
+    P->>D: Dispatch Job
+    D->>A: Execute Agent Logic
+    A-->>D: Structured Result
+    D-->>P: Agent Output
+    P-->>U: Final Response
+```
+
+---
+
+### 13.3 Agent Registration Flow (Dev → Stage → Prod)
+
+```mermaid
+flowchart LR
+    Creator[Agent Creator] --> ARSDev[ARS Dev]
+    ARSDev -->|Register| DevDBX[Dev Databricks]
+
+    ARSDev -->|Promote| ARSStg[ARS Stage]
+    ARSStg --> StgDBX[Stage Databricks]
+
+    ARSStg -->|Promote| ARSProd[ARS Prod]
+    ARSProd --> ProdDBX[Prod Databricks]
+```
+
+---
+
+### 13.4 Planner vs Agent Responsibility Boundary
+
+```mermaid
+flowchart TB
+    Planner[Planner Agent]
+    Agent[Sub-Agent]
+
+    Planner -->|Select Agent| Agent
+    Planner -->|Dispatch Job| Agent
+    Planner -->|Store Memory Ref| Memory[(Memory Index)]
+
+    Agent -->|Read Memory| Memory
+    Agent -->|Execute Tools| Tools[(APIs / Systems)]
+    Agent -->|Return Structured Output| Planner
+```
+
+---
+
+## 14. Summary
+
+This document defines EVA as a **platform-grade agent orchestration system** with:
+
+* A strict **planner-as-controller** model
+* Registry-driven agent lifecycle (dev → stage → prod)
+* Databricks-first execution using jobs
+* Clear separation of control, execution, memory, and UI
+* Strong foundations for security, observability, and scale
+
+This version is considered the **final baseline design** for implementation, reviews, and roadmap alignment.
