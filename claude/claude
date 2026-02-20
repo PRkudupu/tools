@@ -1,0 +1,296 @@
+# Claude Code (CLI) — Complete Cheat Sheet (Single-Page Doc)
+
+---
+
+## 1) Basic Usage
+
+### Start Interactive Mode
+
+```bash
+claude
+```
+
+### One-Off Prompt (Non-Interactive)
+
+```bash
+claude -p "Explain what this repo does and how to run it"
+```
+
+### Specify Files Explicitly (Best Practice)
+
+```bash
+claude -p "Review and improve these files: src/app.py README.md"
+```
+
+### Use Specific Model
+
+```bash
+claude --model <model-name>
+```
+
+### Resume Previous Session (If Supported)
+
+```bash
+claude --resume
+```
+
+---
+
+## 2) Repo Understanding Prompts
+
+### Understand a Codebase Quickly
+
+```text
+Scan this repository and produce:
+1) What it does
+2) How to run locally
+3) Key modules and flow
+4) Risks or technical debt
+5) 5 quick improvement ideas
+Keep it concise and structured.
+```
+
+### Architecture Summary
+
+```text
+Summarize the architecture:
+- Entry point
+- Core services
+- Data flow
+- External dependencies
+- Risks
+Keep it technical and precise.
+```
+
+---
+
+## 3) Feature Development Prompts
+
+### Add a Feature (Safe Mode)
+
+```text
+Implement feature: <FEATURE>
+
+Constraints:
+- Minimal diff
+- Do not break existing behavior
+- No new dependencies
+- Add tests
+- Update README
+
+Show implementation plan first.
+```
+
+### Refactor Safely
+
+```text
+Refactor <MODULE> for readability and maintainability.
+
+Rules:
+- No behavior change
+- Keep public APIs stable
+- Follow existing patterns
+- Add or update tests
+Explain key decisions briefly.
+```
+
+---
+
+## 4) Debugging Prompts
+
+### Diagnose an Error
+
+```text
+I am seeing this error:
+
+<PASTE ERROR>
+
+1) Identify root cause
+2) Propose 2 possible fixes
+3) Implement safest fix
+4) Add regression test
+```
+
+### Performance Issue
+
+```text
+Investigate performance issue in <MODULE>.
+- Identify bottlenecks
+- Suggest measurable improvements
+- Avoid premature optimization
+```
+
+---
+
+## 5) Code Review Prompts
+
+### Senior Code Review
+
+```text
+Act as a senior engineer.
+
+Review:
+<FILES>
+
+Return:
+- Must fix
+- Should fix
+- Nice to have
+- Suggested code patches
+```
+
+### Security Review
+
+```text
+Threat-model this change:
+- Input validation
+- AuthN/AuthZ gaps
+- Injection risks
+- Secret exposure
+- Logging of PII
+```
+
+---
+
+## 6) Testing Prompts
+
+### Add Unit Tests
+
+```text
+Write tests for <FUNCTION/CLASS>.
+
+Include:
+- Happy path
+- Edge cases
+- Error handling
+Use existing test framework and style.
+```
+
+### Improve Type Safety
+
+```text
+Add type hints and fix lint issues in:
+<FILES>
+
+Do not change functionality.
+```
+
+---
+
+## 7) Git Workflow with Claude
+
+### Create Feature Branch
+
+```bash
+git checkout -b feat/<feature-name>
+```
+
+### Plan Before Code
+
+```bash
+claude -p "Plan implementation for <feature>. Mention files to change."
+```
+
+### Write Commit Message
+
+```bash
+claude -p "Write a conventional commit message for this diff: $(git diff)"
+```
+
+### Generate PR Description
+
+```bash
+claude -p "Create PR description with summary, changes, testing, risks, rollout."
+```
+
+---
+
+## 8) Controlling Claude (Very Important)
+
+Use these phrases to constrain output:
+
+* "Minimal diff"
+* "Do not change public APIs"
+* "No new dependencies"
+* "Follow existing repo patterns"
+* "Show plan first"
+* "If uncertain, ask before changing behavior"
+
+---
+
+## 9) File Scoping Patterns
+
+### Restrict Context
+
+```text
+Only use these files:
+- src/api/*.py
+- src/models/user.py
+
+Ignore everything else.
+```
+
+### Safe Symbol Change
+
+```text
+Search for all references of <symbol>.
+List call sites before modifying.
+```
+
+---
+
+## 10) Role Presets (Copy One Line)
+
+* You are a principal backend engineer. Optimize for maintainability.
+* You are a security reviewer. Assume hostile input.
+* You are a performance engineer. Measure before optimizing.
+* You are a tech lead. Prefer smallest safe change.
+* You are a staff engineer. Balance tradeoffs clearly.
+
+---
+
+## 11) High-Impact Best Practices
+
+1. Always ask for a plan first for non-trivial changes.
+2. Scope files explicitly to reduce hallucinations.
+3. Constrain with “minimal diff.”
+4. Review `git diff` before committing.
+5. Keep prompts structured and outcome-driven.
+6. Treat Claude like a strong junior engineer — verify critical changes.
+7. Use iterative refinement rather than large vague prompts.
+
+---
+
+## 12) Quick Daily Workflow Template
+
+```bash
+# 1. Start
+claude
+
+# 2. Ask for plan
+Plan feature X. Minimal diff. No new dependencies.
+
+# 3. Apply changes
+# Review changes
+git diff
+
+# 4. Generate commit message
+claude -p "Write commit message for this diff: $(git diff)"
+
+# 5. Generate PR description
+claude -p "Create PR description with risks and testing steps."
+```
+
+---
+
+# End of Claude Code CLI Cheat Sheet
+
+If you'd like, I can also generate:
+
+* ✅ A PDF version
+* ✅ A Word (.docx) version
+* ✅ A Markdown file
+* ✅ A Version tailored for AI/GenAI engineering workflows
+* ✅ A Databricks / Azure DevOps optimized version
+
+Just tell me the format you prefer.
