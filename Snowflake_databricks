@@ -1,0 +1,340 @@
+This is a **modern enterprise data + AI architecture** showing how data flows from legacy systems → Databricks → ML models → reporting (Power BI), with **federated access + Iceberg-based output**.
+
+Let’s break it down layer by layer 👇
+
+---
+
+# 🧱 1. Enterprise Data Platform (Left Side)
+
+## 🔹 Legacy / MAP Systems
+
+* These are **existing enterprise databases** (likely Snowflake / legacy DWs).
+* Examples in diagram:
+
+  * `OSC_FIN_PROD_EDW_DB`
+  * `ENT_INTG_PROD_ANALYTICS_DB`
+  * `CDS_INST_NAC_PROD_ANALYTICS_DB`
+
+👉 These are:
+
+* Highly structured
+* Owned by different business units
+* Not designed for ML workloads directly
+
+---
+
+## 🔹 Source Domain Layer
+
+This is where **domain-driven data ownership** comes in.
+
+There are multiple “Source Domains”:
+
+* Strategy Sales domain
+* Finance / KPI domain
+* Other domain-specific schemas
+
+👉 Key idea:
+
+* Each domain **owns its data**
+* Data is still in original systems (not duplicated yet)
+
+---
+
+## 🔹 Solution Domain Layer
+
+* This is a **curated / transformed layer**
+* Example:
+
+  * `SDM_ENVY_DIGITAL_SCORECARD_DB`
+
+👉 Purpose:
+
+* Standardize data across domains
+* Create **business-ready datasets**
+* Acts as a **bridge between raw data and AI/BI**
+
+---
+
+# 🔄 2. Data Access Pattern (Very Important)
+
+## 🔴 Federated Queries (Key Design Choice)
+
+Instead of copying all data into Databricks:
+
+* Databricks queries data **directly from source systems**
+
+👉 Benefits:
+
+* No duplication
+* Real-time / near real-time access
+* Lower storage cost
+
+👉 Trade-offs:
+
+* Latency depends on source system
+* Requires good query optimization
+
+---
+
+# ⚙️ 3. Databricks Layer (Core of Architecture)
+
+This is the **AI + Data Processing engine**
+
+## 🔹 Harmonized Dataset
+
+* Combines data from multiple domains
+* Cleans + standardizes
+
+👉 Think:
+
+* Customer 360
+* Sales unified dataset
+
+---
+
+## 🔹 Feature Engineering
+
+* Transforms raw data into ML features
+
+Examples:
+
+* Aggregations (avg spend, frequency)
+* Time-based features
+* Behavioral signals
+
+---
+
+## 🔹 MLflow Registry
+
+* Stores and manages models
+* Versioning + lifecycle
+
+👉 Enables:
+
+* Model tracking
+* Governance
+* Deployment readiness
+
+---
+
+## 🤖 Models Built
+
+### 1. Propensity Model
+
+* Predicts likelihood of:
+
+  * Purchase
+  * Churn
+  * Engagement
+
+👉 Used for:
+
+* Targeted marketing
+* Personalization
+
+---
+
+### 2. Revenue Forecast Model
+
+* Predicts future revenue trends
+
+👉 Used for:
+
+* Planning
+* Budgeting
+* Executive decisions
+
+---
+
+# 📤 4. Model Output Storage (Critical Insight)
+
+## 🔴 “MODEL OUTPUT – ICEBERG”
+
+This is very important 👇
+
+👉 Model outputs are written back as:
+
+* **Apache Iceberg tables**
+
+### Why Iceberg?
+
+* Open table format
+* ACID transactions
+* Time travel
+* Works across:
+
+  * Databricks
+  * Snowflake
+  * Other engines
+
+👉 This becomes:
+
+* **Single source of truth for predictions**
+
+---
+
+## 🔁 Where does it go?
+
+Back into:
+
+* Source/Solution domain (left side)
+
+👉 Meaning:
+
+* Predictions are treated as **first-class data assets**
+
+---
+
+# 📊 5. Reporting Layer (Right Side)
+
+## 🔹 Power BI
+
+* Consumes data from:
+
+  * Databricks (direct or via semantic layer)
+  * Iceberg tables
+
+👉 Use cases:
+
+* Dashboards
+* Executive reporting
+* KPI tracking
+
+---
+
+## 🔁 “ALL REPORTING CONSUMPTION”
+
+This arrow means:
+
+* All reporting tools depend on:
+
+  * Curated datasets
+  * Model outputs
+
+---
+
+# 🧠 End-to-End Data Flow
+
+### Step-by-step:
+
+1. Data lives in **Legacy / Snowflake systems**
+2. Databricks queries it using **Federated Queries**
+3. Data is:
+
+   * Harmonized
+   * Transformed into features
+4. ML models are trained:
+
+   * Propensity
+   * Forecasting
+5. Model outputs are written to:
+
+   * **Iceberg tables**
+6. Power BI consumes:
+
+   * Both raw + predicted data
+7. Business users see:
+
+   * Insights + predictions
+
+---
+
+# 🧩 Key Architectural Patterns
+
+## ✅ 1. Data Mesh (Domain-Based)
+
+* Source domain ownership
+* Decentralized data
+
+---
+
+## ✅ 2. Lakehouse + Federation Hybrid
+
+* Not full ingestion
+* Mix of:
+
+  * Federated access
+  * Curated datasets
+
+---
+
+## ✅ 3. ML as a Data Product
+
+* Outputs stored as tables
+* Not just APIs
+
+---
+
+## ✅ 4. Open Table Format (Iceberg)
+
+* Future-proof
+* Multi-engine compatibility
+
+---
+
+## ⚠️ Design Considerations (Important for You)
+
+Given your background (Databricks + AI), these are key:
+
+### 🔹 Performance
+
+* Federated queries → can be slow
+* Consider:
+
+  * Caching
+  * Materialized views
+  * Delta/Iceberg copies for hot data
+
+---
+
+### 🔹 Governance
+
+* Use **Unity Catalog**
+
+  * For:
+
+    * Tables
+    * Models
+    * Features
+
+---
+
+### 🔹 Serving Layer (Missing in Diagram)
+
+* No real-time inference layer shown
+  👉 You may want:
+* Model Serving endpoints (Databricks)
+* API layer
+
+---
+
+### 🔹 Data Freshness
+
+* Decide:
+
+  * Batch vs real-time scoring
+
+---
+
+# 🚀 If You Were Designing This (Upgrade Ideas)
+
+Based on your expertise, you could enhance it:
+
+* Add **Feature Store (Databricks Feature Store)**
+* Add **Model Serving (REST endpoints)**
+* Add **CI/CD (Databricks Bundles + ADO)**
+* Add **Monitoring (drift, performance)**
+
+---
+
+# 🧾 One-Line Summary
+
+👉 This architecture shows a **federated, domain-driven data platform where Databricks builds ML models and writes predictions back as Iceberg tables for enterprise-wide consumption via Power BI.**
+
+---
+
+If you want, I can:
+
+* Turn this into a **clean architecture diagram (presentation-ready)**
+* Map it to **Databricks + Snowflake + Unity Catalog implementation**
+* Or convert this into a **Jira epic + stories (you asked earlier)**
