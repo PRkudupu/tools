@@ -1,0 +1,122 @@
+ High Level Flow
+
+  ┌─────────────────────────────────────────────────────────────────┐
+  │                          Azure                                  │
+  │                                                                 │
+  │  ┌───────────────────────────────────────────────────────────┐ │
+  │  │              Azure Databricks                             │ │
+  │  │                                                           │ │
+  │  │  Serverless Notebook                                      │ │
+  │  │    └─► writes Delta + UniForm (auto Iceberg metadata)     │ │
+  │  │                                                           │ │
+  │  │  Unity Catalog                                            │ │
+  │  │    └─► manages table metadata                             │ │
+  │  │    └─► exposes Iceberg REST endpoint                      │ │
+  │  └──────────────────────────┬────────────────────────────────┘ │
+  │                             │ writes parquet + metadata         │
+  │                             ▼                                   │
+  │  ┌───────────────────────────────────────────────────────────┐ │
+  │  │  ADLS Gen2  —  adlsicebergpoc                             │ │
+  │  │  Container:    iceberg-warehouse                          │ │
+  │  │                                                           │ │
+  │  │  sales/orders/                                            │ │
+  │  │    ├── _delta_log/     ← Delta transaction log            │ │
+  │  │    ├── data/*.parquet  ← actual data (shared)             │ │
+  │  │    └── metadata/       ← Iceberg metadata (UniForm)       │ │
+  │  │          ├── *.metadata.json                              │ │
+  │  │          └── *.avro                                       │ │
+  │  └───────────────────────────────────────────────────────────┘ │
+  └──────────────────────────┬──────────────────────────────────────┘
+                             │ reads parquet via External Volume
+                             │ reads metadata via UC REST endpoint
+                             ▼
+  ┌─────────────────────────────────────────────────────────────────┐
+  │                       Snowflake                                 │
+  │                       (Azure, same region)                      │
+  │                                                                 │
+  │   External Volume        → adlsicebergpoc (ADLS)               │
+  │   Catalog Integration    → Unity Catalog REST endpoint          │
+  │   Iceberg Table          → reads parquet from ADLS              │
+  └─────────────────────────────────────────────────────────────────┘
+
+  ---
+  Component Responsibilities
+
+  ┌───────────────────────────────┬─────────────────┬──────────────────────────────────────────────┐
+  │           Component           │      Role       │                 What It Owns                 │
+  ├───────────────────────────────┼─────────────────┼──────────────────────────────────────────────┤
+  │ ADLS Gen2                     │ Storage         │ Parquet data files + metadata                │
+  ├───────────────────────────────┼─────────────────┼──────────────────────────────────────────────┤
+  │ Access Connector              │ Auth            │ Databricks → ADLS (no secrets)               │
+  ├───────────────────────────────┼─────────────────┼──────────────────────────────────────────────┤
+  │ Unity Catalog                 │ Catalog         │ Table metadata + Iceberg REST API            │
+  ├───────────────────────────────┼─────────────────┼──────────────────────────────────────────────┤
+  │ Databricks                    │ Writer          │ Writes Delta + generates Iceberg via UniForm │
+  ├───────────────────────────────┼─────────────────┼──────────────────────────────────────────────┤
+  │ Snowflake External Volume     │ Storage pointer │ Points to ADLS container                     │
+  ├───────────────────────────────┼─────────────────┼──────────────────────────────────────────────┤
+  │ Snowflake Catalog Integration │ Catalog pointer │ Points to UC REST endpoint                   │
+  ├───────────────────────────────┼─────────────────┼──────────────────────────────────────────────┤
+  │ Snowflake Iceberg Table       │ Reader          │ Queries parquet via External Volume          │
+  └───────────────────────────────┴─────────────────┴──────────────────────────────────────────────┘
+
+  ---
+  Data + Metadata Flow
+
+  WRITE (Databricks)
+  ──────────────────
+  1. Spark writes parquet files → ADLS
+  2. Delta transaction log updated → ADLS
+  3. UniForm generates Iceberg metadata → ADLS
+  4. Unity Catalog registers table metadata
+
+  READ (Snowflake)
+  ────────────────
+  1. Snowflake calls UC REST endpoint → gets latest snapshot
+  2. Snowflake reads Iceberg metadata → ADLS
+  3. Snowflake reads parquet files → ADLS
+  4. Returns query results
+
+  ---
+  Key Design Principles
+
+  ✅ One copy of data        — parquet files in ADLS, read by both engines
+  ✅ Open format             — Iceberg, not proprietary
+  ✅ No vendor lock-in       — swap Snowflake for any Iceberg engine
+  ✅ No secrets              — Access Connector (managed identity)
+  ✅ No REFRESH needed       — Snowflake reads live from UC REST
+  ✅ No Snowflake Connector  — pure Iceberg protocol
+  ✅ Serverless capable      — no cluster JAR management
+  ✅ Same region             — no cross-region egress costs
+
+  ---
+  IAM Summary
+
+  dbx-access-connector → ADLS
+    Storage Blob Data Contributor      (read/write data files)
+    Storage Account Contributor        (manage storage)
+    Storage Queue Data Contributor     (file events)
+
+  Snowflake Managed Identity → ADLS
+    Storage Blob Data Contributor      (read metadata + data)
+    Storage Blob Delegator             (user delegation keys)
+
+  dbx-access-connector → Azure Subscription
+    EventGrid EventSubscription Contributor
+
+  ---
+  What Each Engine Does
+
+  Databricks                    Snowflake
+  ──────────────────────        ──────────────────────────
+  WRITES data                   READS data
+  Owns the write path           Owns the query/analytics path
+  Uses Unity Catalog            Uses Catalog Integration
+  Delta + UniForm format        Pure Iceberg reader
+  Serverless compute            Serverless warehouse
+  No Snowflake dependency       No Databricks dependency
+
+  ---
+  One Line Summary
+
+  ▎ Databricks writes Delta+Iceberg files to ADLS via Unity Catalog. Snowflake reads the same files as Iceberg via UC REST endpoint. One dataset, two engines, zero connectors, zero data duplication.
