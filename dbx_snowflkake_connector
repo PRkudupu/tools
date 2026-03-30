@@ -1,0 +1,513 @@
+# Apache Iceberg + Azure Databricks + Snowflake POC
+## Complete Setup Guide
+
+---
+
+## Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                            Azure                                    │
+│                                                                     │
+│  ┌──────────────────────────────────────────────────────────────┐  │
+│  │                   Azure Databricks                           │  │
+│  │                                                              │  │
+│  │   Classic Cluster (with Snowflake Spark Connector JARs)      │  │
+│  │              │                                               │  │
+│  │              │ writes via Spark connector                    │  │
+│  └──────────────┼───────────────────────────────────────────────┘  │
+│                 │                                                   │
+│  ┌──────────────▼───────────────────────────────────────────────┐  │
+│  │   Access Connector (Managed Identity)                        │  │
+│  │   Storage Blob Data Contributor on ADLS                      │  │
+│  └──────────────┬───────────────────────────────────────────────┘  │
+│                 │                                                   │
+│  ┌──────────────▼───────────────────────────────────────────────┐  │
+│  │   ADLS Gen2 Storage Account                                  │  │
+│  │   Container: iceberg-warehouse                               │  │
+│  │                                                              │  │
+│  │   iceberg-warehouse/                                         │  │
+│  │     └── sales/orders/                                        │  │
+│  │           ├── data/*.parquet   ← actual data                 │  │
+│  │           └── metadata/*.json  ← Iceberg metadata            │  │
+│  └──────────────────────────────────────────────────────────────┘  │
+└──────────────────────────┬──────────────────────────────────────────┘
+                           │ reads parquet files via External Volume
+                           ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│                         Snowflake (Azure, same region)               │
+│                                                                      │
+│   External Volume  ──► points to ADLS container                     │
+│   Iceberg Table    ──► CATALOG = 'SNOWFLAKE' (manages metadata)     │
+│   Spark Connector  ──► Databricks writes through this               │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+### Key Design Decisions
+- **Snowflake manages Iceberg catalog** — metadata lives in Snowflake, data files in ADLS
+- **Access Connector** replaces Service Principal for Databricks → ADLS auth (no secrets)
+- **Classic Cluster** required — serverless does not support Maven JARs for Spark connector
+- **Snowflake Spark Connector** used for writing — simpler than Iceberg REST catalog approach
+- **Same Azure region** for Databricks, ADLS, and Snowflake — avoids cross-region egress
+
+---
+
+## Prerequisites
+
+- Azure subscription with Owner or Contributor access
+- Snowflake account on Azure (same region as Azure resources)
+- Snowflake ACCOUNTADMIN role
+
+---
+
+## Step 1: ADLS Gen2 Setup
+
+### 1.1 Create Resource Group
+```
+Portal → Resource Groups → + Create
+  Name:    iceberg-poc-rg
+  Region:  East US 2 (or your preferred region)
+```
+
+### 1.2 Create Storage Account
+```
+Portal → Storage accounts → + Create
+  Resource Group:           iceberg-poc-rg
+  Storage account name:     adlsicebergpoc
+  Region:                   East US 2
+  Performance:              Standard
+  Redundancy:               LRS
+
+Advanced tab:
+  Enable hierarchical namespace: ✅  ← CRITICAL for ADLS Gen2
+```
+
+### 1.3 Create Container
+```
+Storage account → Containers → + Container
+  Name:             iceberg-warehouse
+  Anonymous access: Private
+```
+
+---
+
+## Step 2: Create Access Connector for Databricks
+
+```
+Portal → search "Access Connector for Azure Databricks" → + Create
+  Resource Group:  iceberg-poc-rg
+  Name:            dbx-access-connector
+  Region:          East US 2
+```
+
+---
+
+## Step 3: Assign IAM Roles
+
+### Roles for Databricks (Access Connector) on Storage Account
+```
+Portal → Storage accounts → adlsicebergpoc → Access Control (IAM) → + Add role assignment
+```
+
+| Role | Scope | Why |
+|---|---|---|
+| Storage Blob Data Contributor | Storage Account | Read/write parquet files |
+| Storage Account Contributor | Storage Account | Manage storage resources |
+| Storage Queue Data Contributor | Storage Account | File event tracking |
+| EventGrid EventSubscription Contributor | **Subscription level** | Event notifications |
+
+> ⚠️ EventGrid role must be at **Subscription** level, not Resource Group level
+
+### Roles for Snowflake Managed Identity on Storage Account
+Assigned after Step 5 (External Volume creation):
+
+| Role | Scope | Why |
+|---|---|---|
+| Storage Blob Data Contributor | Storage Account | Write Iceberg metadata |
+| Storage Blob Delegator | Storage Account | Generate user delegation keys |
+
+---
+
+## Step 4: Create Azure Databricks Workspace
+
+```
+Portal → Azure Databricks → + Create
+  Resource Group:  iceberg-poc-rg
+  Workspace name:  iceberg-poc-dbx
+  Region:          East US 2
+  Pricing tier:    Premium
+```
+
+### 4.1 Setup Unity Catalog
+
+#### Create Metastore
+```
+accounts.azuredatabricks.net → Data → Create Metastore
+  Name:     iceberg-poc-metastore
+  Region:   East US 2
+  ADLS path: abfss://iceberg-warehouse@adlsicebergpoc.dfs.core.windows.net/metastore/
+  Access Connector ID:
+    /subscriptions/<SUB_ID>/resourceGroups/iceberg-poc-rg/providers/
+    Microsoft.Databricks/accessConnectors/dbx-access-connector
+```
+→ Assign metastore to workspace
+
+#### Create Storage Credential
+```
+Databricks → Catalog → External Data → Storage Credentials → + Create
+  Credential type:   Azure Managed Identity
+  Name:              adls-iceberg-credential
+  Access Connector:  /subscriptions/<SUB_ID>/resourceGroups/iceberg-poc-rg/providers/
+                     Microsoft.Databricks/accessConnectors/dbx-access-connector
+```
+
+#### Create External Location
+```
+Databricks → Catalog → External Data → External Locations → + Create
+  Name:               iceberg-warehouse-location
+  URL:                abfss://iceberg-warehouse@adlsicebergpoc.dfs.core.windows.net/
+  Storage credential: adls-iceberg-credential
+```
+
+> ℹ️ File Events validation may fail — this is OK for batch POC. Skip validation in Advanced options.
+
+### 4.2 Create Classic Cluster
+
+```
+Databricks → Compute → + Create compute
+  Name:            iceberg-writer-cluster
+  Mode:            Single Node
+  Runtime:         14.3 LTS (Spark 3.5, Scala 2.12)
+  Node type:       Standard_DS3_v2
+  Auto terminate:  30 minutes
+```
+
+#### Install Libraries
+After cluster is created → click cluster name → Libraries tab → Install new:
+
+```
+Library 1:
+  Source:      Maven
+  Coordinates: net.snowflake:spark-snowflake_2.12:2.15.0-spark_3.5
+
+Library 2:
+  Source:      Maven
+  Coordinates: net.snowflake:snowflake-jdbc:3.14.4
+```
+
+Wait for both to show **Installed** status.
+
+---
+
+## Step 5: Snowflake Setup
+
+### 5.1 Create Snowflake Account
+```
+snowflake.com → Start for Free
+  Edition:  Enterprise
+  Cloud:    Azure        ← must match Azure cloud
+  Region:   East US 2   ← must match Azure region
+```
+
+> ⚠️ Cloud provider cannot be changed after account creation. Use a new email if needed.
+
+### 5.2 Find Your Account URL
+```sql
+SELECT CURRENT_ACCOUNT_URL();
+-- Returns: https://TEHYCXV-LR03190.snowflakecomputing.com
+-- sfURL = TEHYCXV-LR03190.snowflakecomputing.com
+```
+
+### 5.3 Create External Volume
+```sql
+-- Run as ACCOUNTADMIN
+CREATE OR REPLACE EXTERNAL VOLUME iceberg_adls_vol
+  STORAGE_LOCATIONS = (
+    (
+      NAME             = 'adls-iceberg-poc'
+      STORAGE_PROVIDER = 'AZURE'
+      STORAGE_BASE_URL = 'azure://adlsicebergpoc.blob.core.windows.net/iceberg-warehouse/'
+      AZURE_TENANT_ID  = '<YOUR_TENANT_ID>'
+    )
+  );
+
+-- Get Snowflake managed identity details
+DESC EXTERNAL VOLUME iceberg_adls_vol;
+-- Copy: AZURE_MULTI_TENANT_APP_NAME and AZURE_CONSENT_URL
+```
+
+### 5.4 Grant Snowflake Access to ADLS
+
+**Step A: Accept Consent URL**
+Open `AZURE_CONSENT_URL` from DESC output in browser → sign in as Azure admin → Accept
+
+**Step B: Assign IAM Roles to Snowflake Managed Identity**
+```
+Portal → Storage accounts → adlsicebergpoc → Access Control (IAM) → + Add
+
+Role 1: Storage Blob Data Contributor
+  Member: <AZURE_MULTI_TENANT_APP_NAME>
+
+Role 2: Storage Blob Delegator
+  Member: <AZURE_MULTI_TENANT_APP_NAME>
+```
+
+> If managed identity not found by name, search by client_id from AZURE_CONSENT_URL
+
+### 5.5 Create Database, Table, User and Role
+```sql
+-- Database and schema
+CREATE DATABASE IF NOT EXISTS iceberg_poc;
+CREATE SCHEMA IF NOT EXISTS iceberg_poc.sales;
+
+-- Iceberg table (Snowflake manages metadata, data in ADLS)
+CREATE OR REPLACE ICEBERG TABLE iceberg_poc.sales.orders (
+  order_id     BIGINT,
+  customer_id  BIGINT,
+  product_sku  STRING,
+  quantity     INT,
+  unit_price   DECIMAL(10,2),
+  order_ts     TIMESTAMP,
+  region       STRING
+)
+  CATALOG         = 'SNOWFLAKE'
+  EXTERNAL_VOLUME = 'iceberg_adls_vol'
+  BASE_LOCATION   = 'sales/orders/';
+
+-- Role and permissions
+CREATE ROLE IF NOT EXISTS iceberg_writer_role;
+GRANT USAGE ON DATABASE  iceberg_poc              TO ROLE iceberg_writer_role;
+GRANT USAGE ON SCHEMA    iceberg_poc.sales        TO ROLE iceberg_writer_role;
+GRANT ALL   ON TABLE     iceberg_poc.sales.orders TO ROLE iceberg_writer_role;
+GRANT USAGE ON WAREHOUSE COMPUTE_WH               TO ROLE iceberg_writer_role;
+
+-- Databricks service user
+CREATE USER IF NOT EXISTS databricks_svc
+  PASSWORD             = 'StrongPass123!'
+  DEFAULT_ROLE         = iceberg_writer_role
+  DEFAULT_WAREHOUSE    = COMPUTE_WH
+  MUST_CHANGE_PASSWORD = FALSE;
+
+GRANT ROLE iceberg_writer_role TO USER databricks_svc;
+
+-- Verify
+SHOW ICEBERG TABLES IN SCHEMA iceberg_poc.sales;
+SELECT * FROM iceberg_poc.sales.orders;  -- should return 0 rows
+```
+
+---
+
+## Step 6: Databricks Notebook — Write Data
+
+Create a new notebook attached to `iceberg-writer-cluster` (not serverless).
+
+```python
+# CELL 1 — Snowflake connection options
+sf_options = {
+  "sfURL"       : "TEHYCXV-LR03190.snowflakecomputing.com",
+  "sfUser"      : "databricks_svc",
+  "sfPassword"  : "StrongPass123!",
+  "sfDatabase"  : "iceberg_poc",
+  "sfSchema"    : "sales",
+  "sfWarehouse" : "COMPUTE_WH",
+  "dbtable"     : "orders"
+}
+print("Options configured ✅")
+```
+
+```python
+# CELL 2 — Generate sample data
+from pyspark.sql import Row
+from datetime import datetime, timedelta
+import random
+
+rows = [
+    Row(
+        order_id    = i,
+        customer_id = random.randint(1, 200),
+        product_sku = f"SKU-{random.randint(1000,9999)}",
+        quantity    = random.randint(1, 20),
+        unit_price  = round(random.uniform(9.99, 499.99), 2),
+        order_ts    = datetime(2024,1,1) + timedelta(days=random.randint(0,89)),
+        region      = random.choice(["EMEA","AMER","APAC"])
+    )
+    for i in range(1, 1001)
+]
+
+df = spark.createDataFrame(rows)
+print(f"Created {df.count()} rows ✅")
+df.show(5)
+```
+
+```python
+# CELL 3 — Write to Snowflake Iceberg table
+df.write \
+  .format("snowflake") \
+  .options(**sf_options) \
+  .mode("append") \
+  .save()
+print("Data written to Snowflake Iceberg table ✅")
+```
+
+```python
+# CELL 4 — Verify by reading back
+df_verify = spark.read \
+  .format("snowflake") \
+  .options(**sf_options) \
+  .load()
+
+print(f"Total rows in Snowflake: {df_verify.count()}")
+df_verify.groupBy("region").count().show()
+```
+
+---
+
+## Step 7: Verify in Snowflake
+
+```sql
+-- Row count
+SELECT COUNT(*) FROM iceberg_poc.sales.orders;
+-- Expected: 1000
+
+-- Breakdown by region
+SELECT region, COUNT(*) as order_count
+FROM iceberg_poc.sales.orders
+GROUP BY region
+ORDER BY region;
+
+-- Check Iceberg metadata
+SELECT SYSTEM$GET_ICEBERG_TABLE_INFORMATION('iceberg_poc.sales.orders');
+
+-- Time travel
+SELECT * FROM iceberg_poc.sales.orders
+  AT (TIMESTAMP => DATEADD(minutes, -10, CURRENT_TIMESTAMP()));
+```
+
+### Verify Files in ADLS
+```
+Portal → Storage accounts → adlsicebergpoc → Containers → iceberg-warehouse
+
+Expected structure:
+  iceberg-warehouse/
+    └── sales/orders/
+          ├── data/
+          │   └── *.parquet   ← data written by Databricks
+          └── metadata/
+              └── *.json      ← Iceberg metadata managed by Snowflake
+```
+
+---
+
+## Troubleshooting Reference
+
+### Azure IAM Issues
+
+| Error | Cause | Fix |
+|---|---|---|
+| `AuthorizationPermissionMismatch` | Wrong role type | Use `Storage Blob Data *` roles not `Contributor` |
+| `LinkedAuthorizationFailed` | Missing Storage Account Contributor | Add role on storage account |
+| `InvalidSubscriptionId: resourceGroups` | EventGrid role at wrong scope | Assign EventGrid role at **Subscription** level |
+| `ContainerNotFound 404` | Container doesn't exist | Create `iceberg-warehouse` container in ADLS |
+| `AuthorizationFailure 403` | Missing Storage Queue role | Add `Storage Queue Data Contributor` |
+
+### Snowflake External Volume Issues
+
+| Error | Cause | Fix |
+|---|---|---|
+| `AuthorizationPermissionMismatch 403` | Missing Blob Delegator role | Add `Storage Blob Delegator` to Snowflake identity |
+| `ContainerNotFound 404` | Container missing or wrong name | Create container / check URL spelling |
+| `LinkedAuthorizationFailed` | Missing write permission | Change Reader to Contributor for Snowflake identity |
+| Managed identity not found in IAM | Consent URL not accepted | Open AZURE_CONSENT_URL in browser and Accept |
+
+### Databricks Issues
+
+| Error | Cause | Fix |
+|---|---|---|
+| Libraries tab not visible | Need to create cluster first | Create cluster then add libs from cluster detail page |
+| Serverless — no JAR support | Serverless limitation | Use classic cluster for Spark connector |
+| File Events validation failed | EventGrid permissions | Skip validation in Advanced options for POC |
+
+---
+
+## Key Concepts
+
+### Why Snowflake-Managed Iceberg?
+```
+CATALOG = 'SNOWFLAKE' means:
+  ✅ Snowflake owns the metadata (snapshots, manifests)
+  ✅ Data files (parquet) stored in your ADLS
+  ✅ No separate catalog service needed (no Polaris, no Glue)
+  ✅ Snowflake queries are instant — no refresh needed
+  ✅ Full Snowflake features: RBAC, time travel, zero-copy clone
+```
+
+### Why Access Connector over Service Principal?
+```
+Access Connector (Managed Identity):
+  ✅ No secrets to manage or rotate
+  ✅ Azure manages authentication
+  ✅ More secure — no password exposure risk
+
+Service Principal:
+  ❌ Client secret must be stored and rotated
+  ❌ Secret expiry causes outages
+  ❌ More operational overhead
+```
+
+### Why Classic Cluster over Serverless?
+```
+Classic Cluster:
+  ✅ Supports Maven JAR installation
+  ✅ Supports custom Spark configs
+  ✅ Required for Snowflake Spark Connector
+
+Serverless:
+  ✅ No cluster management
+  ✅ Instant start
+  ❌ No custom JAR installation
+  ❌ Cannot use Snowflake Spark Connector
+```
+
+### Role Summary
+
+| Identity | Resource | Roles |
+|---|---|---|
+| dbx-access-connector | ADLS Storage Account | Storage Blob Data Contributor, Storage Account Contributor, Storage Queue Data Contributor |
+| dbx-access-connector | Azure Subscription | EventGrid EventSubscription Contributor |
+| Snowflake Managed Identity | ADLS Storage Account | Storage Blob Data Contributor, Storage Blob Delegator |
+
+---
+
+## Quick Reference
+
+### Important Values
+```
+Azure:
+  Tenant ID:           dd84ad2b-2eb5-4c27-aa85-42d3f28f9bb8
+  Storage Account:     adlsicebergpoc
+  Container:           iceberg-warehouse
+  Resource Group:      iceberg-poc-rg
+  Access Connector:    dbx-access-connector
+
+Snowflake:
+  Account URL:         TEHYCXV-LR03190.snowflakecomputing.com
+  Database:            iceberg_poc
+  Schema:              sales
+  Table:               orders
+  Warehouse:           COMPUTE_WH
+  Databricks User:     databricks_svc
+  External Volume:     iceberg_adls_vol
+
+Databricks:
+  Workspace:           iceberg-poc-dbx
+  Cluster:             iceberg-writer-cluster
+  Runtime:             14.3 LTS
+  Storage Credential:  adls-iceberg-credential
+  External Location:   iceberg-warehouse-location
+```
+
+### Maven Libraries
+```
+net.snowflake:spark-snowflake_2.12:2.15.0-spark_3.5
+net.snowflake:snowflake-jdbc:3.14.4
+```
