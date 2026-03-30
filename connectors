@@ -1,0 +1,50 @@
+Snowflake Connector          Iceberg
+  ─────────────────────────    ──────────────────────────────
+  Proprietary Snowflake        Open standard format
+    protocol                     (Apache project)
+  Data goes TO Snowflake       Data stays in YOUR storage
+    internal storage             (ADLS, S3, GCS)
+  Snowflake owns everything    You own the data files
+
+  ---
+  Side by Side Comparison
+
+  ┌────────────────────────┬────────────────────────────┬────────────────────────────────────────────┐
+  │                        │    Snowflake Connector     │                  Iceberg                   │
+  ├────────────────────────┼────────────────────────────┼────────────────────────────────────────────┤
+  │ Data location          │ Snowflake internal storage │ Your ADLS Gen2                             │
+  ├────────────────────────┼────────────────────────────┼────────────────────────────────────────────┤
+  │ Format                 │ Snowflake proprietary      │ Open Parquet files                         │
+  ├────────────────────────┼────────────────────────────┼────────────────────────────────────────────┤
+  │ Vendor lock-in         │ High — tied to Snowflake   │ Low — any engine can read                  │
+  ├────────────────────────┼────────────────────────────┼────────────────────────────────────────────┤
+  │ Who reads it           │ Only Snowflake             │ Databricks, Spark, Flink, Trino, Snowflake │
+  ├────────────────────────┼────────────────────────────┼────────────────────────────────────────────┤
+  │ Setup complexity       │ Simple                     │ More steps                                 │
+  ├────────────────────────┼────────────────────────────┼────────────────────────────────────────────┤
+  │ Performance            │ Optimized for Snowflake    │ Depends on file layout                     │
+  ├────────────────────────┼────────────────────────────┼────────────────────────────────────────────┤
+  │ Cost                   │ Pay Snowflake storage      │ Pay Azure storage (cheaper)                │
+  ├────────────────────────┼────────────────────────────┼────────────────────────────────────────────┤
+  │ Time travel            │ Snowflake manages          │ Iceberg manages natively                   │
+  ├────────────────────────┼────────────────────────────┼────────────────────────────────────────────┤
+  │ Schema evolution       │ Snowflake handles          │ Iceberg handles                            │
+  ├────────────────────────┼────────────────────────────┼────────────────────────────────────────────┤
+  │ Writes from Databricks │ Via JDBC/Spark connector   │ Via Iceberg catalog                        │
+  └────────────────────────┴────────────────────────────┴────────────────────────────────────────────┘
+
+  ---
+  Data Flow Comparison
+
+  Snowflake Connector:
+  Databricks
+    └─► Snowflake Connector (JDBC)
+          └─► Snowflake Internal Storage  ← data locked here
+                └─► Only Snowflake can query
+
+  Iceberg:
+  Databricks
+    └─► Writes Parquet to ADLS  ← YOU own this data
+          └─► Iceberg metadata (catalog)
+                ├─► Snowflake can query ✅
+                ├─► Databricks can query ✅
