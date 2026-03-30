@@ -1,0 +1,43 @@
+🚨 5. Open Questions / Gaps (Red Box)
+
+These are key architectural decisions still pending:
+
+🔴 1. Security & Connectivity
+
+Need approval for:
+
+Private endpoints
+
+Storage access
+
+UC permissions
+
+🔴 2. Taxonomy Design
+
+Naming + structure standardization
+
+Example:
+
+Do we use:
+
+project_schema
+
+OR centralized silver_data_science?
+
+🔴 3. Iceberg Strategy
+
+Should ALL tables be:
+
+Native Iceberg in Databricks?
+
+Or selective publishing?
+
+🔴 4. Publishing Model
+
+How data moves to Snowflake:
+
+Batch schedule?
+
+Event-driven?
+
+CI/CD pipeline?
