@@ -1,0 +1,44 @@
+1. Frontend — Azure Static Web Apps ✅
+Approved, and rightly so. One thing to plan for: make sure your build pipeline (ADO, per point 6) handles environment-specific config injection — API endpoints, Entra tenant ID — at build time rather than baking them into the bundle.
+
+2. Data copy frequency — Daily with Table Storage ✅, but with nuance
+Thijs is right that Table Storage is a solid bet, but "immutable" is the key word — design your Databricks job to write new partition keys per run rather than overwriting. For incremental data, use a RunDate partition key so old snapshots are preserved. JSON blobs in Blob Storage will hit size and query limitations fast; Table Storage gives you row-level queries without spinning up a query engine.
+One thing to add: build in a data freshness indicator on the frontend. Daily data staleness should be surfaced to users so they know if the KPIs are from yesterday vs. today.
+
+3. Proxy layer — this is the most important architectural change
+Thijs's response reveals a critical constraint you may not have fully accounted for: VNet encapsulation means you cannot directly reach Databricks from Azure-hosted services. The API Management / direct proxy approach you originally proposed won't work as written.
+The correct pattern Thijs recommends is a pub/sub via Azure Service Bus:
+
+The Static Web App backend sends queries to Service Bus
+A continuous Databricks job consumes messages from the Service Bus
+Databricks processes the query and sends results back (to another Service Bus topic or storage)
+The web app backend polls or subscribes for the response
+
+The Function App still plays a role, but for outbound integration only — not as a synchronous gateway. This is a more complex pattern to implement (you'll need to handle response correlation IDs, timeouts, and UX for async responses), but it's the right call given the VNet constraint.
+Also worth noting: Thijs mentions EvA orchestrator is coming soon and will follow the same pattern with subagents — so design your Service Bus topics with that expansion in mind.
+
+4. Voice — keep it browser-based ✅, but align on TTS
+Browser-based is faster and avoids server-side audio streaming complexity. Thijs specifically asks about your STT implementation — worth clarifying internally, as it may influence whether you adopt the official EvA Voice. The linked repo (ecolab.visualstudio.com/LLM-Capability-Build_office/_git/Voice.EvA) should be your reference. Using the internal Ecolab voice keeps you aligned with the broader EvA platform strategy rather than building a one-off implementation.
+
+5. Azure AD authentication ✅
+Solid approach. Practical next steps: register your app in the Entra portal using tenant c1eb5112-7946-4c9d-bc57-40040cfe3a91, configure the correct redirect URIs for both local dev and production Static Web App URLs, and use MSAL.js on the frontend. Decide early whether you want user-level tokens passed to the backend (for per-user audit logging) or app-level managed identity for service-to-service calls to Service Bus and Storage.
+
+6. CI/CD — ADO pipelines + IaC ✅
+ADO is confirmed. For IaC, Thijs offers Terraform/OpenTofu or Bicep — my recommendation: Bicep if your team is Azure-only and wants simplicity; Terraform/OpenTofu if you want portability or already have Terraform expertise. Bicep has better Azure type-safety and first-class ARM integration. Either way, define separate environments (dev, test, prod) from day one and use variable groups in ADO for secrets rather than hard-coding them.
+
+Overall assessment: Your original plan was directionally right, but the pub/sub pattern for Databricks communication is the significant architectural pivot to internalize. The rest of the stack is well-chosen for the Ecolab Azure context.create desing document and next steps for the same5:52 PMRan 6 commands, viewed a file, created a fileRan 6 commands, viewed a file, created a fileThe design document is ready. Here's what's included across 7 sections:
+Document structure:
+
+Executive Summary — key decisions table with approval status for each item
+Architecture Overview — full component summary table (all 9 Azure services mapped to purpose)
+Component Deep Dives — detailed write-ups for each of the 6 architectural areas (Frontend, KPI pipeline, Service Bus, Voice, Auth, CI/CD) with design considerations per section
+Security & Compliance — Managed Identity, monitoring, soft-delete, TLS, App Registration scoping
+Open Questions & Risks — 6 tracked items with owner and priority
+Phased Delivery Plan — 4 phases across ~8 weeks with numbered tasks, owners, and dependencies per phase
+Appendix — reference identifiers (Entra tenant ID, EvA Voice repo URL), and a full glossary
+
+The document is formatted with Ecolab-appropriate blue branding, header/footer on every page, alternating row shading on all tables, and highlighted info/action/critical callout boxes for key architectural notes from Thijs's review.Eva azure migration design documentDocument · DOCX Open in WordFrontend — Azure Static Web Apps ✅ Approved, and rightly so. One thing to plan for: make sure your build pipeline (ADO, per point 6) handles environment-specific config injection — API endpoints, Entra tenant ID — at build time rather than baking them into the bundle.Data copy frequency — Daily with Table Storage ✅, but with nuance Thijs is right that Table Storage is a solid bet, but "immutable" is the key word — design your Databricks job to write new partition keys per run rather than overwriting. For incremental data, use a RunDate partition key so old snapshots are preserved. JSON blobs in Blob Storage will hit size and query limitations fast; Table Storage gives you row-level queries without spinning up a query engine.
+One thing to add: build in a data freshness indicator on the frontend. Daily data staleness should be surfaced to users so they know if the KPIs are from yesterday vs. today.Proxy layer — this is the most important architectural change Thijs's response reveals a critical constraint you may not have fully accounted for: VNet encapsulation means you cannot directly reach Databricks from Azure-hosted services. The API Management / direct proxy approach you originally proposed won't work as written.
+The correct pattern Thijs recommends is a pub/sub via Azure Service Bus:The Static Web App backend sends queries to Service BusA continuous Databricks job consumes messages from the Service BusDatabricks processes the query and sends results back (to another Service Bus topic or storage)The web app backend polls or subscribes for the response
+The Function App still plays a role, but for outbound integration only — not as a synchronous gateway. This is a more complex pattern to implement (you'll need to handle response correlation IDs, timeouts, and UX for async responses), but it's the right call given the VNet constraint.
+Also worth noting: Thijs mentions EvA orchestrator is coming soon and will follow the same pattern with subagents — so design your Service Bus topics with that expansion in mind.Voice — keep it browser-based ✅, but align on TTS Browser-based is faster and avoids server-side audio streaming complexity. Thijs specifically asks about your STT implementation — worth clarifying internally, as it may influence whether you adopt the official EvA Voice. The linked repo (ecolab.visualstudio.com/LLM-Capability-Build_office/_git/Voice.EvA) should be your reference. Using the internal Ecolab voice keeps you aligned with the broader EvA platform strategy rather than building a one-off implementation.Azure AD authentication ✅ Solid approach. Practical next steps: register your app in the Entra portal using tenant c1eb5112-7946-4c9d-bc57-40040cfe3a91, configure the correct redirect URIs for both local dev and production Static Web App URLs, and use MSAL.js on the frontend. Decide early whether you want user-level tokens passed to the backend (for per-user audit logging) or app-level managed identity for service-to-service calls to Service Bus and Storage.CI/CD — ADO pipelines + IaC ✅ ADO is confirmed. For IaC, Thijs offers Terraform/OpenTofu or Bicep — my recommendation: Bicep if your team is Azure-only and wants simplicity; Terraform/OpenTofu if you want portability or already have Terraform expertise. Bicep has better Azure type-safety and first-class ARM integration. Either way, define separate environments (dev, test, prod) from day one and use variable groups in ADO for secrets rather than hard-coding them. make it better and detailedShow more3:46 AMWorkingWorkingRead the docx skill for best practicesGenerate a comprehensive, detailed design document with all 6 points expandedgen_detailed_doc.jsGenScript
