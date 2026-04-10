@@ -1,0 +1,33 @@
+import requests
+
+access_token = "paste-your-access-token-here"
+
+url = "https://adb-1355704782079007.7.azuredatabricks.net/serving-endpoints/cust_brief__dev/invocations"
+
+payload = {
+    "dataframe_split": {
+        "columns": ["site_id", "sf_feed", "analytic_data", "messages"],
+        "data": [
+            [
+                8391413,
+                "",
+                "",
+                [
+                    {
+                        "role": "user",
+                        "content": "site id=8391413"
+                    }
+                ]
+            ]
+        ]
+    }
+}
+
+headers = {
+    "Authorization": f"Bearer {access_token}",
+    "Content-Type": "application/json",
+}
+
+response = requests.post(url, json=payload, headers=headers, timeout=120)
+print(response.status_code)
+print(response.text)
