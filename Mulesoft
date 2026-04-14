@@ -1,0 +1,103 @@
+This diagram shows the **OAuth 2.0 Client Credentials Flow**, typically used for **machine-to-machine (M2M)** authentication (no user involved).
+
+Let’s break it down step by step 👇
+
+---
+
+## 🔐 Key Components
+
+* **App Registration (Azure AD / Entra ID)** → Where you create a Service Principal (Client ID + Secret)
+* **Client** → Your application (e.g., backend service, Databricks job, API)
+* **Authorization Server** → Issues access tokens (Azure AD, Okta, etc.)
+* **Resource/API (MuleSoft here)** → The API you want to call
+
+---
+
+## 🔄 Flow Explanation
+
+### **1️⃣ Client sends credentials**
+
+* Your app (Client) uses:
+
+  * **Client ID**
+  * **Client Secret**
+* It sends a request to the **Authorization Server**
+* This is called **Client Credentials Grant**
+
+👉 Example:
+
+```bash
+POST /token
+grant_type=client_credentials
+client_id=xxx
+client_secret=yyy
+scope=api://resource/.default
+```
+
+---
+
+### **2️⃣ Authorization Server returns access token**
+
+* If credentials are valid, it returns:
+
+  * **Access Token (JWT)**
+* This token represents your app’s identity
+
+👉 No user login here — purely app-to-app auth
+
+---
+
+### **3️⃣ Client calls API with token**
+
+* Your app calls the target API (e.g., MuleSoft)
+* Sends token in header:
+
+```http
+Authorization: Bearer <access_token>
+```
+
+* API validates the token and allows access
+
+---
+
+## 🧠 Simple Analogy
+
+Think of it like:
+
+* App = Employee
+* Client ID/Secret = ID card
+* Authorization Server = Security desk
+* Token = Temporary access badge
+* API = Restricted office
+
+👉 Show ID → Get badge → Enter office
+
+---
+
+## 💡 When to Use This
+
+Use this flow when:
+
+* No user interaction is needed
+* Backend services talk to each other
+* Examples:
+
+  * Databricks → API
+  * Azure Function → MuleSoft
+  * CI/CD pipelines → APIs
+
+---
+
+## ⚠️ Important Notes
+
+* Keep **client secret secure**
+* Use **short-lived tokens**
+* Prefer **managed identity** (in Azure) when possible (more secure than secrets)
+
+---
+
+If you want, I can:
+
+* Show **Postman setup**
+* Give **Python code**
+* Map this to **Databricks + Azure setup** (very relevant for your use case)
