@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+
+    <!-- ═══════════════════════════════════════
+         TITLE
+         ═══════════════════════════════════════ -->
+    <mxCell id="title" value="Frontend Real-Time Architecture — Chat &amp; Reports" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;fontColor=#1a1a1a;" vertex="1" parent="1">
+      <mxGeometry x="300" y="30" width="700" height="40" as="geometry" />
+    </mxCell>
+    <mxCell id="subtitle" value="Azure AD · API/BFF · Service Bus · Web PubSub · Databricks Iceberg" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontColor=#666666;" vertex="1" parent="1">
+      <mxGeometry x="300" y="68" width="700" height="24" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════
+         ZONE: IDENTITY
+         ═══════════════════════════════════════ -->
+    <mxCell id="zone-identity" value="Identity" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];shape=mxgraph.lean_mapping.electronic_info_flow_edge;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#9E9E9E;strokeWidth=1;dashed=1;dashPattern=8 4;verticalAlign=top;fontSize=11;fontColor=#9E9E9E;labelPosition=left;align=right;" vertex="1" parent="1">
+      <mxGeometry x="490" y="110" width="300" height="100" as="geometry" />
+    </mxCell>
+    <mxCell id="zone-identity2" value="Identity" style="swimlane;startSize=24;fillColor=none;strokeColor=#9E9E9E;strokeWidth=1;dashed=1;dashPattern=8 4;fontColor=#9E9E9E;fontSize=11;rounded=1;arcSize=4;" vertex="1" parent="1">
+      <mxGeometry x="490" y="110" width="300" height="100" as="geometry" />
+    </mxCell>
+
+    <!-- Azure AD -->
+    <mxCell id="azure-ad" value="&lt;b&gt;Azure AD&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px;color:#534AB7'&gt;OAuth2 · issues JWT tokens&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EEEDFE;strokeColor=#534AB7;strokeWidth=1;fontSize=12;fontColor=#3C3489;arcSize=6;" vertex="1" parent="1">
+      <mxGeometry x="555" y="140" width="170" height="54" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════
+         ZONE: BROWSER
+         ═══════════════════════════════════════ -->
+    <mxCell id="zone-browser" value="Browser / SPA" style="swimlane;startSize=24;fillColor=none;strokeColor=#9E9E9E;strokeWidth=1;dashed=1;dashPattern=8 4;fontColor=#9E9E9E;fontSize=11;rounded=1;arcSize=4;" vertex="1" parent="1">
+      <mxGeometry x="60" y="280" width="200" height="110" as="geometry" />
+    </mxCell>
+
+    <!-- Browser node -->
+    <mxCell id="browser" value="&lt;b&gt;Browser&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px;color:#0F6E56'&gt;Chat · report requests&lt;/span&gt;&lt;br&gt;&lt;span style='font-size:10px;color:#0F6E56'&gt;Streams events · renders tables&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1F5EE;strokeColor=#1D9E75;strokeWidth=1;fontSize=12;fontColor=#085041;arcSize=6;" vertex="1" parent="1">
+      <mxGeometry x="76" y="306" width="168" height="68" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════
+         ZONE: API / BFF
+         ═══════════════════════════════════════ -->
+    <mxCell id="zone-bff" value="API / BFF" style="swimlane;startSize=24;fillColor=none;strokeColor=#9E9E9E;strokeWidth=1;dashed=1;dashPattern=8 4;fontColor=#9E9E9E;fontSize=11;rounded=1;arcSize=4;" vertex="1" parent="1">
+      <mxGeometry x="490" y="280" width="300" height="110" as="geometry" />
+    </mxCell>
+
+    <!-- API/BFF node -->
+    <mxCell id="apibff" value="&lt;b&gt;API / BFF&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px;color:#185FA5'&gt;Validates JWT · routes requests&lt;/span&gt;&lt;br&gt;&lt;span style='font-size:10px;color:#185FA5'&gt;Holds Service Principal creds&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6F1FB;strokeColor=#378ADD;strokeWidth=1;fontSize=12;fontColor=#0C447C;arcSize=6;" vertex="1" parent="1">
+      <mxGeometry x="506" y="306" width="268" height="68" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════
+         ZONE: CHAT PATH
+         ═══════════════════════════════════════ -->
+    <mxCell id="zone-chat" value="Chat path (real-time)" style="swimlane;startSize=24;fillColor=none;strokeColor=#9E9E9E;strokeWidth=1;dashed=1;dashPattern=8 4;fontColor=#9E9E9E;fontSize=11;rounded=1;arcSize=4;" vertex="1" parent="1">
+      <mxGeometry x="860" y="280" width="240" height="310" as="geometry" />
+    </mxCell>
+
+    <!-- Web PubSub -->
+    <mxCell id="pubsub" value="&lt;b&gt;Web PubSub&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px;color:#993C1D'&gt;WebSocket · context-{id} groups&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAECE7;strokeColor=#D85A30;strokeWidth=1;fontSize=12;fontColor=#712B13;arcSize=6;" vertex="1" parent="1">
+      <mxGeometry x="876" y="306" width="208" height="54" as="geometry" />
+    </mxCell>
+
+    <!-- Service Bus -->
+    <mxCell id="servicebus" value="&lt;b&gt;Service Bus&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px;color:#854F0B'&gt;Durable async task queue&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAEEDA;strokeColor=#BA7517;strokeWidth=1;fontSize=12;fontColor=#633806;arcSize=6;" vertex="1" parent="1">
+      <mxGeometry x="876" y="390" width="208" height="54" as="geometry" />
+    </mxCell>
+
+    <!-- Worker -->
+    <mxCell id="worker" value="&lt;b&gt;Worker / Agent&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px;color:#3B6D11'&gt;LLM logic · publishes events&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAF3DE;strokeColor=#639922;strokeWidth=1;fontSize=12;fontColor=#27500A;arcSize=6;" vertex="1" parent="1">
+      <mxGeometry x="876" y="474" width="208" height="54" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════
+         ZONE: REPORT PATH — SNOWFLAKE
+         ═══════════════════════════════════════ -->
+    <mxCell id="zone-snowflake" value="Snowflake (report path — synchronous)" style="swimlane;startSize=24;fillColor=none;strokeColor=#9E9E9E;strokeWidth=1;dashed=1;dashPattern=8 4;fontColor=#9E9E9E;fontSize=11;rounded=1;arcSize=4;" vertex="1" parent="1">
+      <mxGeometry x="300" y="640" width="640" height="230" as="geometry" />
+    </mxCell>
+
+    <!-- Snowflake Warehouse -->
+    <mxCell id="sql-warehouse" value="&lt;b&gt;Snowflake warehouse&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px;color:#185FA5'&gt;Executes report queries&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6F1FB;strokeColor=#378ADD;strokeWidth=1;fontSize=12;fontColor=#0C447C;arcSize=6;" vertex="1" parent="1">
+      <mxGeometry x="316" y="676" width="190" height="54" as="geometry" />
+    </mxCell>
+
+    <!-- Iceberg Tables (in Snowflake) -->
+    <mxCell id="iceberg" value="&lt;b&gt;Iceberg tables&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px;color:#5F5E5A'&gt;External · object storage&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F1EFE8;strokeColor=#888780;strokeWidth=1;fontSize=12;fontColor=#444441;arcSize=6;" vertex="1" parent="1">
+      <mxGeometry x="574" y="676" width="190" height="54" as="geometry" />
+    </mxCell>
+
+    <!-- Snowflake Access Control -->
+    <mxCell id="unity-catalog" value="&lt;b&gt;Snowflake RBAC&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px;color:#5F5E5A'&gt;Role-based access control&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F1EFE8;strokeColor=#888780;strokeWidth=1;fontSize=12;fontColor=#444441;arcSize=6;" vertex="1" parent="1">
+      <mxGeometry x="434" y="796" width="212" height="54" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════
+         ARROWS — AUTH FLOW
+         ═══════════════════════════════════════ -->
+
+    <!-- Browser → Azure AD (authenticate) -->
+    <mxCell id="e-browser-aad" value="1. authenticate" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9E9E9E;strokeWidth=1;fontSize=10;fontColor=#666666;" edge="1" source="browser" target="azure-ad" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Azure AD → Browser (JWT) -->
+    <mxCell id="e-aad-browser" value="JWT" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.3;entryDx=0;entryDy=0;strokeColor=#9E9E9E;strokeWidth=1;fontSize=10;fontColor=#666666;dashed=1;dashPattern=6 3;" edge="1" source="azure-ad" target="browser" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Browser → API/BFF (send JWT) -->
+    <mxCell id="e-browser-bff" value="2. send JWT" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9E9E9E;strokeWidth=1;fontSize=10;fontColor=#666666;" edge="1" source="browser" target="apibff" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- API/BFF → Azure AD (validate) -->
+    <mxCell id="e-bff-aad" value="3. validate token" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeColor=#9E9E9E;strokeWidth=1;fontSize=10;fontColor=#666666;" edge="1" source="apibff" target="azure-ad" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════
+         ARROWS — CHAT PATH
+         ═══════════════════════════════════════ -->
+
+    <!-- API/BFF → PubSub (negotiate) -->
+    <mxCell id="e-bff-pubsub" value="4. negotiate token" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#D85A30;strokeWidth=1;fontSize=10;fontColor=#993C1D;" edge="1" source="apibff" target="pubsub" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- API/BFF → Service Bus (TaskMessage) -->
+    <mxCell id="e-bff-sb" value="5. POST TaskMessage" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#BA7517;strokeWidth=1;fontSize=10;fontColor=#854F0B;" edge="1" source="apibff" target="servicebus" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Service Bus → Worker -->
+    <mxCell id="e-sb-worker" value="6. deliver task" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#639922;strokeWidth=1;fontSize=10;fontColor=#3B6D11;" edge="1" source="servicebus" target="worker" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Worker → PubSub (publish events) -->
+    <mxCell id="e-worker-pubsub" value="7. publish events" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeColor=#D85A30;strokeWidth=1;fontSize=10;fontColor=#993C1D;dashed=1;dashPattern=6 3;" edge="1" source="worker" target="pubsub" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="980" y="540" />
+          <mxPoint x="1100" y="540" />
+          <mxPoint x="1100" y="333" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- Browser → PubSub (WebSocket / stream) -->
+    <mxCell id="e-browser-pubsub" value="8. WebSocket · join group · receive stream" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=1;entryDx=0;entryDy=0;strokeColor=#1D9E75;strokeWidth=2;fontSize=10;fontColor=#0F6E56;" edge="1" source="browser" target="pubsub" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="160" y="620" />
+          <mxPoint x="980" y="620" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════
+         ARROWS — REPORT PATH
+         ═══════════════════════════════════════ -->
+
+    <!-- API/BFF → SQL Warehouse (SQL query) -->
+    <mxCell id="e-bff-sql" value="A. SQL query" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.3;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#378ADD;strokeWidth=2;fontSize=10;fontColor=#185FA5;dashed=1;dashPattern=8 4;" edge="1" source="apibff" target="sql-warehouse" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- SQL Warehouse → API/BFF (results) -->
+    <mxCell id="e-sql-bff" value="B. results" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.7;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeColor=#378ADD;strokeWidth=2;fontSize=10;fontColor=#185FA5;" edge="1" source="sql-warehouse" target="apibff" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- SQL Warehouse → Iceberg -->
+    <mxCell id="e-sql-iceberg" value="reads" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#888780;strokeWidth=1;fontSize=10;fontColor=#5F5E5A;" edge="1" source="sql-warehouse" target="iceberg" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- SQL Warehouse → Unity Catalog -->
+    <mxCell id="e-sql-unity" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#888780;strokeWidth=1;dashed=1;dashPattern=4 3;" edge="1" source="sql-warehouse" target="unity-catalog" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Iceberg → Unity Catalog -->
+    <mxCell id="e-iceberg-unity" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#888780;strokeWidth=1;dashed=1;dashPattern=4 3;" edge="1" source="iceberg" target="unity-catalog" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- API/BFF → Browser (report data) -->
+    <mxCell id="e-bff-browser" value="C. report data" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0;exitY=0.7;exitDx=0;exitDy=0;entryX=1;entryY=0.7;entryDx=0;entryDy=0;strokeColor=#9E9E9E;strokeWidth=1;fontSize=10;fontColor=#666666;dashed=1;dashPattern=6 3;" edge="1" source="apibff" target="browser" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════
+         LEGEND
+         ═══════════════════════════════════════ -->
+    <mxCell id="legend-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#CCCCCC;strokeWidth=1;arcSize=4;" vertex="1" parent="1">
+      <mxGeometry x="60" y="660" width="200" height="190" as="geometry" />
+    </mxCell>
+    <mxCell id="legend-title" value="Legend" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1;fontColor=#444444;" vertex="1" parent="1">
+      <mxGeometry x="76" y="670" width="80" height="20" as="geometry" />
+    </mxCell>
+
+    <mxCell id="leg1-line" value="" style="edgeStyle=none;html=1;strokeColor=#1D9E75;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1">
+      <mxGeometry x="76" y="700" width="40" height="10" as="geometry"><Array as="points"/></mxGeometry>
+    </mxCell>
+    <mxCell id="leg1-label" value="WebSocket / real-time stream" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;fontColor=#444444;" vertex="1" parent="1">
+      <mxGeometry x="126" y="694" width="124" height="20" as="geometry" />
+    </mxCell>
+
+    <mxCell id="leg2-line" value="" style="edgeStyle=none;html=1;strokeColor=#D85A30;strokeWidth=1;dashed=1;dashPattern=6 3;" edge="1" parent="1">
+      <mxGeometry x="76" y="726" width="40" height="10" as="geometry"><Array as="points"/></mxGeometry>
+    </mxCell>
+    <mxCell id="leg2-label" value="PubSub publish (worker→browser)" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;fontColor=#444444;" vertex="1" parent="1">
+      <mxGeometry x="126" y="720" width="124" height="20" as="geometry" />
+    </mxCell>
+
+    <mxCell id="leg3-line" value="" style="edgeStyle=none;html=1;strokeColor=#378ADD;strokeWidth=2;dashed=1;dashPattern=8 4;" edge="1" parent="1">
+      <mxGeometry x="76" y="752" width="40" height="10" as="geometry"><Array as="points"/></mxGeometry>
+    </mxCell>
+    <mxCell id="leg3-label" value="Synchronous report query" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;fontColor=#444444;" vertex="1" parent="1">
+      <mxGeometry x="126" y="746" width="124" height="20" as="geometry" />
+    </mxCell>
+
+    <mxCell id="leg4-line" value="" style="edgeStyle=none;html=1;strokeColor=#9E9E9E;strokeWidth=1;" edge="1" parent="1">
+      <mxGeometry x="76" y="778" width="40" height="10" as="geometry"><Array as="points"/></mxGeometry>
+    </mxCell>
+    <mxCell id="leg4-label" value="HTTP / control plane" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;fontColor=#444444;" vertex="1" parent="1">
+      <mxGeometry x="126" y="772" width="124" height="20" as="geometry" />
+    </mxCell>
+
+    <mxCell id="leg5-line" value="" style="edgeStyle=none;html=1;strokeColor=#888780;strokeWidth=1;dashed=1;dashPattern=4 3;" edge="1" parent="1">
+      <mxGeometry x="76" y="804" width="40" height="10" as="geometry"><Array as="points"/></mxGeometry>
+    </mxCell>
+    <mxCell id="leg5-label" value="Databricks internal (catalog)" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;fontColor=#444444;" vertex="1" parent="1">
+      <mxGeometry x="126" y="798" width="124" height="20" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════
+         DESIGN NOTES CALLOUT
+         ═══════════════════════════════════════ -->
+    <mxCell id="notes-box" value="&lt;b&gt;Key design decisions&lt;/b&gt;&lt;br&gt;&lt;br&gt;• BFF holds all Service Principal credentials&lt;br&gt;• Subscribe to PubSub BEFORE posting chat task&lt;br&gt;• PubSub group = context-{context_id} (per conversation)&lt;br&gt;• Report path is synchronous — no queue, no streaming&lt;br&gt;• Snowflake RBAC enforces access control on Iceberg tables" style="text;html=1;strokeColor=#CCCCCC;fillColor=#FAFAFA;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;arcSize=4;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
+      <mxGeometry x="60" y="870" width="360" height="120" as="geometry" />
+    </mxCell>
+
+  </root>
+</mxGraphModel>
