@@ -1,0 +1,62 @@
+Session management
+claude
+Start interactive session in current directory
+claude "query"
+Open session with an initial prompt pre-loaded
+claude -c
+Continue most recent conversation in current dir
+claude -r "name" "q"
+Resume a named session by ID or name
+claude --fork-session
+Resume but create a new session ID (safe branch)
+claude --from-pr 123
+Resume sessions linked to a specific pull request
+Non-interactive / piped (great for CI)
+claude -p "query"
+SDK/print mode — runs query then exits
+cat file | claude -p "q"
+Pipe file content directly into a prompt
+claude --bare -p "q"
+Skip hooks/MCP/CLAUDE.md — fastest for scripts
+--max-turns 5
+Cap agentic turns (safety for automated runs)
+--max-budget-usd 2.00
+Hard cost cap for print mode calls
+--output-format json
+Machine-readable output for pipelines
+Model & effort control
+--model sonnet
+Use latest Sonnet (alias). Also: opus, claude-sonnet-4-6
+--effort high
+Set thinking depth: low | medium | high | xhigh | max
+--fallback-model sonnet
+Auto-fallback when primary model is overloaded
+Permissions & safety
+--allowedTools
+Pre-approve tools (e.g. "Bash(git log *)" "Read")
+--disallowedTools
+Block tools from the model's context entirely
+--permission-mode plan
+Read-only mode — plan only, no writes
+--dangerously-skip-permissions
+Bypass all permission prompts (CI only, use carefully)
+MCP & extensions
+claude mcp
+Configure MCP servers interactively
+--mcp-config ./mcp.json
+Load MCP server config from a JSON file
+claude plugin install <name>
+Install a plugin from the marketplace
+claude agents
+List all configured sub-agents
+--add-dir ../lib ../apps
+Grant file access to additional directories 
+
+Six tabs covering everything you'll actually reach for as an AI architect. Here's how to get the most from it:
+CLI Commands — the full command reference with flags organized by use case (sessions, piped/CI, model control, permissions, MCP).
+Slash Commands — what you type inside an active session, including the Shift+Tab permission mode cycle which is gold for switching between planning-only and autonomous runs.
+Architect Prompts — reusable prompt templates for architecture review, Terraform generation, debug analysis, documentation, and security scanning. These are structured to give Claude the context it needs upfront.
+IaC / Terraform — prompts tailored for your Databricks/Azure work, including isolated DEV workspaces (matching your Unity Catalog isolation challenge), Service Bus pub/sub topology for EvA-style backends, and piping terraform plan output directly to Claude in CI.
+Config & Hooks — the CLAUDE.md template I'd recommend for your project repos, plus the .claude/settings.json hook patterns for auto-linting after writes and secret-scanning before bash runs.
+Shortcuts — keyboard shortcuts plus power one-liners: piping git diff --staged for commit messages, gh pr diff for PR review, and log-to-runbook for incident postmortems.
+The Terraform pipe pattern (last tab) pairs especially well with your Azure DevOps pipelines — you can drop that terraform show -json | claude -p step right into a pipeline stage as a plan review gate.
