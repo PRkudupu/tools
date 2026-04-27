@@ -1,0 +1,30 @@
+-- ============================================================
+-- Iceberg Managed Table - Databricks Unity Catalog
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS catalog_name.schema_name.forecast_data (
+    identity          INT         COMMENT 'Identity grouping key',
+    start_month       STRING      COMMENT 'Forecast start month (e.g. Feb-26)',
+    seq               INT         COMMENT 'Sequence number within forecast window',
+    month             STRING      COMMENT 'Forecast target month',
+    no_of_months      INT         COMMENT 'Number of months in forecast horizon',
+    future_forecast   DECIMAL(18,2) COMMENT 'Point forecast value',
+    upper_95          DECIMAL(18,2) COMMENT 'Upper 95% confidence interval',
+    lower_95          DECIMAL(18,2) COMMENT 'Lower 95% confidence interval',
+    forecast_date     DATE        COMMENT 'Date forecast was generated',
+    source            STRING      COMMENT 'Source system (e.g. DBX)',
+    forecast_type     STRING      COMMENT 'Forecast model type (e.g. HW)',
+    version           INT         COMMENT 'Forecast version number',
+    created_timestamp TIMESTAMP   COMMENT 'Record creation timestamp'
+)
+USING ICEBERG
+PARTITIONED BY (start_month, identity)
+TBLPROPERTIES (
+    'write.format.default'            = 'parquet',
+    'write.parquet.compression-codec' = 'snappy',
+    'write.metadata.compression-codec'= 'gzip',
+    'write.merge.mode'                = 'merge-on-read',
+    'history.expire.max-snapshot-age-ms' = '604800000',  -- 7 days
+    'write.spark.fanout.enabled'      = 'true'
+)
+COMMENT 'Iceberg managed table storing forecast data by identity and start month';
