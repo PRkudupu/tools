@@ -1,0 +1,201 @@
+## End-to-End: Managed Iceberg Table — Databricks → Snowflake on Azure
+
+---Here are the complete end-to-end steps:
+
+---
+
+## Step 1 — Create Managed Iceberg Table in Databricks
+
+```sql
+-- No LOCATION clause — UC assigns the ADLS path automatically
+CREATE TABLE my_catalog.my_schema.orders (
+    order_id    BIGINT,
+    customer_id BIGINT,
+    order_date  TIMESTAMP,
+    amount      DOUBLE,
+    status      STRING,
+    region      STRING
+)
+USING iceberg
+PARTITIONED BY (months(order_date), region)
+TBLPROPERTIES (
+    'write.format.default'         = 'parquet',
+    'write.target-file-size-bytes' = '134217728'
+);
+```
+
+---
+
+## Step 2 — Note the UC-Managed ADLS Path
+
+```sql
+DESCRIBE EXTENDED my_catalog.my_schema.orders;
+```
+
+Note the auto-assigned `Location` — something like:
+```
+abfss://uc-metastore@mystorageaccount.dfs.core.windows.net/unity-catalog/<uuid>/orders
+```
+
+You need the **storage account name** and **container name** for the Snowflake setup.
+
+---
+
+## Step 3 — Create Azure Service Principal for Snowflake Auth to Databricks
+
+```bash
+# SP that Snowflake uses to call the UC Iceberg REST API
+az ad sp create-for-rbac --name snowflake-uc-reader
+```
+
+Save the output (`appId`, `password`, `tenant`). Then grant it read access in Databricks:
+
+```sql
+GRANT USE CATALOG ON CATALOG  my_catalog                TO `<sp-app-id>`;
+GRANT USE SCHEMA  ON SCHEMA   my_catalog.my_schema      TO `<sp-app-id>`;
+GRANT SELECT      ON TABLE    my_catalog.my_schema.orders TO `<sp-app-id>`;
+```
+
+---
+
+## Step 4 — Create Storage Integration in Snowflake
+
+```sql
+-- Run as ACCOUNTADMIN
+CREATE OR REPLACE STORAGE INTEGRATION uc_azure_storage_integration
+    TYPE                      = EXTERNAL_STAGE
+    STORAGE_PROVIDER          = AZURE
+    ENABLED                   = TRUE
+    AZURE_TENANT_ID           = '<your-azure-tenant-id>'
+    STORAGE_ALLOWED_LOCATIONS = (
+        'azure://<uc-storage-account>.blob.core.windows.net/<uc-container>/'
+    );
+```
+
+---
+
+## Step 5 — Grant Consent + RBAC in Azure
+
+```sql
+-- Retrieve Snowflake's managed SP details
+DESC INTEGRATION uc_azure_storage_integration;
+```
+
+From the output:
+
+| Field | Action |
+|---|---|
+| `AZURE_CONSENT_URL` | Open in browser as Azure AD admin → click Accept |
+| `AZURE_MULTI_TENANT_APP_NAME` | Use this as the assignee in the RBAC command below |
+
+```bash
+# Grant Snowflake's SP read access to the UC-managed ADLS container
+az role assignment create \
+  --assignee "<AZURE_MULTI_TENANT_APP_NAME>" \
+  --role "Storage Blob Data Reader" \
+  --scope /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Storage/storageAccounts/<uc-storage-account>/blobServices/default/containers/<uc-container>
+```
+
+---
+
+## Step 6 — Create External Volume in Snowflake
+
+```sql
+CREATE OR REPLACE EXTERNAL VOLUME uc_managed_iceberg_volume
+    STORAGE_LOCATIONS = (
+        (
+            NAME                    = 'uc-adls-location'
+            STORAGE_PROVIDER        = 'AZURE'
+            STORAGE_BASE_URL        = 'azure://<uc-storage-account>.blob.core.windows.net/<uc-container>/'
+            STORAGE_AZURE_TENANT_ID = '<your-azure-tenant-id>'
+        )
+    );
+
+-- Verify setup
+DESC EXTERNAL VOLUME uc_managed_iceberg_volume;
+```
+
+---
+
+## Step 7 — Create Catalog Integration in Snowflake
+
+```sql
+-- OAuth M2M (recommended for production)
+CREATE OR REPLACE CATALOG INTEGRATION databricks_uc_catalog
+    CATALOG_SOURCE    = ICEBERG_REST
+    TABLE_FORMAT      = ICEBERG
+    CATALOG_NAMESPACE = 'my_catalog.my_schema'
+    REST_CONFIG = (
+        CATALOG_URI = 'https://<databricks-workspace-url>/api/2.1/unity-catalog/iceberg'
+        WAREHOUSE   = 'my_catalog'
+    )
+    REST_AUTHENTICATION = (
+        TYPE                = OAUTH
+        OAUTH_TOKEN_URI     = 'https://login.microsoftonline.com/<tenant-id>/oauth2/token'
+        OAUTH_CLIENT_ID     = '<sp-app-id>'
+        OAUTH_CLIENT_SECRET = '<sp-client-secret>'
+        OAUTH_SCOPE         = 'all-apis'
+    )
+    ENABLED = TRUE;
+```
+
+> For dev/test, replace the `REST_AUTHENTICATION` block with `TYPE = BEARER` and a Databricks PAT.
+
+---
+
+## Step 8 — Create Iceberg Table in Snowflake
+
+```sql
+-- Snowflake resolves the managed path via UC REST — no hardcoded ADLS path needed
+CREATE OR REPLACE ICEBERG TABLE my_schema.orders
+    CATALOG            = 'databricks_uc_catalog'
+    EXTERNAL_VOLUME    = 'uc_managed_iceberg_volume'
+    CATALOG_TABLE_NAME = 'orders';
+```
+
+---
+
+## Step 9 — Query and Schedule Refresh
+
+```sql
+-- Query the table
+SELECT region, COUNT(*) AS orders, SUM(amount) AS revenue
+FROM my_schema.orders
+GROUP BY region;
+
+-- Manual refresh after Databricks writes
+ALTER ICEBERG TABLE my_schema.orders REFRESH;
+
+-- Automate with a Snowflake Task
+CREATE OR REPLACE TASK refresh_orders_task
+    WAREHOUSE = my_warehouse
+    SCHEDULE  = '15 MINUTE'
+AS
+    ALTER ICEBERG TABLE my_schema.orders REFRESH;
+
+ALTER TASK refresh_orders_task RESUME;
+```
+
+---
+
+## Full Checklist
+
+```
+Databricks
+  ✅ Managed Iceberg table created (no LOCATION)
+  ✅ UC-managed ADLS path noted from DESCRIBE EXTENDED
+  ✅ Azure SP created and granted SELECT on table
+
+Azure
+  ✅ AZURE_CONSENT_URL opened and approved by Azure AD admin
+  ✅ Snowflake managed SP granted Storage Blob Data Reader on UC container
+
+Snowflake
+  ✅ Storage Integration created (AZURE type)
+  ✅ External Volume pointing to UC-managed ADLS path
+  ✅ Catalog Integration with UC REST endpoint + OAuth M2M
+  ✅ Iceberg Table created using CATALOG_TABLE_NAME
+  ✅ Refresh Task scheduled and resumed
+```
+
+> **Important:** Never drop and recreate the managed table in Databricks — the ADLS path will change and you'll need to redo the Snowflake setup. Use `TRUNCATE` or `DELETE` for data resets instead.
