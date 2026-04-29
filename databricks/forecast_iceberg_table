@@ -1,0 +1,41 @@
+Looking at your schema, here's the Databricks SQL to create the Iceberg table:
+
+```sql
+CREATE TABLE IF NOT EXISTS catalog.schema.forecast_output (
+  Identity          BIGINT,
+  start_month       STRING,
+  seq               INT,
+  month             STRING,
+  no_of_months      INT,
+  FutureForecast    DECIMAL(18, 3),
+  Upper95           DECIMAL(18, 3),
+  Lower95           DECIMAL(18, 3),
+  forecast_date     DATE,
+  Source            STRING,
+  forecast_type     STRING,
+  version           INT,
+  created_timestamp TIMESTAMP
+)
+USING iceberg
+PARTITIONED BY (start_month, Identity)
+TBLPROPERTIES (
+  'write.format.default'            = 'parquet',
+  'write.parquet.compression-codec' = 'snappy',
+  'write.merge.mode'                = 'merge-on-read',
+  'history.expire.max-snapshot-age-ms' = '604800000'  -- 7 days
+);
+```
+
+A few notes on the decisions made:
+
+**Types**: `FutureForecast`, `Upper95`, `Lower95` are `DECIMAL(18,3)` based on the "Decimal" header. Adjust precision/scale to match your actual data. `forecast_date` is `DATE` per the "Date" header. `created_timestamp` is `TIMESTAMP`.
+
+**Partitioning**: Partitioned by `start_month` and `Identity` since your data is clearly grouped that way — this will make range scans by cohort very efficient.
+
+**TBLPROPERTIES**: `merge-on-read` is the Databricks default for Iceberg and gives you faster writes. Swap to `copy-on-write` if your workload is read-heavy and you want faster queries at the cost of slower upserts.
+
+---
+
+If you also want a **Unity Catalog managed table** (no explicit LOCATION, as in Step 1 of your diagram), that script above is exactly right — just replace `catalog.schema.forecast_output` with your three-part UC name and omit any `LOCATION` clause. Unity Catalog will manage the ADLS path automatically.
+
+Want me to also write the `MERGE INTO` upsert script for loading new forecast runs into this table?
