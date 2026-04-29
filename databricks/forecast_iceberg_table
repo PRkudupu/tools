@@ -26,3 +26,23 @@ TBLPROPERTIES (
 ```
 
 UC managed Iceberg tables handle merge behavior automatically — you don't need to (and can't) set `write.merge.mode` explicitly. The `MERGE INTO` statement will still work fine against this table.
+
+# insert statement
+INSERT INTO `industrial-data-science`.default.forecast_output 
+(Identity, start_month, seq, month, no_of_months, FutureForecast, Upper95, Lower95, forecast_date, Source, forecast_type, version, created_timestamp)
+VALUES
+-- Identity 1, start_month Feb-26
+(1, 'Feb-26', 1, 'Mar-26', 6, 21800.000, 22400.000, 21100.000, NULL, 'DBX', 'HW', 1, NULL),
+(1, 'Feb-26', 2, 'Apr-26', 6, 21800.000, 22500.000, 21100.000, NULL, 'DBX', NULL, NULL, NULL),
+(1, 'Feb-26', 3, 'May-26', 6, 21400.000, 22100.000, 20800.000, NULL, 'DBX', NULL, NULL, NULL),
+(1, 'Feb-26', 4, 'Jun-26', 6, 22400.000, 23000.000, 21700.000, NULL, 'DBX', NULL, NULL, NULL),
+(1, 'Feb-26', 5, 'Jul-26', 6, 22500.000, 23100.000, 21800.000, NULL, 'DBX', NULL, NULL, NULL),
+(1, 'Feb-26', 6, 'Aug-26', 6, 22400.000, 23000.000, 21700.000, NULL, 'DBX', NULL, NULL, NULL),
+
+-- Identity 2, start_month Mar-26
+(2, 'Mar-26', 1, 'Apr-26', 6, 21800.000, 22400.000, 21100.000, NULL, 'DBX', NULL, NULL, NULL),
+(2, 'Mar-26', 2, 'May-26', 6, 21800.000, 22500.000, 21100.000, NULL, 'DBX', NULL, NULL, NULL),
+(2, 'Mar-26', 3, 'Jun-26', 6, 21400.000, 22100.000, 20800.000, NULL, 'DBX', NULL, NULL, NULL),
+(2, 'Mar-26', 4, 'Jul-26', 6, 22400.000, 23000.000, 21700.000, NULL, 'DBX', NULL, NULL, NULL),
+(2, 'Mar-26', 5, 'Aug-26', 6, 22500.000, 23100.000, 21800.000, NULL, 'DBX', NULL, NULL, NULL),
+(2, 'Mar-26', 6, 'Sep-26', 6, 22400.000, 23000.000, 21700.000, NULL, 'DBX', NULL, NULL, NULL);
