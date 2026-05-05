@@ -1,0 +1,347 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+
+    <!-- ==================== TITLE ==================== -->
+    <mxCell id="title" value="Planner Agent — Sequence Diagram" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;fontColor=#1a1a2e;" vertex="1" parent="1">
+      <mxGeometry x="200" y="20" width="1200" height="40" as="geometry" />
+    </mxCell>
+
+    <!-- ==================== LIFELINE HEADERS ==================== -->
+    <!-- User -->
+    <mxCell id="h_user" value="User" style="shape=mxgraph.uml.actor;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="60" y="70" width="60" height="70" as="geometry" />
+    </mxCell>
+    <!-- Planner Agent -->
+    <mxCell id="h_planner" value="Planner Agent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="220" y="90" width="130" height="40" as="geometry" />
+    </mxCell>
+    <!-- Claude Sonnet -->
+    <mxCell id="h_claude" value="Claude Sonnet" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="390" y="90" width="130" height="40" as="geometry" />
+    </mxCell>
+    <!-- Conversation Cache -->
+    <mxCell id="h_cache" value="Conversation Cache" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="560" y="90" width="130" height="40" as="geometry" />
+    </mxCell>
+    <!-- Sub-Agent -->
+    <mxCell id="h_subagent" value="Sub-Agent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="730" y="90" width="130" height="40" as="geometry" />
+    </mxCell>
+    <!-- ServiceNow -->
+    <mxCell id="h_servicenow" value="ServiceNow" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="900" y="90" width="130" height="40" as="geometry" />
+    </mxCell>
+    <!-- Webhook Receiver -->
+    <mxCell id="h_webhook" value="Webhook Receiver" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="1070" y="90" width="130" height="40" as="geometry" />
+    </mxCell>
+    <!-- GWS Agent -->
+    <mxCell id="h_gws" value="GWS Agent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="1240" y="90" width="130" height="40" as="geometry" />
+    </mxCell>
+
+    <!-- ==================== LIFELINES (vertical dashed lines) ==================== -->
+    <mxCell id="ll_user" value="" style="endArrow=none;dashed=1;html=1;strokeColor=#666666;strokeWidth=1;" edge="1" parent="1">
+      <mxGeometry x="90" y="140" relative="1" as="geometry">
+        <Array as="points" />
+        <mxPoint x="90" y="140" as="sourcePoint" />
+        <mxPoint x="90" y="1060" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="ll_planner" value="" style="endArrow=none;dashed=1;html=1;strokeColor=#666666;strokeWidth=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="285" y="130" as="sourcePoint" />
+        <mxPoint x="285" y="1060" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="ll_claude" value="" style="endArrow=none;dashed=1;html=1;strokeColor=#666666;strokeWidth=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="455" y="130" as="sourcePoint" />
+        <mxPoint x="455" y="1060" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="ll_cache" value="" style="endArrow=none;dashed=1;html=1;strokeColor=#666666;strokeWidth=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="625" y="130" as="sourcePoint" />
+        <mxPoint x="625" y="1060" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="ll_subagent" value="" style="endArrow=none;dashed=1;html=1;strokeColor=#666666;strokeWidth=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="795" y="130" as="sourcePoint" />
+        <mxPoint x="795" y="1060" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="ll_servicenow" value="" style="endArrow=none;dashed=1;html=1;strokeColor=#666666;strokeWidth=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="965" y="130" as="sourcePoint" />
+        <mxPoint x="965" y="1060" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="ll_webhook" value="" style="endArrow=none;dashed=1;html=1;strokeColor=#666666;strokeWidth=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="1135" y="130" as="sourcePoint" />
+        <mxPoint x="1135" y="1060" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="ll_gws" value="" style="endArrow=none;dashed=1;html=1;strokeColor=#666666;strokeWidth=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="1305" y="130" as="sourcePoint" />
+        <mxPoint x="1305" y="1060" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- ==================== SECTION 0: Initialization ==================== -->
+    <!-- msg1: User → Planner Agent -->
+    <mxCell id="msg1" value="Message + session_id + email" style="endArrow=open;endFill=0;html=1;strokeColor=#1a1a2e;strokeWidth=2;fontStyle=0;fontSize=10;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="90" y="170" as="sourcePoint" />
+        <mxPoint x="285" y="170" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <!-- msg2: Planner → Cache: Get history -->
+    <mxCell id="msg2" value="Get history (session_id)" style="endArrow=open;endFill=0;html=1;strokeColor=#1a1a2e;strokeWidth=2;fontStyle=0;fontSize=10;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="285" y="200" as="sourcePoint" />
+        <mxPoint x="625" y="200" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <!-- msg3: Cache → Planner: Prior turns (return) -->
+    <mxCell id="msg3" value="Prior turns" style="endArrow=open;endFill=0;html=1;dashed=1;strokeColor=#666666;strokeWidth=1;fontSize=10;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="625" y="225" as="sourcePoint" />
+        <mxPoint x="285" y="225" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <!-- msg4: Planner → Claude: System prompt + history -->
+    <mxCell id="msg4" value="System prompt + history" style="endArrow=open;endFill=0;html=1;strokeColor=#1a1a2e;strokeWidth=2;fontStyle=0;fontSize=10;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="285" y="255" as="sourcePoint" />
+        <mxPoint x="455" y="255" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <!-- msg5: Claude → Planner: Tool call decision (return) -->
+    <mxCell id="msg5" value="Tool call decision" style="endArrow=open;endFill=0;html=1;dashed=1;strokeColor=#666666;strokeWidth=1;fontSize=10;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="455" y="280" as="sourcePoint" />
+        <mxPoint x="285" y="280" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- ==================== ALT FRAME ==================== -->
+    <mxCell id="alt_frame" value="alt" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];shape=mxgraph.uml.frame;whiteSpace=wrap;html=1;fontSize=11;fontStyle=1;fillColor=none;strokeColor=#555555;strokeWidth=1.5;" vertex="1" parent="1">
+      <mxGeometry x="50" y="300" width="1380" height="690" as="geometry" />
+    </mxCell>
+
+    <!-- ==================== ALT SECTION 1: Case View or File Upload ==================== -->
+    <mxCell id="lbl1" value="[Case View or File Upload]" style="text;html=1;strokeColor=none;fillColor=#fff2cc;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=10;fontStyle=2;strokeColor=#d6b656;" vertex="1" parent="1">
+      <mxGeometry x="460" y="308" width="200" height="26" as="geometry" />
+    </mxCell>
+
+    <!-- msg6: Planner → Sub-Agent: HTTP POST (query + files) -->
+    <mxCell id="msg6" value="HTTP POST (query + files)" style="endArrow=open;endFill=0;html=1;strokeColor=#1a1a2e;strokeWidth=2;fontStyle=0;fontSize=10;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="285" y="348" as="sourcePoint" />
+        <mxPoint x="795" y="348" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <!-- msg7: Sub-Agent → ServiceNow: OAuth token request -->
+    <mxCell id="msg7" value="OAuth token request" style="endArrow=open;endFill=0;html=1;strokeColor=#1a1a2e;strokeWidth=2;fontStyle=0;fontSize=10;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="795" y="373" as="sourcePoint" />
+        <mxPoint x="965" y="373" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <!-- msg8: ServiceNow → Sub-Agent: Bearer token (return) -->
+    <mxCell id="msg8" value="Bearer token" style="endArrow=open;endFill=0;html=1;dashed=1;strokeColor=#666666;strokeWidth=1;fontSize=10;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="965" y="398" as="sourcePoint" />
+        <mxPoint x="795" y="398" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <!-- msg9: Sub-Agent → ServiceNow: GET /industrial_case/{email} -->
+    <mxCell id="msg9" value="GET /industrial_case/{email}" style="endArrow=open;endFill=0;html=1;strokeColor=#1a1a2e;strokeWidth=2;fontStyle=0;fontSize=10;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="795" y="423" as="sourcePoint" />
+        <mxPoint x="965" y="423" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <!-- msg10: ServiceNow → Sub-Agent: Case list JSON (return) -->
+    <mxCell id="msg10" value="Case list JSON" style="endArrow=open;endFill=0;html=1;dashed=1;strokeColor=#666666;strokeWidth=1;fontSize=10;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="965" y="448" as="sourcePoint" />
+        <mxPoint x="795" y="448" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <!-- msg11: Sub-Agent → Planner: Formatted response (return) -->
+    <mxCell id="msg11" value="Formatted response" style="endArrow=open;endFill=0;html=1;dashed=1;strokeColor=#666666;strokeWidth=1;fontSize=10;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="795" y="473" as="sourcePoint" />
+        <mxPoint x="285" y="473" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <!-- msg12: Planner → User: Stream case details (return) -->
+    <mxCell id="msg12" value="Stream case details" style="endArrow=open;endFill=0;html=1;dashed=1;strokeColor=#666666;strokeWidth=1;fontSize=10;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="285" y="498" as="sourcePoint" />
+        <mxPoint x="90" y="498" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- Divider line 1 -->
+    <mxCell id="div1" value="" style="endArrow=none;html=1;strokeColor=#aaaaaa;strokeWidth=1;dashed=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="50" y="520" as="sourcePoint" />
+        <mxPoint x="1430" y="520" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- ==================== ALT SECTION 2: KB Search / Case Create / Regional Support ==================== -->
+    <mxCell id="lbl2" value="[KB Search / Case Create / Regional Support]" style="text;html=1;strokeColor=none;fillColor=#f8cecc;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=10;fontStyle=2;strokeColor=#b85450;" vertex="1" parent="1">
+      <mxGeometry x="400" y="527" width="280" height="26" as="geometry" />
+    </mxCell>
+
+    <!-- msg13: Planner → Sub-Agent: JSONRPC message/send + webhook URL -->
+    <mxCell id="msg13" value="JSONRPC message/send + webhook URL" style="endArrow=open;endFill=0;html=1;strokeColor=#1a1a2e;strokeWidth=2;fontStyle=0;fontSize=10;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="285" y="568" as="sourcePoint" />
+        <mxPoint x="795" y="568" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <!-- msg14: Sub-Agent → Planner: status: submitted (return) -->
+    <mxCell id="msg14" value="status: submitted" style="endArrow=open;endFill=0;html=1;dashed=1;strokeColor=#666666;strokeWidth=1;fontSize=10;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="795" y="593" as="sourcePoint" />
+        <mxPoint x="285" y="593" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <!-- msg15: Planner → User: Acknowledgement — searching... -->
+    <mxCell id="msg15" value="Acknowledgement — searching..." style="endArrow=open;endFill=0;html=1;dashed=1;strokeColor=#666666;strokeWidth=1;fontSize=10;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="285" y="618" as="sourcePoint" />
+        <mxPoint x="90" y="618" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <!-- msg16: Webhook Receiver → User: Async POST callback with result (later) -->
+    <mxCell id="msg16" value="Async POST callback with result" style="endArrow=open;endFill=0;html=1;strokeColor=#e65100;strokeWidth=2;fontStyle=0;fontSize=10;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="795" y="648" as="sourcePoint" />
+        <mxPoint x="1135" y="648" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <!-- msg17: Webhook → User: Result forwarded to frontend -->
+    <mxCell id="msg17" value="Result forwarded to frontend" style="endArrow=open;endFill=0;html=1;dashed=1;strokeColor=#e65100;strokeWidth=1;fontSize=10;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="1135" y="673" as="sourcePoint" />
+        <mxPoint x="90" y="673" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- Divider line 2 -->
+    <mxCell id="div2" value="" style="endArrow=none;html=1;strokeColor=#aaaaaa;strokeWidth=1;dashed=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="50" y="700" as="sourcePoint" />
+        <mxPoint x="1430" y="700" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- ==================== ALT SECTION 3: GWS Product or CRM Query ==================== -->
+    <mxCell id="lbl3" value="[GWS Product or CRM Query]" style="text;html=1;strokeColor=none;fillColor=#d5e8d4;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=10;fontStyle=2;strokeColor=#82b366;" vertex="1" parent="1">
+      <mxGeometry x="430" y="707" width="220" height="26" as="geometry" />
+    </mxCell>
+
+    <!-- msg18: Planner → GWS Agent: HTTP POST (question) -->
+    <mxCell id="msg18" value="HTTP POST (question)" style="endArrow=open;endFill=0;html=1;strokeColor=#1a1a2e;strokeWidth=2;fontStyle=0;fontSize=10;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="285" y="748" as="sourcePoint" />
+        <mxPoint x="1305" y="748" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <!-- msg19: GWS Agent → Planner: assistant_response JSON (return) -->
+    <mxCell id="msg19" value="assistant_response JSON" style="endArrow=open;endFill=0;html=1;dashed=1;strokeColor=#666666;strokeWidth=1;fontSize=10;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="1305" y="773" as="sourcePoint" />
+        <mxPoint x="285" y="773" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <!-- msg20: Planner → User: Stream GWS answer (return) -->
+    <mxCell id="msg20" value="Stream GWS answer" style="endArrow=open;endFill=0;html=1;dashed=1;strokeColor=#666666;strokeWidth=1;fontSize=10;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="285" y="798" as="sourcePoint" />
+        <mxPoint x="90" y="798" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- Divider line 3 -->
+    <mxCell id="div3" value="" style="endArrow=none;html=1;strokeColor=#aaaaaa;strokeWidth=1;dashed=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="50" y="820" as="sourcePoint" />
+        <mxPoint x="1430" y="820" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- ==================== ALT SECTION 4: Live Agent Handoff ==================== -->
+    <mxCell id="lbl4" value="[Live Agent Handoff]" style="text;html=1;strokeColor=none;fillColor=#dae8fc;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=10;fontStyle=2;strokeColor=#6c8ebf;" vertex="1" parent="1">
+      <mxGeometry x="470" y="827" width="180" height="26" as="geometry" />
+    </mxCell>
+
+    <!-- msg21: Planner → Planner: Pre-qualification flow (self-loop) -->
+    <mxCell id="msg21" value="Pre-qualification flow&#xa;(classification → product → routing rules)" style="endArrow=open;endFill=0;html=1;strokeColor=#1a1a2e;strokeWidth=2;fontStyle=0;fontSize=10;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.75;entryDx=0;entryDy=0;" edge="1" parent="1" source="h_planner" target="h_planner">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="360" y="855" />
+          <mxPoint x="360" y="895" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- msg22: Planner → User: live_agent_handoff payload (return) -->
+    <mxCell id="msg22" value="live_agent_handoff payload" style="endArrow=open;endFill=0;html=1;dashed=1;strokeColor=#666666;strokeWidth=1;fontSize=10;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="285" y="930" as="sourcePoint" />
+        <mxPoint x="90" y="930" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- msg23: User note: Frontend initiates live session -->
+    <mxCell id="note_live" value="Frontend initiates live session" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fontSize=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+      <mxGeometry x="40" y="945" width="180" height="35" as="geometry" />
+    </mxCell>
+
+    <!-- ==================== SECTION 5: Save History (outside alt) ==================== -->
+    <!-- msg24: Planner → Cache: Save updated history -->
+    <mxCell id="msg24" value="Save updated history" style="endArrow=open;endFill=0;html=1;strokeColor=#1a1a2e;strokeWidth=2;fontStyle=0;fontSize=10;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="285" y="1020" as="sourcePoint" />
+        <mxPoint x="625" y="1020" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- ==================== LEGEND ==================== -->
+    <mxCell id="legend_title" value="Legend" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="1450" y="200" width="80" height="25" as="geometry" />
+    </mxCell>
+    <mxCell id="leg1" value="Synchronous call" style="endArrow=open;endFill=0;html=1;strokeColor=#1a1a2e;strokeWidth=2;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="1450" y="240" as="sourcePoint" />
+        <mxPoint x="1560" y="240" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="leg2" value="Return / async" style="endArrow=open;endFill=0;html=1;dashed=1;strokeColor=#666666;strokeWidth=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="1450" y="265" as="sourcePoint" />
+        <mxPoint x="1560" y="265" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="leg3" value="Webhook callback" style="endArrow=open;endFill=0;html=1;strokeColor=#e65100;strokeWidth=2;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="1450" y="290" as="sourcePoint" />
+        <mxPoint x="1560" y="290" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+  </root>
+</mxGraphModel>
