@@ -1,0 +1,23 @@
+This is a solid multi-platform agentic AI architecture. Let me break it down for you, then render a cleaner diagram.
+
+There are three major platform boundaries here:
+
+**Databricks Platform** is the brain. It hosts a Planner Agent (built as an MLflow `ResponsesAgent`) that orchestrates everything. The Planner uses LangGraph for state machine logic, Claude Sonnet via `ChatDatabricks` as the LLM, a 10-minute Conversation Cache, and a Secret Scope for credentials. When a user message comes in, the Planner decides which sub-agent to invoke. Results stream back to the frontend via HTTP with session_id and email context.
+
+**Sub-Agent Serving Endpoint** (also Databricks) handles delegation from the Planner. The key sub-agent shown is a ServiceNow Sub-Agent (also MLflow-based), with its own LangGraph graph, a Tool Result Cache (MD5-hashed, 300s TTL), and a JSON-RPC 2.0 / webhook URL interface to talk to the ServiceNow platform.
+
+**ServiceNow Platform** exposes three specialized agents — KB Articles Agent, Case Management Agent, and Regional Support Agent — all reachable via a REST API (Cases/KB/Attachments) with OAuth Bearer auth. These agents do async callbacks to a Webhook Receiver (Azure Web App) that handles A2A (Agent-to-Agent) callbacks.
+
+**External Services** includes a QIWS Agent (Azure Web App for Product/CRM/Docs), and a Live Agent / Queue System — suggesting human-in-the-loop escalation is possible.
+
+The frontend is simple — a User UI that receives streamed responses. Auth flows use OAuth 2.0 with token.do for the ServiceNow side, and the whole system is wired for async patterns: the Planner kicks off work, agents respond via callbacks rather than blocking HTTP.A few design decisions worth noting:
+
+**Why async callbacks from ServiceNow agents?** ServiceNow operations (case lookups, KB searches) can be slow. Rather than blocking the HTTP chain all the way back to the user, each agent does its work and POSTs the result to the Webhook Receiver (Azure Web App), which then routes it back up to the Planner. This is the A2A pattern — agents as callable services with declared interfaces.
+
+**Why two Databricks endpoints?** The Planner and Sub-Agent run on separate MLflow serving endpoints. This gives you independent scaling — the Planner is always on (orchestration), while Sub-Agents can scale to zero when not needed. It also isolates failure domains.
+
+**The Tool Result Cache at the Sub-Agent layer** (MD5 hash, 300s TTL) means repeated tool calls with the same inputs (e.g., same case ID lookup) get served from cache, which cuts ServiceNow API calls and latency significantly.
+
+**The QIWS Agent** (product/CRM/docs) sits outside both platform boundaries — it's an Azure Web App callable from the Planner directly (sync HTTP), suggesting it has lower latency requirements or doesn't need the A2A callback pattern.
+
+Is this an architecture you're building or evaluating?
