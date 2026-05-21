@@ -1,0 +1,329 @@
+# ZONE 1 — EXPERIENCE LAYER
+
+## Web App (ReactJS)
+
+Frontend application where users interact with AI, dashboards, reports, workflows, and conversational interfaces.
+
+---
+
+## Responsive UI
+
+Ensures seamless user experience across desktop, tablet, and mobile devices.
+
+---
+
+## Personalization
+
+Customizes AI responses, dashboards, recommendations, and user experiences based on profile, history, and preferences.
+
+---
+
+## HTTPS / WebSocket
+
+Provides secure HTTPS communication and real-time bidirectional streaming using WebSockets.
+
+---
+
+# ZONE 2 — SECURITY & API ACCESS
+
+## CDN (Static Assets / Edge Caching)
+
+Caches static content like images, CSS, and JavaScript closer to users for faster performance and lower latency.
+
+---
+
+## API Gateway
+
+Central entry point for all APIs that handles routing, authentication, throttling, monitoring, and request transformation.
+
+---
+
+## Authentication
+
+Verifies user identity using SSO, OAuth2, OpenID Connect, JWT, or enterprise identity providers.
+
+---
+
+## WAF (Web Application Firewall)
+
+Protects applications from attacks such as SQL Injection, XSS, CSRF, bots, and DDoS threats.
+
+---
+
+## Rate Limiter / Usage Quota / Logging
+
+Controls API consumption, enforces quotas, and captures logs for monitoring, analytics, and auditing.
+
+---
+
+# ZONE 3A — CONVERSATIONAL AI RUNTIME
+
+## Conversation Manager (Memory / History / State)
+
+Maintains chat history, user context, session state, and long-term conversational memory.
+
+---
+
+## Web PubSub (WebSocket)
+
+Enables real-time streaming of AI responses, notifications, and bidirectional communication.
+
+---
+
+## Service Bus
+
+Supports asynchronous messaging and event-driven communication between distributed services.
+
+---
+
+## Agent Orchestrator
+
+Coordinates AI agents, tools, workflows, and execution pipelines across the platform.
+
+---
+
+## Planner
+
+Breaks user requests into tasks and determines execution strategy and workflow sequence.
+
+---
+
+## Router
+
+Routes requests to the appropriate AI agent, tool, model, or service.
+
+---
+
+## Executor
+
+Executes actions, workflows, tool calls, and orchestration steps defined by the planner.
+
+---
+
+## RAG Pipeline (Retrieval Augmented Generation)
+
+Enhances LLM responses by retrieving relevant enterprise data and contextual knowledge.
+
+---
+
+## SQL + API + Data Access + Vector Search Engine
+
+Provides unified access to databases, APIs, documents, files, and semantic/vector search systems.
+
+---
+
+# ZONE 3B — AI INSIGHTS & REPORTING RUNTIME
+
+## Web PubSub (WebSocket)
+
+Streams real-time insights, dashboards, alerts, and analytics updates to users.
+
+---
+
+## Service Bus
+
+Handles asynchronous report processing, notifications, and event-driven insight generation.
+
+---
+
+## Report Stream Processing / KPI Aggregation / Metrics
+
+Processes streaming business data and calculates KPIs, trends, and analytical metrics.
+
+---
+
+## Insight Analyzer (LLM)
+
+Uses LLMs to analyze trends, summarize reports, detect anomalies, and generate business insights.
+
+---
+
+## Report & Alert Generator (PDF Reports / Email)
+
+Automatically generates reports, dashboards, notifications, and email alerts.
+
+---
+
+# ZONE 4 — LLM GATEWAY
+
+## Prompt Manager
+
+Manages prompt templates, versions, governance, and prompt lifecycle management.
+
+---
+
+## Prompts
+
+Reusable enterprise prompts optimized for different AI use cases and workflows.
+
+---
+
+## Context Builder
+
+Constructs AI context using RAG results, user memory, metadata, APIs, and session information.
+
+---
+
+## Input Guardrails
+
+Validates and filters unsafe or malicious prompts before they reach the LLM.
+
+---
+
+## Output Guardrails
+
+Checks generated responses for safety, policy compliance, hallucinations, and restricted content.
+
+---
+
+## PII Masking
+
+Detects and masks sensitive information such as SSNs, credit card numbers, and personal data.
+
+---
+
+## Model Registry / Router
+
+Maintains available AI models and intelligently routes requests to the best model endpoint.
+
+---
+
+## Failover / Degradation
+
+Provides high availability through backup models, graceful degradation, and resiliency mechanisms.
+
+---
+
+## GPT-4 / Claude / LLM Providers
+
+External or internal large language model providers used for AI generation and reasoning.
+
+---
+
+# ZONE 5A — KNOWLEDGE / VECTOR LAYER
+
+## Embedding Store
+
+Stores vector embeddings for semantic search, retrieval, and contextual AI operations.
+
+---
+
+## Document Chunks
+
+Splits large documents into smaller searchable chunks for efficient retrieval and grounding.
+
+---
+
+## User Context
+
+Stores user preferences, memory, personalization data, and interaction history.
+
+---
+
+## Knowledge Base
+
+Enterprise repository containing policies, manuals, FAQs, business knowledge, and documents.
+
+---
+
+# ZONE 5B — ENTERPRISE DATA & ANALYTICS
+
+## Object Store / Blob (Raw Files)
+
+Stores raw enterprise files, datasets, documents, images, logs, and AI training data.
+
+---
+
+## Redis / Cache
+
+Provides high-speed caching for sessions, prompts, AI responses, and low-latency lookups.
+
+---
+
+## Data Warehouse / Semantic Models / Feature Store
+
+Centralized enterprise analytics layer for BI reporting, semantic models, ML features, and AI insights.
+
+---
+
+# ZONE 6 — OBSERVABILITY & GOVERNANCE
+
+## LLM Observability
+
+Tracks prompts, token usage, latency, traces, hallucinations, feedback, and AI performance metrics.
+
+---
+
+## Infrastructure Metrics
+
+Monitors infrastructure health, CPU, memory, network, errors, uptime, and system performance.
+
+---
+
+## Security & Audit
+
+Captures audit logs, access tracking, compliance records, and security monitoring activities.
+
+---
+
+# ZONE 7 — DEVOPS & DEPLOYMENT
+
+## CI/CD Pipeline
+
+Automates application build, testing, deployment, and release management processes.
+
+---
+
+## IaC (Terraform) + AI Infra Environments
+
+Uses Infrastructure as Code to provision, manage, and automate cloud and AI environments.
+
+---
+
+# END-TO-END FLOW DEFINITIONS
+
+## Step 1 — User asks question in Web App
+
+User interacts with AI through chat, dashboards, or applications.
+
+---
+
+## Step 2 — Request goes through API Gateway
+
+Request is authenticated, validated, secured, and routed to backend services.
+
+---
+
+## Step 3 — AI Runtime processes & orchestrates
+
+AI orchestration layer determines workflows, tools, and execution logic.
+
+---
+
+## Step 4 — RAG retrieves relevant context
+
+Relevant enterprise documents and semantic search results are retrieved.
+
+---
+
+## Step 5 — LLM Gateway builds prompt & applies safety
+
+Prompt is enriched with context and validated through safety guardrails.
+
+---
+
+## Step 6 — LLM generates response
+
+Selected AI model generates the final response or insight.
+
+---
+
+## Step 7 — Insights / Reports / Alerts (Optional)
+
+Platform generates analytics, dashboards, alerts, or summaries.
+
+---
+
+## Step 8 — Observability logs & monitors
+
+System captures telemetry, metrics, audit logs, and governance information.
