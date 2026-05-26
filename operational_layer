@@ -1,0 +1,98 @@
+┌──────────────────────────────────────────────────────────────────────────────┐
+│            Conversational AI Platform – Hybrid Serving Architecture         │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+
+                           ┌─────────────────────────────┐
+                           │ Users / Applications / BI  │
+                           └─────────────┬───────────────┘
+                                         │
+                                         ▼
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ ZONE 3A – Conversational AI Runtime                                         │
+│                                                                              │
+│ • Agent Orchestrator                                                         │
+│ • Planner / Router / Executor                                                │
+│ • RAG Pipeline                                                               │
+│ • FastAPI / APIs                                                             │
+│ • Safety & Guardrails                                                        │
+└───────────────────────────────┬──────────────────────────────────────────────┘
+                                │
+                                ▼
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ ZONE 5B – Enterprise Data & Analytics (SOURCE OF TRUTH)                     │
+│                                                                              │
+│ Iceberg Tables / Snowflake / Databricks                                     │
+│                                                                              │
+│ • Historical Analytics                                                       │
+│ • Large-scale Reporting                                                      │
+│ • ML Training Data                                                           │
+│ • Curated Business Data                                                      │
+│ • Batch & Streaming Pipelines                                                │
+└───────────────────────────────┬──────────────────────────────────────────────┘
+                                │
+                                │ CDC / Streaming / Micro-batch
+                                │
+                                ▼
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ ZONE 5C – Operational / Serving Layer (RECOMMENDED)                         │
+│                                                                              │
+│ Azure PostgreSQL Flexible Server                                            │
+│                                                                              │
+│ DATA NEEDS:                                                                  │
+│ • User sessions                                                              │
+│ • Conversations                                                              │
+│ • App state                                                                  │
+│ • Curated AI insights                                                        │
+│ • Workflow metadata                                                          │
+│ • Operational summaries                                                      │
+│ • Precomputed KPIs                                                           │
+│                                                                              │
+│ APPROACH:                                                                    │
+│ • Store only serving-ready data                                              │
+│ • Avoid full warehouse replication                                           │
+│ • Real-time sync for critical events                                         │
+│ • Micro-batch refresh for dashboards                                         │
+└───────────────────────────────┬──────────────────────────────────────────────┘
+                                │
+                                ▼
+
+                    ┌─────────────────────────────┐
+                    │ Azure Cache for Redis       │
+                    │                             │
+                    │ • Hot data                  │
+                    │ • Session cache             │
+                    │ • Ultra-low latency reads   │
+                    └─────────────┬───────────────┘
+                                  │
+                                  ▼
+
+                        ┌─────────────────────┐
+                        │ FastAPI / UI Layer  │
+                        └─────────────────────┘
+
+
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ DATA REFRESH STRATEGY                                                       │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ Real-time                                                                    │
+│ • Transactions                                                               │
+│ • User activity                                                              │
+│ • Conversations                                                              │
+│                                                                              │
+│ Micro-batch (5–15 mins)                                                      │
+│ • Dashboards                                                                 │
+│ • AI insights                                                                │
+│ • Operational KPIs                                                           │
+│                                                                              │
+│ Hourly                                                                       │
+│ • Aggregations                                                               │
+│ • Reporting                                                                  │
+│                                                                              │
+│ Daily                                                                        │
+│ • Historical analytics                                                       │
+└──────────────────────────────────────────────────────────────────────────────┘
