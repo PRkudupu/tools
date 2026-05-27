@@ -1,0 +1,525 @@
+{
+  "stage": {
+    "objects": [
+      {
+        "x": 380, "y": 15, "rotation": 0, "id": 1, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 880, "height": 40, "lockAspectRatio": false, "lockShape": false, "order": 0,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 0, "strokeColor": "none", "fillColor": "none", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1001, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 880, "height": 40, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 4, "paddingRight": 8, "paddingBottom": 4, "paddingLeft": 8, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 28, "placerText": "", "html": "<p><span style='font-size:20px;font-weight:bold;color:#1F3864;'>ADO CI/CD PIPELINE WITH TERRAFORM – AZURE</span></p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 20, "y": 65, "rotation": 0, "id": 2, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 230, "height": 245, "lockAspectRatio": false, "lockShape": false, "order": 1,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#6c8ebf", "fillColor": "#dae8fc", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1002, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 230, "height": 30, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 6, "paddingRight": 8, "paddingBottom": 4, "paddingLeft": 8, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 28, "placerText": "", "html": "<p><span style='font-size:11px;font-weight:bold;color:#1F3864;'>SOURCE CONTROL</span></p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 80, "y": 90, "rotation": 0, "id": 3, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 70, "height": 50, "lockAspectRatio": false, "lockShape": false, "order": 10,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 0, "strokeColor": "none", "fillColor": "none", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1003, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 70, "height": 50, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 4, "paddingRight": 4, "paddingBottom": 4, "paddingLeft": 4, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 22, "placerText": "", "html": "<p style='font-size:20px;'>&#128100;</p><p style='font-size:10px;font-weight:bold;'>Developer</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 30, "y": 155, "rotation": 0, "id": 4, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 85, "height": 70, "lockAspectRatio": false, "lockShape": false, "order": 10,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#005a9e", "fillColor": "#0078D4", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1004, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 85, "height": 70, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 6, "paddingRight": 4, "paddingBottom": 4, "paddingLeft": 4, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 22, "placerText": "", "html": "<p style='font-size:18px;'>&#128309;</p><p style='font-size:9px;font-weight:bold;color:#ffffff;'>Azure Repos<br/>(Git)</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 118, "y": 183, "rotation": 0, "id": 5, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 24, "height": 20, "lockAspectRatio": false, "lockShape": false, "order": 10,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 0, "strokeColor": "none", "fillColor": "none", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1005, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 24, "height": 20, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 2, "paddingRight": 2, "paddingBottom": 2, "paddingLeft": 2, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 20, "placerText": "", "html": "<p style='font-size:10px;font-weight:bold;'>OR</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 145, "y": 155, "rotation": 0, "id": 6, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 85, "height": 70, "lockAspectRatio": false, "lockShape": false, "order": 10,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#000000", "fillColor": "#24292e", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1006, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 85, "height": 70, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 6, "paddingRight": 4, "paddingBottom": 4, "paddingLeft": 4, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 22, "placerText": "", "html": "<p style='font-size:18px;'>&#11035;</p><p style='font-size:10px;font-weight:bold;color:#ffffff;'>GitHub</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 20, "y": 325, "rotation": 0, "id": 7, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 230, "height": 335, "lockAspectRatio": false, "lockShape": false, "order": 1,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#d6b656", "fillColor": "#fff2cc", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1007, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 230, "height": 335, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 8, "paddingRight": 10, "paddingBottom": 8, "paddingLeft": 10, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "LEFT", "linespacing": 20, "placerText": "", "html": "<p style='text-align:center;font-size:10px;font-weight:bold;color:#5d4037;'>REPOSITORY STRUCTURE</p><p style='font-size:9px;font-family:monospace;color:#1F3864;'>infra/<br/>&#9500;&#9472;&#9472; modules/<br/>&#9474;   &#9500;&#9472;&#9472; network/<br/>&#9474;   &#9500;&#9472;&#9472; keyvault/<br/>&#9474;   &#9500;&#9472;&#9472; storage/<br/>&#9474;   &#9500;&#9472;&#9472; databricks/<br/>&#9474;   &#9492;&#9472;&#9472; servicebus/<br/>&#9474;<br/>&#9492;&#9472;&#9472; envs/<br/>    &#9500;&#9472;&#9472; dev/<br/>    &#9474;   &#9500;&#9472;&#9472; main.tf<br/>    &#9474;   &#9500;&#9472;&#9472; variables.tf<br/>    &#9474;   &#9500;&#9472;&#9472; dev.tfvars<br/>    &#9474;   &#9492;&#9472;&#9472; backend.tf<br/>    &#9500;&#9472;&#9472; qa/<br/>    &#9474;   &#9500;&#9472;&#9472; qa.tfvars<br/>    &#9474;   &#9492;&#9472;&#9472; backend.tf<br/>    &#9492;&#9472;&#9472; prod/<br/>        &#9500;&#9472;&#9472; prod.tfvars<br/>        &#9492;&#9472;&#9472; backend.tf<br/><br/>&#9492;&#9472;&#9472; azure-pipelines.yml</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 265, "y": 65, "rotation": 0, "id": 8, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 1005, "height": 595, "lockAspectRatio": false, "lockShape": false, "order": 1,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#555555", "fillColor": "#f5f5f5", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1008, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 1005, "height": 32, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 6, "paddingRight": 8, "paddingBottom": 4, "paddingLeft": 8, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 28, "placerText": "", "html": "<p><span style='font-size:14px;font-weight:bold;color:#333333;'>AZURE DEVOPS PIPELINE</span></p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 275, "y": 110, "rotation": 0, "id": 9, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 222, "height": 242, "lockAspectRatio": false, "lockShape": false, "order": 20,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#6c8ebf", "fillColor": "#dae8fc", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1009, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 222, "height": 242, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 8, "paddingRight": 10, "paddingBottom": 8, "paddingLeft": 10, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "LEFT", "linespacing": 22, "placerText": "", "html": "<p style='text-align:center;font-size:11px;font-weight:bold;color:#1F3864;'>1. PR VALIDATION (CI)</p><p style='text-align:center;font-size:9px;font-style:italic;color:#555555;'>Triggered on Pull Request</p><p style='font-size:10px;background:#d5e8d4;padding:2px 4px;'>&#9989; Checkout Code</p><p style='font-size:10px;background:#d5e8d4;padding:2px 4px;'>&#9989; Terraform fmt</p><p style='font-size:10px;background:#d5e8d4;padding:2px 4px;'>&#9989; Terraform validate</p><p style='font-size:10px;background:#d5e8d4;padding:2px 4px;'>&#9989; tflint / checkov</p><p style='font-size:10px;background:#d5e8d4;padding:2px 4px;'>&#9989; Terraform plan</p><p style='font-size:10px;background:#d5e8d4;padding:2px 4px;'>&#9989; Publish Plan Artifact</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 513, "y": 110, "rotation": 0, "id": 10, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 232, "height": 197, "lockAspectRatio": false, "lockShape": false, "order": 20,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#82b366", "fillColor": "#d5e8d4", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1010, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 232, "height": 197, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 8, "paddingRight": 10, "paddingBottom": 8, "paddingLeft": 10, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "LEFT", "linespacing": 22, "placerText": "", "html": "<p style='text-align:center;font-size:11px;font-weight:bold;color:#1F3864;'>2. DEV DEPLOY (CD)</p><p style='text-align:center;font-size:9px;font-style:italic;color:#555555;'>Triggered on Merge to develop</p><p style='font-size:10px;background:#d5e8d4;padding:2px 4px;'>&#9989; Download Plan Artifact</p><p style='font-size:10px;background:#d5e8d4;padding:2px 4px;'>&#9989; Terraform init</p><p style='font-size:10px;background:#d5e8d4;padding:2px 4px;'>&#9989; Terraform apply (Dev)</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 762, "y": 110, "rotation": 0, "id": 11, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 232, "height": 242, "lockAspectRatio": false, "lockShape": false, "order": 20,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#d6b656", "fillColor": "#fff2cc", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1011, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 232, "height": 242, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 8, "paddingRight": 10, "paddingBottom": 8, "paddingLeft": 10, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "LEFT", "linespacing": 22, "placerText": "", "html": "<p style='text-align:center;font-size:11px;font-weight:bold;color:#5d4037;'>3. QA DEPLOY (CD)</p><p style='text-align:center;font-size:9px;font-style:italic;color:#555555;'>Manual Approval</p><p style='text-align:center;font-size:24px;'>&#128100;</p><p style='font-size:10px;background:#fff2cc;padding:2px 4px;'>&#9989; Manual Approval</p><p style='font-size:10px;background:#fff2cc;padding:2px 4px;'>&#9989; Download Plan Artifact</p><p style='font-size:10px;background:#fff2cc;padding:2px 4px;'>&#9989; Terraform init</p><p style='font-size:10px;background:#fff2cc;padding:2px 4px;'>&#9989; Terraform apply (QA)</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 1011, "y": 110, "rotation": 0, "id": 12, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 248, "height": 267, "lockAspectRatio": false, "lockShape": false, "order": 20,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#b85450", "fillColor": "#f8cecc", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1012, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 248, "height": 267, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 8, "paddingRight": 10, "paddingBottom": 8, "paddingLeft": 10, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "LEFT", "linespacing": 22, "placerText": "", "html": "<p style='text-align:center;font-size:11px;font-weight:bold;color:#7a0000;'>4. PROD DEPLOY (CD)</p><p style='text-align:center;font-size:9px;font-style:italic;color:#555555;'>Manual Approval + Restricted Access</p><p style='text-align:center;font-size:24px;'>&#128100;&#128274;</p><p style='font-size:10px;background:#f8cecc;padding:2px 4px;'>&#9989; Manual Approval</p><p style='font-size:10px;background:#f8cecc;padding:2px 4px;'>&#9989; Download Plan Artifact</p><p style='font-size:10px;background:#f8cecc;padding:2px 4px;'>&#9989; Terraform init</p><p style='font-size:10px;background:#f8cecc;padding:2px 4px;'>&#9989; Terraform apply (Prod)</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 345, "y": 377, "rotation": 0, "id": 13, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 120, "height": 70, "lockAspectRatio": false, "lockShape": false, "order": 25,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#d6b656", "fillColor": "#fff2cc", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1013, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 120, "height": 70, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 8, "paddingRight": 6, "paddingBottom": 8, "paddingLeft": 6, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 22, "placerText": "", "html": "<p style='font-size:20px;'>&#128196;</p><p style='font-size:10px;font-weight:bold;'>Plan Artifact<br/>(tfplan)</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 513, "y": 390, "rotation": 0, "id": 14, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 232, "height": 130, "lockAspectRatio": false, "lockShape": false, "order": 20,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#82b366", "fillColor": "#d5e8d4", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1014, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 232, "height": 130, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 8, "paddingRight": 8, "paddingBottom": 8, "paddingLeft": 8, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 24, "placerText": "", "html": "<p style='font-size:10px;font-weight:bold;color:#1F3864;'>DEV ENVIRONMENT</p><p style='font-size:22px;'>&#128448;  &#128230;  &#9729;&#65039;</p><p style='font-size:10px;color:#1F3864;'>Azure Resources (Dev)</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 762, "y": 390, "rotation": 0, "id": 15, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 232, "height": 130, "lockAspectRatio": false, "lockShape": false, "order": 20,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#d6b656", "fillColor": "#fff2cc", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1015, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 232, "height": 130, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 8, "paddingRight": 8, "paddingBottom": 8, "paddingLeft": 8, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 24, "placerText": "", "html": "<p style='font-size:10px;font-weight:bold;color:#5d4037;'>QA ENVIRONMENT</p><p style='font-size:22px;'>&#128448;  &#128230;  &#9729;&#65039;</p><p style='font-size:10px;color:#5d4037;'>Azure Resources (QA)</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 1011, "y": 405, "rotation": 0, "id": 16, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 248, "height": 130, "lockAspectRatio": false, "lockShape": false, "order": 20,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#b85450", "fillColor": "#f8cecc", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1016, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 248, "height": 130, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 8, "paddingRight": 8, "paddingBottom": 8, "paddingLeft": 8, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 24, "placerText": "", "html": "<p style='font-size:10px;font-weight:bold;color:#7a0000;'>PROD ENVIRONMENT</p><p style='font-size:22px;'>&#128448;  &#128230;  &#9729;&#65039;</p><p style='font-size:10px;color:#7a0000;'>Azure Resources (Prod)</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 1285, "y": 65, "rotation": 0, "id": 17, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 265, "height": 395, "lockAspectRatio": false, "lockShape": false, "order": 1,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#9673a6", "fillColor": "#e1d5e7", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1017, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 265, "height": 30, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 6, "paddingRight": 8, "paddingBottom": 4, "paddingLeft": 8, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 22, "placerText": "", "html": "<p style='font-size:11px;font-weight:bold;color:#4a148c;'>AUTHENTICATION &amp; AUTHORIZATION</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 1320, "y": 115, "rotation": 0, "id": 18, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 175, "height": 75, "lockAspectRatio": false, "lockShape": false, "order": 30,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#005a9e", "fillColor": "#0078D4", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1018, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 175, "height": 75, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 8, "paddingRight": 6, "paddingBottom": 8, "paddingLeft": 6, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 22, "placerText": "", "html": "<p style='font-size:10px;font-weight:bold;color:#ffffff;'>Azure DevOps<br/>Service Connection</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 1305, "y": 235, "rotation": 0, "id": 19, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 205, "height": 80, "lockAspectRatio": false, "lockShape": false, "order": 30,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#9673a6", "fillColor": "#d9b3e8", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1019, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 205, "height": 80, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 8, "paddingRight": 6, "paddingBottom": 8, "paddingLeft": 6, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 22, "placerText": "", "html": "<p style='font-size:10px;font-weight:bold;color:#4a148c;'>&#128273; Service Principal /<br/>Workload Identity<br/>Federation (OIDC)</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 1305, "y": 360, "rotation": 0, "id": 20, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 205, "height": 65, "lockAspectRatio": false, "lockShape": false, "order": 30,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#6c8ebf", "fillColor": "#dae8fc", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1020, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 205, "height": 65, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 8, "paddingRight": 6, "paddingBottom": 8, "paddingLeft": 6, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 22, "placerText": "", "html": "<p style='font-size:10px;font-weight:bold;color:#1F3864;'>&#9729;&#65039; Azure Subscription<br/>(Dev / QA / Prod)</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 265, "y": 680, "rotation": 0, "id": 21, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 655, "height": 230, "lockAspectRatio": false, "lockShape": false, "order": 1,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#555555", "fillColor": "#f0f0f0", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1021, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 655, "height": 30, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 6, "paddingRight": 8, "paddingBottom": 4, "paddingLeft": 8, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 22, "placerText": "", "html": "<p style='font-size:11px;font-weight:bold;color:#333333;'>TERRAFORM STATE BACKEND</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 280, "y": 725, "rotation": 0, "id": 22, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 165, "height": 85, "lockAspectRatio": false, "lockShape": false, "order": 30,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#005a9e", "fillColor": "#0078D4", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1022, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 165, "height": 85, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 8, "paddingRight": 6, "paddingBottom": 8, "paddingLeft": 6, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 22, "placerText": "", "html": "<p style='font-size:10px;font-weight:bold;color:#ffffff;'>&#128446; Azure Storage Account<br/>(tftfstateprod001)</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 280, "y": 825, "rotation": 0, "id": 23, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 165, "height": 38, "lockAspectRatio": false, "lockShape": false, "order": 30,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#0078D4", "fillColor": "#e3f2fd", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1023, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 165, "height": 38, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 6, "paddingRight": 6, "paddingBottom": 6, "paddingLeft": 6, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 20, "placerText": "", "html": "<p style='font-size:9px;font-weight:bold;'>&#128230; Blob Container: tfstate</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 462, "y": 725, "rotation": 0, "id": 24, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 90, "height": 65, "lockAspectRatio": false, "lockShape": false, "order": 30,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#82b366", "fillColor": "#d5e8d4", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1024, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 90, "height": 65, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 8, "paddingRight": 4, "paddingBottom": 8, "paddingLeft": 4, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 20, "placerText": "", "html": "<p style='font-size:9px;font-weight:bold;'>dev/<br/>app.tfstate</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 564, "y": 725, "rotation": 0, "id": 25, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 90, "height": 65, "lockAspectRatio": false, "lockShape": false, "order": 30,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#d6b656", "fillColor": "#fff2cc", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1025, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 90, "height": 65, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 8, "paddingRight": 4, "paddingBottom": 8, "paddingLeft": 4, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 20, "placerText": "", "html": "<p style='font-size:9px;font-weight:bold;'>qa/<br/>app.tfstate</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 666, "y": 725, "rotation": 0, "id": 26, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 90, "height": 65, "lockAspectRatio": false, "lockShape": false, "order": 30,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#b85450", "fillColor": "#f8cecc", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1026, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 90, "height": 65, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 8, "paddingRight": 4, "paddingBottom": 8, "paddingLeft": 4, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 20, "placerText": "", "html": "<p style='font-size:9px;font-weight:bold;'>prod/<br/>app.tfstate</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 768, "y": 715, "rotation": 0, "id": 27, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 140, "height": 185, "lockAspectRatio": false, "lockShape": false, "order": 30,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 1, "strokeColor": "#555555", "fillColor": "#ffffff", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1027, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 140, "height": 185, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 6, "paddingRight": 6, "paddingBottom": 6, "paddingLeft": 6, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "LEFT", "linespacing": 18, "placerText": "", "html": "<p style='font-size:9px;font-weight:bold;text-align:center;'>backend.tf (Example)</p><p style='font-size:8px;font-family:monospace;'>terraform {<br/>  backend &quot;azurerm&quot; {<br/>    resource_group_name<br/>    = &quot;rg-tfstate-prod&quot;<br/>    storage_account_name<br/>    = &quot;tftfstateprod001&quot;<br/>    container_name<br/>    = &quot;tfstate&quot;<br/>    key = &quot;prod/app.tfstate&quot;<br/>  }<br/>}</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 462, "y": 805, "rotation": 0, "id": 28, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 295, "height": 85, "lockAspectRatio": false, "lockShape": false, "order": 30,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 0, "strokeColor": "none", "fillColor": "none", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1028, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 295, "height": 85, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 4, "paddingRight": 4, "paddingBottom": 4, "paddingLeft": 4, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "LEFT", "linespacing": 20, "placerText": "", "html": "<p style='font-size:9px;font-weight:bold;background:#d5e8d4;padding:2px 4px;'>&#9989; Remote State</p><p style='font-size:9px;font-weight:bold;background:#d5e8d4;padding:2px 4px;'>&#9989; State Locking (Blob Lease)</p><p style='font-size:9px;font-weight:bold;background:#d5e8d4;padding:2px 4px;'>&#9989; Versioning</p><p style='font-size:9px;font-weight:bold;background:#d5e8d4;padding:2px 4px;'>&#9989; Secure &amp; Reliable</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 935, "y": 680, "rotation": 0, "id": 29, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 615, "height": 150, "lockAspectRatio": false, "lockShape": false, "order": 1,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#555555", "fillColor": "#f5f5f5", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1029, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 615, "height": 30, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 6, "paddingRight": 8, "paddingBottom": 4, "paddingLeft": 8, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 22, "placerText": "", "html": "<p style='font-size:11px;font-weight:bold;color:#333333;'>PIPELINE FLOW SUMMARY</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 948, "y": 718, "rotation": 0, "id": 30, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 84, "height": 80, "lockAspectRatio": false, "lockShape": false, "order": 30,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#6c8ebf", "fillColor": "#dae8fc", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1030, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 84, "height": 80, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 6, "paddingRight": 4, "paddingBottom": 6, "paddingLeft": 4, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 20, "placerText": "", "html": "<p style='font-size:16px;'>&lt;/&gt;</p><p style='font-size:9px;font-weight:bold;'>Code Change<br/>(Push / PR)</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 1046, "y": 718, "rotation": 0, "id": 31, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 84, "height": 80, "lockAspectRatio": false, "lockShape": false, "order": 30,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#82b366", "fillColor": "#d5e8d4", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1031, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 84, "height": 80, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 6, "paddingRight": 4, "paddingBottom": 6, "paddingLeft": 4, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 20, "placerText": "", "html": "<p style='font-size:16px;'>&#9989;</p><p style='font-size:9px;font-weight:bold;'>PR Validation<br/>(Plan)</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 1144, "y": 718, "rotation": 0, "id": 32, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 84, "height": 80, "lockAspectRatio": false, "lockShape": false, "order": 30,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#d6b656", "fillColor": "#fff2cc", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1032, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 84, "height": 80, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 6, "paddingRight": 4, "paddingBottom": 6, "paddingLeft": 4, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 20, "placerText": "", "html": "<p style='font-size:16px;'>&#128196;</p><p style='font-size:9px;font-weight:bold;'>Plan Artifact<br/>(tfplan)</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 1242, "y": 718, "rotation": 0, "id": 33, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 84, "height": 80, "lockAspectRatio": false, "lockShape": false, "order": 30,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#d79b00", "fillColor": "#ffe6cc", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1033, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 84, "height": 80, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 6, "paddingRight": 4, "paddingBottom": 6, "paddingLeft": 4, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 20, "placerText": "", "html": "<p style='font-size:16px;'>&#128100;</p><p style='font-size:9px;font-weight:bold;'>Manual Approval<br/>(tfplan)</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 1340, "y": 718, "rotation": 0, "id": 34, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 84, "height": 80, "lockAspectRatio": false, "lockShape": false, "order": 30,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#9673a6", "fillColor": "#e1d5e7", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1034, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 84, "height": 80, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 6, "paddingRight": 4, "paddingBottom": 6, "paddingLeft": 4, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 20, "placerText": "", "html": "<p style='font-size:16px;'>&#128295;</p><p style='font-size:9px;font-weight:bold;'>Apply Terraform<br/>to Target Env</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 1438, "y": 718, "rotation": 0, "id": 35, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 100, "height": 80, "lockAspectRatio": false, "lockShape": false, "order": 30,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#6c8ebf", "fillColor": "#dae8fc", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1035, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 100, "height": 80, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 6, "paddingRight": 4, "paddingBottom": 6, "paddingLeft": 4, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 20, "placerText": "", "html": "<p style='font-size:16px;'>&#9729;&#65039;</p><p style='font-size:9px;font-weight:bold;'>Azure Resources<br/>Updated</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 20, "y": 920, "rotation": 0, "id": 36, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 1530, "height": 90, "lockAspectRatio": false, "lockShape": false, "order": 1,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#1F3864", "fillColor": "#1F3864", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1036, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 1530, "height": 30, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 6, "paddingRight": 8, "paddingBottom": 4, "paddingLeft": 8, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 22, "placerText": "", "html": "<p style='font-size:12px;font-weight:bold;color:#ffffff;'>BEST PRACTICES</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 35, "y": 953, "rotation": 0, "id": 37, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 195, "height": 40, "lockAspectRatio": false, "lockShape": false, "order": 40,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#6c8ebf", "fillColor": "#dae8fc", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1037, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 195, "height": 40, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 6, "paddingRight": 6, "paddingBottom": 6, "paddingLeft": 6, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 20, "placerText": "", "html": "<p style='font-size:10px;font-weight:bold;color:#1F3864;'>&#128311; Use Modular Terraform</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 242, "y": 953, "rotation": 0, "id": 38, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 195, "height": 40, "lockAspectRatio": false, "lockShape": false, "order": 40,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#6c8ebf", "fillColor": "#dae8fc", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1038, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 195, "height": 40, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 6, "paddingRight": 6, "paddingBottom": 6, "paddingLeft": 6, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 20, "placerText": "", "html": "<p style='font-size:10px;font-weight:bold;color:#1F3864;'>&#128230; Separate State per Env</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 449, "y": 953, "rotation": 0, "id": 39, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 195, "height": 40, "lockAspectRatio": false, "lockShape": false, "order": 40,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#6c8ebf", "fillColor": "#dae8fc", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1039, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 195, "height": 40, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 6, "paddingRight": 6, "paddingBottom": 6, "paddingLeft": 6, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 20, "placerText": "", "html": "<p style='font-size:10px;font-weight:bold;color:#1F3864;'>&#128203; Plan on PR – No Apply</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 656, "y": 953, "rotation": 0, "id": 40, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 195, "height": 40, "lockAspectRatio": false, "lockShape": false, "order": 40,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#6c8ebf", "fillColor": "#dae8fc", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1040, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 195, "height": 40, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 6, "paddingRight": 6, "paddingBottom": 6, "paddingLeft": 6, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 20, "placerText": "", "html": "<p style='font-size:10px;font-weight:bold;color:#1F3864;'>&#9989; Apply only after Approval</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 863, "y": 953, "rotation": 0, "id": 41, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 195, "height": 40, "lockAspectRatio": false, "lockShape": false, "order": 40,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#6c8ebf", "fillColor": "#dae8fc", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1041, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 195, "height": 40, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 6, "paddingRight": 6, "paddingBottom": 6, "paddingLeft": 6, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 20, "placerText": "", "html": "<p style='font-size:10px;font-weight:bold;color:#1F3864;'>&#128446; Azure Storage Backend</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 1070, "y": 953, "rotation": 0, "id": 42, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 230, "height": 40, "lockAspectRatio": false, "lockShape": false, "order": 40,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#6c8ebf", "fillColor": "#dae8fc", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1042, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 230, "height": 40, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 6, "paddingRight": 6, "paddingBottom": 6, "paddingLeft": 6, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 20, "placerText": "", "html": "<p style='font-size:10px;font-weight:bold;color:#1F3864;'>&#128273; Separate SP per Env</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 1312, "y": 953, "rotation": 0, "id": 43, "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+        "width": 225, "height": 40, "lockAspectRatio": false, "lockShape": false, "order": 40,
+        "graphic": { "type": "Shape", "Shape": { "tid": "com.gliffy.stencil.rectangle.basic_v1", "strokeWidth": 2, "strokeColor": "#6c8ebf", "fillColor": "#dae8fc", "gradient": false, "dashStyle": null, "dropShadow": false, "state": 0, "opacity": 1, "shadowX": 0, "shadowY": 0 } },
+        "children": [{ "x": 0, "y": 0, "rotation": 0, "id": 1043, "uid": "com.gliffy.shape.basic.basic_v1.default.text", "width": 225, "height": 40, "lockAspectRatio": false, "lockShape": false, "order": "auto", "graphic": { "type": "Text", "Text": { "overflow": "none", "paddingTop": 6, "paddingRight": 6, "paddingBottom": 6, "paddingLeft": 6, "outerPaddingTop": 2, "outerPaddingRight": 2, "outerPaddingBottom": 2, "outerPaddingLeft": 2, "type": "CENTER", "linespacing": 20, "placerText": "", "html": "<p style='font-size:10px;font-weight:bold;color:#1F3864;'>&#128272; Least Privilege Access</p>" } }, "children": null, "constraints": null }],
+        "constraints": null, "linkMap": []
+      },
+      {
+        "x": 250, "y": 187, "rotation": 0, "id": 100, "uid": "com.gliffy.shape.basic.basic_v1.default.line",
+        "width": 25, "height": 44, "lockAspectRatio": false, "lockShape": false, "order": 50,
+        "graphic": { "type": "Line", "Line": { "strokeWidth": 2, "strokeColor": "#1F3864", "fillColor": "none", "dashStyle": null, "startArrow": 0, "endArrow": 1, "startArrowRotation": "auto", "endArrowRotation": "auto", "interpolationType": "linear", "cornerRadius": null, "controlPath": [[0,0],[25,44]], "lockSegments": {} } },
+        "children": null,
+        "constraints": { "constraints": [
+          { "type": "StartPointConstraint", "StartPointConstraint": { "nodeId": 2, "px": 1, "py": 0.5 } },
+          { "type": "EndPointConstraint", "EndPointConstraint": { "nodeId": 9, "px": 0, "py": 0.5 } }
+        ]},
+        "linkMap": []
+      },
+      {
+        "x": 497, "y": 208, "rotation": 0, "id": 101, "uid": "com.gliffy.shape.basic.basic_v1.default.line",
+        "width": 16, "height": 23, "lockAspectRatio": false, "lockShape": false, "order": 50,
+        "graphic": { "type": "Line", "Line": { "strokeWidth": 2, "strokeColor": "#555555", "fillColor": "none", "dashStyle": null, "startArrow": 0, "endArrow": 1, "startArrowRotation": "auto", "endArrowRotation": "auto", "interpolationType": "linear", "cornerRadius": null, "controlPath": [[0,0],[16,23]], "lockSegments": {} } },
+        "children": null,
+        "constraints": { "constraints": [
+          { "type": "StartPointConstraint", "StartPointConstraint": { "nodeId": 9, "px": 1, "py": 0.5 } },
+          { "type": "EndPointConstraint", "EndPointConstraint": { "nodeId": 10, "px": 0, "py": 0.5 } }
+        ]},
+        "linkMap": []
+      },
+      {
+        "x": 745, "y": 208, "rotation": 0, "id": 102, "uid": "com.gliffy.shape.basic.basic_v1.default.line",
+        "width": 17, "height": 23, "lockAspectRatio": false, "lockShape": false, "order": 50,
+        "graphic": { "type": "Line", "Line": { "strokeWidth": 2, "strokeColor": "#555555", "fillColor": "none", "dashStyle": null, "startArrow": 0, "endArrow": 1, "startArrowRotation": "auto", "endArrowRotation": "auto", "interpolationType": "linear", "cornerRadius": null, "controlPath": [[0,0],[17,23]], "lockSegments": {} } },
+        "children": null,
+        "constraints": { "constraints": [
+          { "type": "StartPointConstraint", "StartPointConstraint": { "nodeId": 10, "px": 1, "py": 0.5 } },
+          { "type": "EndPointConstraint", "EndPointConstraint": { "nodeId": 11, "px": 0, "py": 0.5 } }
+        ]},
+        "linkMap": []
+      },
+      {
+        "x": 994, "y": 231, "rotation": 0, "id": 103, "uid": "com.gliffy.shape.basic.basic_v1.default.line",
+        "width": 17, "height": 12, "lockAspectRatio": false, "lockShape": false, "order": 50,
+        "graphic": { "type": "Line", "Line": { "strokeWidth": 2, "strokeColor": "#555555", "fillColor": "none", "dashStyle": null, "startArrow": 0, "endArrow": 1, "startArrowRotation": "auto", "endArrowRotation": "auto", "interpolationType": "linear", "cornerRadius": null, "controlPath": [[0,0],[17,12]], "lockSegments": {} } },
+        "children": null,
+        "constraints": { "constraints": [
+          { "type": "StartPointConstraint", "StartPointConstraint": { "nodeId": 11, "px": 1, "py": 0.5 } },
+          { "type": "EndPointConstraint", "EndPointConstraint": { "nodeId": 12, "px": 0, "py": 0.5 } }
+        ]},
+        "linkMap": []
+      },
+      {
+        "x": 386, "y": 352, "rotation": 0, "id": 104, "uid": "com.gliffy.shape.basic.basic_v1.default.line",
+        "width": 19, "height": 25, "lockAspectRatio": false, "lockShape": false, "order": 50,
+        "graphic": { "type": "Line", "Line": { "strokeWidth": 2, "strokeColor": "#d6b656", "fillColor": "none", "dashStyle": null, "startArrow": 0, "endArrow": 1, "startArrowRotation": "auto", "endArrowRotation": "auto", "interpolationType": "linear", "cornerRadius": null, "controlPath": [[0,0],[19,25]], "lockSegments": {} } },
+        "children": null,
+        "constraints": { "constraints": [
+          { "type": "StartPointConstraint", "StartPointConstraint": { "nodeId": 9, "px": 0.5, "py": 1 } },
+          { "type": "EndPointConstraint", "EndPointConstraint": { "nodeId": 13, "px": 0.5, "py": 0 } }
+        ]},
+        "linkMap": []
+      },
+      {
+        "x": 465, "y": 307, "rotation": 0, "id": 105, "uid": "com.gliffy.shape.basic.basic_v1.default.line",
+        "width": 164, "height": 105, "lockAspectRatio": false, "lockShape": false, "order": 50,
+        "graphic": { "type": "Line", "Line": { "strokeWidth": 2, "strokeColor": "#d6b656", "fillColor": "none", "dashStyle": "3,3", "startArrow": 0, "endArrow": 1, "startArrowRotation": "auto", "endArrowRotation": "auto", "interpolationType": "linear", "cornerRadius": null, "controlPath": [[0,105],[164,0]], "lockSegments": {} } },
+        "children": null,
+        "constraints": { "constraints": [
+          { "type": "StartPointConstraint", "StartPointConstraint": { "nodeId": 13, "px": 1, "py": 0.5 } },
+          { "type": "EndPointConstraint", "EndPointConstraint": { "nodeId": 10, "px": 0.5, "py": 1 } }
+        ]},
+        "linkMap": []
+      },
+      {
+        "x": 629, "y": 307, "rotation": 0, "id": 106, "uid": "com.gliffy.shape.basic.basic_v1.default.line",
+        "width": 1, "height": 83, "lockAspectRatio": false, "lockShape": false, "order": 50,
+        "graphic": { "type": "Line", "Line": { "strokeWidth": 2, "strokeColor": "#82b366", "fillColor": "none", "dashStyle": null, "startArrow": 0, "endArrow": 1, "startArrowRotation": "auto", "endArrowRotation": "auto", "interpolationType": "linear", "cornerRadius": null, "controlPath": [[0,0],[0,83]], "lockSegments": {} } },
+        "children": null,
+        "constraints": { "constraints": [
+          { "type": "StartPointConstraint", "StartPointConstraint": { "nodeId": 10, "px": 0.5, "py": 1 } },
+          { "type": "EndPointConstraint", "EndPointConstraint": { "nodeId": 14, "px": 0.5, "py": 0 } }
+        ]},
+        "linkMap": []
+      },
+      {
+        "x": 878, "y": 352, "rotation": 0, "id": 107, "uid": "com.gliffy.shape.basic.basic_v1.default.line",
+        "width": 1, "height": 38, "lockAspectRatio": false, "lockShape": false, "order": 50,
+        "graphic": { "type": "Line", "Line": { "strokeWidth": 2, "strokeColor": "#d6b656", "fillColor": "none", "dashStyle": null, "startArrow": 0, "endArrow": 1, "startArrowRotation": "auto", "endArrowRotation": "auto", "interpolationType": "linear", "cornerRadius": null, "controlPath": [[0,0],[0,38]], "lockSegments": {} } },
+        "children": null,
+        "constraints": { "constraints": [
+          { "type": "StartPointConstraint", "StartPointConstraint": { "nodeId": 11, "px": 0.5, "py": 1 } },
+          { "type": "EndPointConstraint", "EndPointConstraint": { "nodeId": 15, "px": 0.5, "py": 0 } }
+        ]},
+        "linkMap": []
+      },
+      {
+        "x": 1135, "y": 377, "rotation": 0, "id": 108, "uid": "com.gliffy.shape.basic.basic_v1.default.line",
+        "width": 1, "height": 28, "lockAspectRatio": false, "lockShape": false, "order": 50,
+        "graphic": { "type": "Line", "Line": { "strokeWidth": 2, "strokeColor": "#b85450", "fillColor": "none", "dashStyle": null, "startArrow": 0, "endArrow": 1, "startArrowRotation": "auto", "endArrowRotation": "auto", "interpolationType": "linear", "cornerRadius": null, "controlPath": [[0,0],[0,28]], "lockSegments": {} } },
+        "children": null,
+        "constraints": { "constraints": [
+          { "type": "StartPointConstraint", "StartPointConstraint": { "nodeId": 12, "px": 0.5, "py": 1 } },
+          { "type": "EndPointConstraint", "EndPointConstraint": { "nodeId": 16, "px": 0.5, "py": 0 } }
+        ]},
+        "linkMap": []
+      },
+      {
+        "x": 1270, "y": 257, "rotation": 0, "id": 109, "uid": "com.gliffy.shape.basic.basic_v1.default.line",
+        "width": 15, "height": 105, "lockAspectRatio": false, "lockShape": false, "order": 50,
+        "graphic": { "type": "Line", "Line": { "strokeWidth": 2, "strokeColor": "#9673a6", "fillColor": "none", "dashStyle": "3,3", "startArrow": 0, "endArrow": 1, "startArrowRotation": "auto", "endArrowRotation": "auto", "interpolationType": "linear", "cornerRadius": null, "controlPath": [[0,0],[15,105]], "lockSegments": {} } },
+        "children": null,
+        "constraints": { "constraints": [
+          { "type": "StartPointConstraint", "StartPointConstraint": { "nodeId": 8, "px": 1, "py": 0.35 } },
+          { "type": "EndPointConstraint", "EndPointConstraint": { "nodeId": 17, "px": 0, "py": 0.5 } }
+        ]},
+        "linkMap": []
+      },
+      {
+        "x": 1407, "y": 190, "rotation": 0, "id": 110, "uid": "com.gliffy.shape.basic.basic_v1.default.line",
+        "width": 1, "height": 45, "lockAspectRatio": false, "lockShape": false, "order": 50,
+        "graphic": { "type": "Line", "Line": { "strokeWidth": 2, "strokeColor": "#9673a6", "fillColor": "none", "dashStyle": null, "startArrow": 0, "endArrow": 1, "startArrowRotation": "auto", "endArrowRotation": "auto", "interpolationType": "linear", "cornerRadius": null, "controlPath": [[0,0],[0,45]], "lockSegments": {} } },
+        "children": null,
+        "constraints": { "constraints": [
+          { "type": "StartPointConstraint", "StartPointConstraint": { "nodeId": 18, "px": 0.5, "py": 1 } },
+          { "type": "EndPointConstraint", "EndPointConstraint": { "nodeId": 19, "px": 0.5, "py": 0 } }
+        ]},
+        "linkMap": []
+      },
+      {
+        "x": 1407, "y": 315, "rotation": 0, "id": 111, "uid": "com.gliffy.shape.basic.basic_v1.default.line",
+        "width": 1, "height": 45, "lockAspectRatio": false, "lockShape": false, "order": 50,
+        "graphic": { "type": "Line", "Line": { "strokeWidth": 2, "strokeColor": "#9673a6", "fillColor": "none", "dashStyle": null, "startArrow": 0, "endArrow": 1, "startArrowRotation": "auto", "endArrowRotation": "auto", "interpolationType": "linear", "cornerRadius": null, "controlPath": [[0,0],[0,45]], "lockSegments": {} } },
+        "children": null,
+        "constraints": { "constraints": [
+          { "type": "StartPointConstraint", "StartPointConstraint": { "nodeId": 19, "px": 0.5, "py": 1 } },
+          { "type": "EndPointConstraint", "EndPointConstraint": { "nodeId": 20, "px": 0.5, "py": 0 } }
+        ]},
+        "linkMap": []
+      },
+      {
+        "x": 1032, "y": 758, "rotation": 0, "id": 112, "uid": "com.gliffy.shape.basic.basic_v1.default.line",
+        "width": 14, "height": 1, "lockAspectRatio": false, "lockShape": false, "order": 50,
+        "graphic": { "type": "Line", "Line": { "strokeWidth": 2, "strokeColor": "#555555", "fillColor": "none", "dashStyle": null, "startArrow": 0, "endArrow": 1, "startArrowRotation": "auto", "endArrowRotation": "auto", "interpolationType": "linear", "cornerRadius": null, "controlPath": [[0,0],[14,0]], "lockSegments": {} } },
+        "children": null,
+        "constraints": { "constraints": [
+          { "type": "StartPointConstraint", "StartPointConstraint": { "nodeId": 30, "px": 1, "py": 0.5 } },
+          { "type": "EndPointConstraint", "EndPointConstraint": { "nodeId": 31, "px": 0, "py": 0.5 } }
+        ]},
+        "linkMap": []
+      },
+      {
+        "x": 1130, "y": 758, "rotation": 0, "id": 113, "uid": "com.gliffy.shape.basic.basic_v1.default.line",
+        "width": 14, "height": 1, "lockAspectRatio": false, "lockShape": false, "order": 50,
+        "graphic": { "type": "Line", "Line": { "strokeWidth": 2, "strokeColor": "#555555", "fillColor": "none", "dashStyle": null, "startArrow": 0, "endArrow": 1, "startArrowRotation": "auto", "endArrowRotation": "auto", "interpolationType": "linear", "cornerRadius": null, "controlPath": [[0,0],[14,0]], "lockSegments": {} } },
+        "children": null,
+        "constraints": { "constraints": [
+          { "type": "StartPointConstraint", "StartPointConstraint": { "nodeId": 31, "px": 1, "py": 0.5 } },
+          { "type": "EndPointConstraint", "EndPointConstraint": { "nodeId": 32, "px": 0, "py": 0.5 } }
+        ]},
+        "linkMap": []
+      },
+      {
+        "x": 1228, "y": 758, "rotation": 0, "id": 114, "uid": "com.gliffy.shape.basic.basic_v1.default.line",
+        "width": 14, "height": 1, "lockAspectRatio": false, "lockShape": false, "order": 50,
+        "graphic": { "type": "Line", "Line": { "strokeWidth": 2, "strokeColor": "#555555", "fillColor": "none", "dashStyle": null, "startArrow": 0, "endArrow": 1, "startArrowRotation": "auto", "endArrowRotation": "auto", "interpolationType": "linear", "cornerRadius": null, "controlPath": [[0,0],[14,0]], "lockSegments": {} } },
+        "children": null,
+        "constraints": { "constraints": [
+          { "type": "StartPointConstraint", "StartPointConstraint": { "nodeId": 32, "px": 1, "py": 0.5 } },
+          { "type": "EndPointConstraint", "EndPointConstraint": { "nodeId": 33, "px": 0, "py": 0.5 } }
+        ]},
+        "linkMap": []
+      },
+      {
+        "x": 1326, "y": 758, "rotation": 0, "id": 115, "uid": "com.gliffy.shape.basic.basic_v1.default.line",
+        "width": 14, "height": 1, "lockAspectRatio": false, "lockShape": false, "order": 50,
+        "graphic": { "type": "Line", "Line": { "strokeWidth": 2, "strokeColor": "#555555", "fillColor": "none", "dashStyle": null, "startArrow": 0, "endArrow": 1, "startArrowRotation": "auto", "endArrowRotation": "auto", "interpolationType": "linear", "cornerRadius": null, "controlPath": [[0,0],[14,0]], "lockSegments": {} } },
+        "children": null,
+        "constraints": { "constraints": [
+          { "type": "StartPointConstraint", "StartPointConstraint": { "nodeId": 33, "px": 1, "py": 0.5 } },
+          { "type": "EndPointConstraint", "EndPointConstraint": { "nodeId": 34, "px": 0, "py": 0.5 } }
+        ]},
+        "linkMap": []
+      },
+      {
+        "x": 1424, "y": 758, "rotation": 0, "id": 116, "uid": "com.gliffy.shape.basic.basic_v1.default.line",
+        "width": 14, "height": 1, "lockAspectRatio": false, "lockShape": false, "order": 50,
+        "graphic": { "type": "Line", "Line": { "strokeWidth": 2, "strokeColor": "#555555", "fillColor": "none", "dashStyle": null, "startArrow": 0, "endArrow": 1, "startArrowRotation": "auto", "endArrowRotation": "auto", "interpolationType": "linear", "cornerRadius": null, "controlPath": [[0,0],[14,0]], "lockSegments": {} } },
+        "children": null,
+        "constraints": { "constraints": [
+          { "type": "StartPointConstraint", "StartPointConstraint": { "nodeId": 34, "px": 1, "py": 0.5 } },
+          { "type": "EndPointConstraint", "EndPointConstraint": { "nodeId": 35, "px": 0, "py": 0.5 } }
+        ]},
+        "linkMap": []
+      }
+    ],
+    "background": "#ffffff",
+    "width": 1580,
+    "height": 1030,
+    "nodeIndex": 1200,
+    "autoFit": true,
+    "exportBorder": 5,
+    "gridOn": true,
+    "gridSize": 10,
+    "snapToGrid": false,
+    "drawingGuidesOn": false,
+    "pageBreaksOn": false,
+    "printGridOn": false,
+    "printPaper": "LETTER",
+    "printShrinkPage": true,
+    "printPortrait": false,
+    "maxWidth": 5000,
+    "maxHeight": 5000,
+    "themeData": null
+  },
+  "metadata": {
+    "title": "ADO CI/CD Pipeline with Terraform - Azure",
+    "revision": 1,
+    "exportBorder": false,
+    "loadPosition": "default",
+    "libraries": "com.gliffy.libraries.basic.basic_v2.default",
+    "lastSaved": "2026-05-27T00:00:00Z",
+    "analyticsProduct": ""
+  },
+  "embeddedResources": {
+    "index": 0,
+    "resources": []
+  }
+}
