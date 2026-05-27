@@ -1,438 +1,618 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2400" pageHeight="2800" math="0" shadow="0">
-  <root>
-    <mxCell id="0" />
-    <mxCell id="1" parent="0" />
+<mxfile host="app.diagrams.net" version="21.0.0">
+  <diagram name="ADO CI/CD Pipeline with Terraform - Azure" id="ado-cicd-azure">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
 
-    <!-- TITLE -->
-    <mxCell id="title" value="AI PLATFORM — END TO END ARCHITECTURE"
-      style="text;html=1;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;strokeColor=none;fillColor=#1a1a2e;fontColor=#ffffff;"
-      vertex="1" parent="1">
-      <mxGeometry x="20" y="20" width="2360" height="55" as="geometry" />
-    </mxCell>
+        <!-- ══════════════════════════════════════════════ -->
+        <!-- TITLE                                          -->
+        <!-- ══════════════════════════════════════════════ -->
+        <mxCell id="title" value="ADO CI/CD PIPELINE WITH TERRAFORM – AZURE"
+          style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=20;fontStyle=1;fontColor=#1F3864;"
+          vertex="1" parent="1">
+          <mxGeometry x="380" y="18" width="860" height="40" as="geometry" />
+        </mxCell>
 
-    <!-- ═══ ZONE 1: CLIENT / PRESENTATION LAYER ═══ -->
-    <mxCell id="zone1" value="ZONE 1 — CLIENT / PRESENTATION LAYER"
-      style="swimlane;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;fontColor=#004C97;"
-      vertex="1" parent="1">
-      <mxGeometry x="20" y="95" width="2360" height="150" as="geometry" />
-    </mxCell>
-    <mxCell id="webapp" value="Web App&#xa;(React/TS)"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;"
-      vertex="1" parent="zone1">
-      <mxGeometry x="100" y="50" width="160" height="70" as="geometry" />
-    </mxCell>
-    <mxCell id="mobileapp" value="Mobile App&#xa;(React Native)"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;"
-      vertex="1" parent="zone1">
-      <mxGeometry x="400" y="50" width="160" height="70" as="geometry" />
-    </mxCell>
-    <mxCell id="slackbot" value="Slack / MS&#xa;Teams Bot"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;"
-      vertex="1" parent="zone1">
-      <mxGeometry x="700" y="50" width="160" height="70" as="geometry" />
-    </mxCell>
-    <mxCell id="thirdparty" value="3rd Party&#xa;API Clients"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;"
-      vertex="1" parent="zone1">
-      <mxGeometry x="1000" y="50" width="160" height="70" as="geometry" />
-    </mxCell>
+        <!-- ══════════════════════════════════════════════ -->
+        <!-- SOURCE CONTROL BOX                            -->
+        <!-- ══════════════════════════════════════════════ -->
+        <mxCell id="src_box" value="SOURCE CONTROL"
+          style="swimlane;startSize=28;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=11;fontColor=#1F3864;"
+          vertex="1" parent="1">
+          <mxGeometry x="20" y="65" width="230" height="230" as="geometry" />
+        </mxCell>
 
-    <mxCell id="edge_z1_z2" value="HTTPS / WebSocket / SSE (Streaming)"
-      style="edgeStyle=orthogonalEdgeStyle;dashed=1;strokeColor=#6c8ebf;fontSize=10;align=center;"
-      edge="1" source="zone1" target="zone2" parent="1">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
+        <mxCell id="dev_icon" value="👤&#xa;Developer"
+          style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;"
+          vertex="1" parent="src_box">
+          <mxGeometry x="75" y="30" width="80" height="50" as="geometry" />
+        </mxCell>
 
-    <!-- ═══ ZONE 2: SECURITY AND EDGE LAYER ═══ -->
-    <mxCell id="zone2" value="ZONE 2 — SECURITY &amp; EDGE LAYER"
-      style="swimlane;startSize=30;fillColor=#ffe6cc;strokeColor=#d6b656;fontStyle=1;fontSize=12;fontColor=#8B4513;"
-      vertex="1" parent="1">
-      <mxGeometry x="20" y="265" width="2360" height="255" as="geometry" />
-    </mxCell>
-    <mxCell id="cdn" value="CDN  (CloudFront / Akamai)&#xa;Static Assets  |  Edge Caching  |  DDoS Protection"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;"
-      vertex="1" parent="zone2">
-      <mxGeometry x="480" y="38" width="1360" height="55" as="geometry" />
-    </mxCell>
-    <mxCell id="apigateway" value="API GATEWAY"
-      style="swimlane;startSize=25;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;"
-      vertex="1" parent="zone2">
-      <mxGeometry x="30" y="108" width="2260" height="120" as="geometry" />
-    </mxCell>
-    <mxCell id="auth" value="Auth / OIDC&#xa;(OAuth 2.0)&#xa;JWT Verify"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=10;"
-      vertex="1" parent="apigateway">
-      <mxGeometry x="30" y="28" width="160" height="70" as="geometry" />
-    </mxCell>
-    <mxCell id="ratelimiter" value="Rate Limiter&#xa;(per user /&#xa;tenant)"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=10;"
-      vertex="1" parent="apigateway">
-      <mxGeometry x="260" y="28" width="160" height="70" as="geometry" />
-    </mxCell>
-    <mxCell id="waf" value="WAF Rules&#xa;(OWASP Top&#xa;10 defend)"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=10;"
-      vertex="1" parent="apigateway">
-      <mxGeometry x="490" y="28" width="160" height="70" as="geometry" />
-    </mxCell>
-    <mxCell id="reqrouter" value="Request Router&#xa;/chat → Chatbot&#xa;/insights → AI"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=10;"
-      vertex="1" parent="apigateway">
-      <mxGeometry x="720" y="28" width="200" height="70" as="geometry" />
-    </mxCell>
+        <mxCell id="azure_repos" value="🔵&#xa;Azure Repos&#xa;(Git)"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0078D4;strokeColor=#005a9e;fontSize=10;fontColor=#ffffff;fontStyle=1;"
+          vertex="1" parent="src_box">
+          <mxGeometry x="15" y="105" width="90" height="70" as="geometry" />
+        </mxCell>
 
-    <mxCell id="edge_z2_z3a" value="/chat"
-      style="edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;fontSize=11;fontStyle=1;"
-      edge="1" source="zone2" target="zone3a" parent="1">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-    <mxCell id="edge_z2_z3b" value="/insights"
-      style="edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;fontSize=11;fontStyle=1;"
-      edge="1" source="zone2" target="zone3b" parent="1">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
+        <mxCell id="or_label" value="OR"
+          style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;"
+          vertex="1" parent="src_box">
+          <mxGeometry x="105" y="130" width="30" height="20" as="geometry" />
+        </mxCell>
 
-    <!-- ═══ ZONE 3A: CHATBOT SERVICE ═══ -->
-    <mxCell id="zone3a" value="ZONE 3A — CHATBOT SERVICE"
-      style="swimlane;startSize=30;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=12;fontColor=#2d5a27;"
-      vertex="1" parent="1">
-      <mxGeometry x="20" y="550" width="1160" height="640" as="geometry" />
-    </mxCell>
-    <mxCell id="convmgr" value="Conversation Manager&#xa;Session  |  History  |  State"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=11;"
-      vertex="1" parent="zone3a">
-      <mxGeometry x="220" y="40" width="680" height="65" as="geometry" />
-    </mxCell>
-    <mxCell id="agentorc" value="Agent Orchestrator"
-      style="swimlane;startSize=25;fillColor=#e8f5e9;strokeColor=#82b366;fontSize=11;fontStyle=1;"
-      vertex="1" parent="zone3a">
-      <mxGeometry x="100" y="140" width="930" height="105" as="geometry" />
-    </mxCell>
-    <mxCell id="planner" value="Planner"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=11;"
-      vertex="1" parent="agentorc">
-      <mxGeometry x="100" y="28" width="160" height="50" as="geometry" />
-    </mxCell>
-    <mxCell id="approuter" value="Router"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=11;"
-      vertex="1" parent="agentorc">
-      <mxGeometry x="540" y="28" width="160" height="50" as="geometry" />
-    </mxCell>
-    <mxCell id="ragpipeline" value="RAG Pipeline"
-      style="swimlane;startSize=25;fillColor=#e8f5e9;strokeColor=#82b366;fontSize=11;fontStyle=1;"
-      vertex="1" parent="zone3a">
-      <mxGeometry x="30" y="285" width="1080" height="155" as="geometry" />
-    </mxCell>
-    <mxCell id="queryrewriter" value="Query&#xa;Rewriter"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=10;"
-      vertex="1" parent="ragpipeline">
-      <mxGeometry x="20" y="35" width="160" height="80" as="geometry" />
-    </mxCell>
-    <mxCell id="retriever" value="Context&#xa;Retriever"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=10;"
-      vertex="1" parent="ragpipeline">
-      <mxGeometry x="250" y="35" width="160" height="80" as="geometry" />
-    </mxCell>
-    <mxCell id="reranker" value="Re-ranker"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=10;"
-      vertex="1" parent="ragpipeline">
-      <mxGeometry x="480" y="35" width="160" height="80" as="geometry" />
-    </mxCell>
-    <mxCell id="ctxbuilder" value="Context&#xa;Builder"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=10;"
-      vertex="1" parent="ragpipeline">
-      <mxGeometry x="710" y="35" width="160" height="80" as="geometry" />
-    </mxCell>
-    <mxCell id="rag1" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;"
-      edge="1" source="queryrewriter" target="retriever" parent="ragpipeline">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-    <mxCell id="rag2" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;"
-      edge="1" source="retriever" target="reranker" parent="ragpipeline">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-    <mxCell id="rag3" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;"
-      edge="1" source="reranker" target="ctxbuilder" parent="ragpipeline">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-    <mxCell id="toolexec" value="Tool Execution Layer&#xa;&#xa;[DB Query]     [API Call]     [Code Run]     [Web Search]"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#82b366;fontSize=11;"
-      vertex="1" parent="zone3a">
-      <mxGeometry x="30" y="475" width="1080" height="105" as="geometry" />
-    </mxCell>
-    <mxCell id="z3a_f1" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;"
-      edge="1" source="convmgr" target="agentorc" parent="zone3a">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-    <mxCell id="z3a_f2" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;"
-      edge="1" source="agentorc" target="ragpipeline" parent="zone3a">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-    <mxCell id="z3a_f3" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;"
-      edge="1" source="ragpipeline" target="toolexec" parent="zone3a">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-    <mxCell id="edge_z3a_z4" value=""
-      style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;"
-      edge="1" source="toolexec" target="zone4" parent="1">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
+        <mxCell id="github_icon" value="⚫&#xa;GitHub"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#24292e;strokeColor=#000000;fontSize=10;fontColor=#ffffff;fontStyle=1;"
+          vertex="1" parent="src_box">
+          <mxGeometry x="125" y="105" width="90" height="70" as="geometry" />
+        </mxCell>
 
-    <!-- ═══ ZONE 3B: AI INSIGHTS SERVICE ═══ -->
-    <mxCell id="zone3b" value="ZONE 3B — AI INSIGHTS SERVICE"
-      style="swimlane;startSize=30;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=12;fontColor=#4a235a;"
-      vertex="1" parent="1">
-      <mxGeometry x="1200" y="550" width="1180" height="640" as="geometry" />
-    </mxCell>
-    <mxCell id="ingestion" value="Ingestion Pipeline&#xa;Kafka / SQS  →  Stream Processor (Flink)"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;"
-      vertex="1" parent="zone3b">
-      <mxGeometry x="140" y="40" width="860" height="65" as="geometry" />
-    </mxCell>
-    <mxCell id="featurestore" value="Feature Store&#xa;Precomputed KPIs  |  Aggregations  |  Metrics"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;"
-      vertex="1" parent="zone3b">
-      <mxGeometry x="140" y="140" width="860" height="65" as="geometry" />
-    </mxCell>
-    <mxCell id="batchanalytics" value="Batch Analytics&#xa;(Spark / dbt)"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;"
-      vertex="1" parent="zone3b">
-      <mxGeometry x="50" y="240" width="430" height="80" as="geometry" />
-    </mxCell>
-    <mxCell id="anomalydetect" value="Real-time Anomaly&#xa;Detection Engine"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;"
-      vertex="1" parent="zone3b">
-      <mxGeometry x="660" y="240" width="430" height="80" as="geometry" />
-    </mxCell>
-    <mxCell id="insightnarrator" value="Insight Narrator (LLM)&#xa;&quot;Revenue dropped 18% — root cause: X&quot;"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;"
-      vertex="1" parent="zone3b">
-      <mxGeometry x="140" y="355" width="860" height="65" as="geometry" />
-    </mxCell>
-    <mxCell id="reportgen" value="Report &amp; Alert Generator&#xa;PDF Reports  |  Email  |  Slack Push  |  Dashboard"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;"
-      vertex="1" parent="zone3b">
-      <mxGeometry x="140" y="455" width="860" height="65" as="geometry" />
-    </mxCell>
-    <mxCell id="z3b_f1" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;"
-      edge="1" source="ingestion" target="featurestore" parent="zone3b">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-    <mxCell id="z3b_f2" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;"
-      edge="1" source="featurestore" target="batchanalytics" parent="zone3b">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-    <mxCell id="z3b_f3" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;"
-      edge="1" source="featurestore" target="anomalydetect" parent="zone3b">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-    <mxCell id="z3b_f4" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;"
-      edge="1" source="batchanalytics" target="insightnarrator" parent="zone3b">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-    <mxCell id="z3b_f5" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;"
-      edge="1" source="anomalydetect" target="insightnarrator" parent="zone3b">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-    <mxCell id="z3b_f6" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;"
-      edge="1" source="insightnarrator" target="reportgen" parent="zone3b">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-    <mxCell id="edge_z3b_z4" value=""
-      style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;"
-      edge="1" source="insightnarrator" target="zone4" parent="1">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
+        <!-- Push Code label -->
+        <mxCell id="push_code_lbl" value="Push Code"
+          style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=9;fontStyle=1;fontColor=#1F3864;"
+          vertex="1" parent="1">
+          <mxGeometry x="255" y="115" width="80" height="20" as="geometry" />
+        </mxCell>
 
-    <!-- ═══ ZONE 4: LLM GATEWAY ═══ -->
-    <mxCell id="zone4" value="ZONE 4 — LLM GATEWAY (Central Nervous System)"
-      style="swimlane;startSize=30;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=12;fontColor=#7B1010;"
-      vertex="1" parent="1">
-      <mxGeometry x="20" y="1220" width="2360" height="420" as="geometry" />
-    </mxCell>
-    <mxCell id="reqprocessing" value="Request Processing"
-      style="swimlane;startSize=25;fillColor=#fde8e6;strokeColor=#b85450;fontSize=11;fontStyle=1;"
-      vertex="1" parent="zone4">
-      <mxGeometry x="30" y="40" width="2270" height="175" as="geometry" />
-    </mxCell>
-    <mxCell id="piiscrubber" value="PII Scrubber&#xa;&amp; Sanitizer"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10;"
-      vertex="1" parent="reqprocessing">
-      <mxGeometry x="30" y="35" width="170" height="105" as="geometry" />
-    </mxCell>
-    <mxCell id="promptver" value="Prompt Version&#xa;Manager"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10;"
-      vertex="1" parent="reqprocessing">
-      <mxGeometry x="260" y="35" width="170" height="105" as="geometry" />
-    </mxCell>
-    <mxCell id="ctxbuilder2" value="Context&#xa;Builder"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10;"
-      vertex="1" parent="reqprocessing">
-      <mxGeometry x="490" y="35" width="170" height="105" as="geometry" />
-    </mxCell>
-    <mxCell id="modelrouter" value="Model Router&#xa;&#xa;Simple  →  Haiku&#xa;Standard  →  Sonnet&#xa;Complex  →  Opus"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10;"
-      vertex="1" parent="reqprocessing">
-      <mxGeometry x="720" y="20" width="220" height="135" as="geometry" />
-    </mxCell>
-    <mxCell id="promptcache" value="Prompt Cache&#xa;(save ~80%)"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10;"
-      vertex="1" parent="reqprocessing">
-      <mxGeometry x="1010" y="35" width="170" height="105" as="geometry" />
-    </mxCell>
-    <mxCell id="costtracker" value="Cost Tracker&#xa;(per tenant)"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10;"
-      vertex="1" parent="reqprocessing">
-      <mxGeometry x="1240" y="35" width="170" height="105" as="geometry" />
-    </mxCell>
-    <mxCell id="retryfallback" value="Retry +&#xa;Fallback"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10;"
-      vertex="1" parent="reqprocessing">
-      <mxGeometry x="1470" y="35" width="170" height="105" as="geometry" />
-    </mxCell>
-    <mxCell id="llmabstraction" value="LLM Provider Abstraction"
-      style="swimlane;startSize=25;fillColor=#fde8e6;strokeColor=#b85450;fontSize=11;fontStyle=1;"
-      vertex="1" parent="zone4">
-      <mxGeometry x="30" y="235" width="2270" height="165" as="geometry" />
-    </mxCell>
-    <mxCell id="claudehaiku" value="Claude Haiku&#xa;(Fast / Cheap)"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;"
-      vertex="1" parent="llmabstraction">
-      <mxGeometry x="200" y="35" width="430" height="100" as="geometry" />
-    </mxCell>
-    <mxCell id="claudesonnet" value="Claude Sonnet&#xa;(Balanced)"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;"
-      vertex="1" parent="llmabstraction">
-      <mxGeometry x="900" y="35" width="430" height="100" as="geometry" />
-    </mxCell>
-    <mxCell id="claudeopus" value="Claude Opus&#xa;(Complex Reasoning)"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;"
-      vertex="1" parent="llmabstraction">
-      <mxGeometry x="1600" y="35" width="430" height="100" as="geometry" />
-    </mxCell>
+        <!-- Pull Request label -->
+        <mxCell id="pull_req_lbl" value="Pull Request"
+          style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=9;fontStyle=1;fontColor=#1F3864;"
+          vertex="1" parent="1">
+          <mxGeometry x="255" y="155" width="80" height="20" as="geometry" />
+        </mxCell>
 
-    <mxCell id="edge_z4_z5a" value=""
-      style="edgeStyle=orthogonalEdgeStyle;strokeColor=#d6b656;"
-      edge="1" source="zone4" target="zone5a" parent="1">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-    <mxCell id="edge_z4_z5b" value=""
-      style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;"
-      edge="1" source="zone4" target="zone5b" parent="1">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
+        <!-- Arrow: Source Control → ADO Pipeline (Push Code) -->
+        <mxCell id="arrow_push" value=""
+          style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#1F3864;strokeWidth=2;exitX=1;exitY=0.35;exitDx=0;exitDy=0;entryX=0;entryY=0.18;entryDx=0;entryDy=0;"
+          edge="1" parent="1" source="src_box" target="ado_pipeline_box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
 
-    <!-- ═══ ZONE 5A: VECTOR STORE ═══ -->
-    <mxCell id="zone5a" value="ZONE 5A — VECTOR STORE"
-      style="swimlane;startSize=30;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=12;fontColor=#8B4513;"
-      vertex="1" parent="1">
-      <mxGeometry x="20" y="1680" width="760" height="300" as="geometry" />
-    </mxCell>
-    <mxCell id="embstore" value="Embedding Store&#xa;(Pinecone / Weaviate / pgvector)&#xa;&#xa;• Document chunks&#xa;• Chat history&#xa;• User preferences&#xa;• Knowledge base"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=11;align=left;spacingLeft=15;"
-      vertex="1" parent="zone5a">
-      <mxGeometry x="40" y="45" width="660" height="225" as="geometry" />
-    </mxCell>
+        <!-- Arrow: ADO Pipeline → Source Control (Pull Request) -->
+        <mxCell id="arrow_pr_back" value=""
+          style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#1F3864;strokeWidth=2;dashed=1;exitX=0;exitY=0.35;exitDx=0;exitDy=0;entryX=1;entryY=0.55;entryDx=0;entryDy=0;"
+          edge="1" parent="1" source="ado_pipeline_box" target="src_box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
 
-    <!-- ═══ ZONE 5B: DATA LAYER ═══ -->
-    <mxCell id="zone5b" value="ZONE 5B — DATA LAYER"
-      style="swimlane;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;fontColor=#004C97;"
-      vertex="1" parent="1">
-      <mxGeometry x="800" y="1680" width="1580" height="300" as="geometry" />
-    </mxCell>
-    <mxCell id="postgres" value="PostgreSQL&#xa;(Primary DB&#xa;+ pgvector)"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;"
-      vertex="1" parent="zone5b">
-      <mxGeometry x="40" y="45" width="280" height="100" as="geometry" />
-    </mxCell>
-    <mxCell id="redis" value="Redis&#xa;(Cache + MQ)"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;"
-      vertex="1" parent="zone5b">
-      <mxGeometry x="390" y="45" width="280" height="100" as="geometry" />
-    </mxCell>
-    <mxCell id="objectstore" value="Object Store&#xa;S3 / Blob&#xa;(Docs / Files)"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;"
-      vertex="1" parent="zone5b">
-      <mxGeometry x="740" y="45" width="280" height="100" as="geometry" />
-    </mxCell>
-    <mxCell id="datawarehouse" value="Data Warehouse&#xa;Snowflake / BigQuery / Redshift&#xa;Historical data  |  BI  |  AI training datasets"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;"
-      vertex="1" parent="zone5b">
-      <mxGeometry x="40" y="170" width="1490" height="100" as="geometry" />
-    </mxCell>
+        <!-- ══════════════════════════════════════════════ -->
+        <!-- REPOSITORY STRUCTURE BOX                      -->
+        <!-- ══════════════════════════════════════════════ -->
+        <mxCell id="repo_box" value="REPOSITORY STRUCTURE (EXAMPLE)"
+          style="swimlane;startSize=28;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=10;fontColor=#5d4037;"
+          vertex="1" parent="1">
+          <mxGeometry x="20" y="315" width="230" height="330" as="geometry" />
+        </mxCell>
 
-    <mxCell id="edge_z5a_z6" value=""
-      style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;"
-      edge="1" source="zone5a" target="zone6" parent="1">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-    <mxCell id="edge_z5b_z6" value=""
-      style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;"
-      edge="1" source="zone5b" target="zone6" parent="1">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
+        <mxCell id="repo_content" value="infra/&#xa;├── modules/&#xa;│   ├── network/&#xa;│   ├── keyvault/&#xa;│   ├── storage/&#xa;│   ├── databricks/&#xa;│   └── servicebus/&#xa;│&#xa;└── envs/&#xa;    ├── dev/&#xa;    │   ├── main.tf&#xa;    │   ├── variables.tf&#xa;    │   ├── dev.tfvars&#xa;    │   └── backend.tf&#xa;    ├── qa/&#xa;    │   ├── qa.tfvars&#xa;    │   └── backend.tf&#xa;    └── prod/&#xa;        ├── prod.tfvars&#xa;        └── backend.tf&#xa;&#xa;└── azure-pipelines.yml"
+          style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=pre;fontSize=9;fontFamily=Courier New;fontColor=#1F3864;"
+          vertex="1" parent="repo_box">
+          <mxGeometry x="10" y="35" width="210" height="285" as="geometry" />
+        </mxCell>
 
-    <!-- RAG → Vector Store retrieval -->
-    <mxCell id="edge_rag_vec" value="retrieval"
-      style="edgeStyle=orthogonalEdgeStyle;dashed=1;strokeColor=#d6b656;fontSize=10;"
-      edge="1" source="ragpipeline" target="zone5a" parent="1">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
+        <!-- ══════════════════════════════════════════════ -->
+        <!-- AZURE DEVOPS PIPELINE (OUTER BOX)             -->
+        <!-- ══════════════════════════════════════════════ -->
+        <mxCell id="ado_pipeline_box" value="AZURE DEVOPS PIPELINE"
+          style="swimlane;startSize=32;fillColor=#f5f5f5;strokeColor=#555555;fontStyle=1;fontSize=14;fontColor=#333333;"
+          vertex="1" parent="1">
+          <mxGeometry x="265" y="65" width="1000" height="580" as="geometry" />
+        </mxCell>
 
-    <!-- ═══ ZONE 6: OBSERVABILITY AND GOVERNANCE ═══ -->
-    <mxCell id="zone6" value="ZONE 6 — OBSERVABILITY &amp; GOVERNANCE"
-      style="swimlane;startSize=30;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=12;fontColor=#7B1010;"
-      vertex="1" parent="1">
-      <mxGeometry x="20" y="2020" width="2360" height="250" as="geometry" />
-    </mxCell>
-    <mxCell id="llmobs" value="LLM Observability&#xa;&#xa;LangSmith / Langfuse&#xa;• Token usage&#xa;• Cost per query&#xa;• Hallucination detection&#xa;• User feedback"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=11;align=left;spacingLeft=12;"
-      vertex="1" parent="zone6">
-      <mxGeometry x="40" y="45" width="680" height="175" as="geometry" />
-    </mxCell>
-    <mxCell id="inframetrics" value="Infrastructure Metrics&#xa;&#xa;Prometheus + Grafana&#xa;• Latency p50/p99&#xa;• Error rates&#xa;• Pod health&#xa;• Queue depth"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=11;align=left;spacingLeft=12;"
-      vertex="1" parent="zone6">
-      <mxGeometry x="820" y="45" width="680" height="175" as="geometry" />
-    </mxCell>
-    <mxCell id="secaudit" value="Security &amp; Audit&#xa;&#xa;SIEM (Splunk / Sentinel)&#xa;• All LLM I/O logged&#xa;• PII audit trail&#xa;• RBAC enforcement&#xa;• Compliance reports"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=11;align=left;spacingLeft=12;"
-      vertex="1" parent="zone6">
-      <mxGeometry x="1600" y="45" width="680" height="175" as="geometry" />
-    </mxCell>
+        <!-- ══════════════════════════════════════════ -->
+        <!-- STAGE 1: PR VALIDATION (CI)              -->
+        <!-- ══════════════════════════════════════════ -->
+        <mxCell id="pr_val" value="1. PR VALIDATION (CI)"
+          style="swimlane;startSize=28;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=11;fontColor=#1F3864;"
+          vertex="1" parent="ado_pipeline_box">
+          <mxGeometry x="10" y="42" width="220" height="235" as="geometry" />
+        </mxCell>
 
-    <mxCell id="edge_z6_z7" value=""
-      style="edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;"
-      edge="1" source="zone6" target="zone7" parent="1">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
+        <mxCell id="pr_trigger_lbl" value="Triggered on Pull Request"
+          style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=9;fontStyle=2;fontColor=#555555;"
+          vertex="1" parent="pr_val">
+          <mxGeometry x="5" y="30" width="210" height="18" as="geometry" />
+        </mxCell>
 
-    <!-- ═══ ZONE 7: INFRASTRUCTURE / DEPLOYMENT LAYER ═══ -->
-    <mxCell id="zone7" value="ZONE 7 — INFRASTRUCTURE / DEPLOYMENT LAYER"
-      style="swimlane;startSize=30;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=12;fontColor=#4a235a;"
-      vertex="1" parent="1">
-      <mxGeometry x="20" y="2310" width="2360" height="340" as="geometry" />
-    </mxCell>
-    <mxCell id="k8s" value="Kubernetes (EKS / AKS / GKE)&#xa;&#xa;[Chatbot Service x3]     [Insights Service x2]     [LLM Gateway x2]     [Worker Pods x4]&#xa;&#xa;HPA (Auto-scale on CPU / Queue depth)     |     Pod Disruption Budgets"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;"
-      vertex="1" parent="zone7">
-      <mxGeometry x="40" y="45" width="2240" height="130" as="geometry" />
-    </mxCell>
-    <mxCell id="cicd" value="CI/CD Pipeline&#xa;GitHub Actions&#xa;→ Build → Test&#xa;→ Scan → Deploy"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;"
-      vertex="1" parent="zone7">
-      <mxGeometry x="40" y="210" width="560" height="110" as="geometry" />
-    </mxCell>
-    <mxCell id="iac" value="IaC (Terraform)&#xa;All infra&#xa;version-controlled"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;"
-      vertex="1" parent="zone7">
-      <mxGeometry x="680" y="210" width="560" height="110" as="geometry" />
-    </mxCell>
-    <mxCell id="multiregion" value="Multi-Region / DR Strategy&#xa;Active-Active (Chat)     Active-Passive (Insights)&#xa;RPO: 1hr     |     RTO: 15min"
-      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;"
-      vertex="1" parent="zone7">
-      <mxGeometry x="1320" y="210" width="960" height="110" as="geometry" />
-    </mxCell>
+        <mxCell id="pr_s1" value="✅  Checkout Code"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=6;"
+          vertex="1" parent="pr_val">
+          <mxGeometry x="8" y="52" width="196" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="pr_s2" value="✅  Terraform fmt"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=6;"
+          vertex="1" parent="pr_val">
+          <mxGeometry x="8" y="80" width="196" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="pr_s3" value="✅  Terraform validate"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=6;"
+          vertex="1" parent="pr_val">
+          <mxGeometry x="8" y="108" width="196" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="pr_s4" value="✅  tflint / checkov"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=6;"
+          vertex="1" parent="pr_val">
+          <mxGeometry x="8" y="136" width="196" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="pr_s5" value="✅  Terraform plan (Generate Plan)"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=6;"
+          vertex="1" parent="pr_val">
+          <mxGeometry x="8" y="164" width="196" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="pr_s6" value="✅  Publish Plan Artifact"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=6;"
+          vertex="1" parent="pr_val">
+          <mxGeometry x="8" y="192" width="196" height="24" as="geometry" />
+        </mxCell>
 
-  </root>
-</mxGraphModel>
+        <!-- Terraform logo watermark inside PR box -->
+        <mxCell id="tf_logo_pr" value="🔷"
+          style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=28;opacity=30;"
+          vertex="1" parent="pr_val">
+          <mxGeometry x="75" y="50" width="70" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Plan Artifact document shape -->
+        <mxCell id="plan_artifact_doc" value="&lt;b&gt;Plan Artifact&lt;/b&gt;&#xa;(tfplan)"
+          style="shape=document;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;fontStyle=1;"
+          vertex="1" parent="ado_pipeline_box">
+          <mxGeometry x="80" y="300" width="120" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Arrow: PR Validation → Plan Artifact -->
+        <mxCell id="arr_pr_artifact" value=""
+          style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#6c8ebf;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;"
+          edge="1" parent="ado_pipeline_box" source="pr_val" target="plan_artifact_doc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════════ -->
+        <!-- STAGE 2: DEV DEPLOY (CD)                 -->
+        <!-- ══════════════════════════════════════════ -->
+        <mxCell id="dev_deploy" value="2. DEV DEPLOY (CD)"
+          style="swimlane;startSize=28;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=11;fontColor=#1F3864;"
+          vertex="1" parent="ado_pipeline_box">
+          <mxGeometry x="247" y="42" width="230" height="190" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dev_trigger_lbl" value="Triggered on Merge to develop"
+          style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=9;fontStyle=2;fontColor=#555555;"
+          vertex="1" parent="dev_deploy">
+          <mxGeometry x="5" y="30" width="220" height="18" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dev_s1" value="✅  Download Plan Artifact"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=6;"
+          vertex="1" parent="dev_deploy">
+          <mxGeometry x="8" y="52" width="206" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="dev_s2" value="✅  Terraform init"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=6;"
+          vertex="1" parent="dev_deploy">
+          <mxGeometry x="8" y="80" width="206" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="dev_s3" value="✅  Terraform apply (Dev Environment)"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=6;"
+          vertex="1" parent="dev_deploy">
+          <mxGeometry x="8" y="108" width="206" height="24" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tf_logo_dev" value="🔷"
+          style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=28;opacity=30;"
+          vertex="1" parent="dev_deploy">
+          <mxGeometry x="80" y="50" width="70" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════════ -->
+        <!-- STAGE 3: QA DEPLOY (CD)                  -->
+        <!-- ══════════════════════════════════════════ -->
+        <mxCell id="qa_deploy" value="3. QA DEPLOY (CD)"
+          style="swimlane;startSize=28;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=11;fontColor=#5d4037;"
+          vertex="1" parent="ado_pipeline_box">
+          <mxGeometry x="495" y="42" width="230" height="235" as="geometry" />
+        </mxCell>
+
+        <mxCell id="qa_trigger_lbl" value="Manual Approval"
+          style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=9;fontStyle=2;fontColor=#555555;"
+          vertex="1" parent="qa_deploy">
+          <mxGeometry x="5" y="30" width="220" height="18" as="geometry" />
+        </mxCell>
+
+        <!-- Manual Approval icon -->
+        <mxCell id="qa_approval_person" value="👤"
+          style="text;html=1;strokeColor=#d6b656;fillColor=#ffe6cc;align=center;fontSize=28;rounded=1;"
+          vertex="1" parent="qa_deploy">
+          <mxGeometry x="80" y="50" width="70" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="qa_s1" value="✅  Manual Approval"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=left;spacingLeft=6;"
+          vertex="1" parent="qa_deploy">
+          <mxGeometry x="8" y="108" width="206" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="qa_s2" value="✅  Download Plan Artifact"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=left;spacingLeft=6;"
+          vertex="1" parent="qa_deploy">
+          <mxGeometry x="8" y="136" width="206" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="qa_s3" value="✅  Terraform init"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=left;spacingLeft=6;"
+          vertex="1" parent="qa_deploy">
+          <mxGeometry x="8" y="164" width="206" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="qa_s4" value="✅  Terraform apply (QA Environment)"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=left;spacingLeft=6;"
+          vertex="1" parent="qa_deploy">
+          <mxGeometry x="8" y="192" width="206" height="24" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════════ -->
+        <!-- STAGE 4: PROD DEPLOY (CD)                -->
+        <!-- ══════════════════════════════════════════ -->
+        <mxCell id="prod_deploy" value="4. PROD DEPLOY (CD)"
+          style="swimlane;startSize=28;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=11;fontColor=#7a0000;"
+          vertex="1" parent="ado_pipeline_box">
+          <mxGeometry x="745" y="42" width="245" height="260" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prod_trigger_lbl" value="Manual Approval + Restricted Access"
+          style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=9;fontStyle=2;fontColor=#555555;"
+          vertex="1" parent="prod_deploy">
+          <mxGeometry x="5" y="30" width="235" height="18" as="geometry" />
+        </mxCell>
+
+        <!-- Manual Approval icon (restricted) -->
+        <mxCell id="prod_approval_person" value="👤🔒"
+          style="text;html=1;strokeColor=#b85450;fillColor=#f8cecc;align=center;fontSize=22;rounded=1;"
+          vertex="1" parent="prod_deploy">
+          <mxGeometry x="80" y="50" width="85" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prod_s1" value="✅  Manual Approval"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=left;spacingLeft=6;"
+          vertex="1" parent="prod_deploy">
+          <mxGeometry x="8" y="108" width="220" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="prod_s2" value="✅  Download Plan Artifact"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=left;spacingLeft=6;"
+          vertex="1" parent="prod_deploy">
+          <mxGeometry x="8" y="136" width="220" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="prod_s3" value="✅  Terraform init"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=left;spacingLeft=6;"
+          vertex="1" parent="prod_deploy">
+          <mxGeometry x="8" y="164" width="220" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="prod_s4" value="✅  Terraform apply (Prod Environment)"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=left;spacingLeft=6;"
+          vertex="1" parent="prod_deploy">
+          <mxGeometry x="8" y="192" width="220" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="prod_s5" value="✅  Terraform apply (Prod Environment)"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=left;spacingLeft=6;"
+          vertex="1" parent="prod_deploy">
+          <mxGeometry x="8" y="220" width="220" height="24" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════════ -->
+        <!-- INTER-STAGE ARROWS                        -->
+        <!-- ══════════════════════════════════════════ -->
+        <mxCell id="arr_pr_dev" value=""
+          style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#555555;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;"
+          edge="1" parent="ado_pipeline_box" source="pr_val" target="dev_deploy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr_dev_qa" value=""
+          style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#555555;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;"
+          edge="1" parent="ado_pipeline_box" source="dev_deploy" target="qa_deploy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr_qa_prod" value=""
+          style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#555555;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;"
+          edge="1" parent="ado_pipeline_box" source="qa_deploy" target="prod_deploy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════════ -->
+        <!-- ENVIRONMENT BOXES (inside pipeline box)   -->
+        <!-- ══════════════════════════════════════════ -->
+
+        <!-- DEV ENVIRONMENT -->
+        <mxCell id="dev_env_box" value="DEV ENVIRONMENT"
+          style="swimlane;startSize=26;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=10;fontColor=#1F3864;dashed=1;dashPattern=8 4;"
+          vertex="1" parent="ado_pipeline_box">
+          <mxGeometry x="247" y="310" width="230" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dev_env_icons" value="🗄️      📦      ☁️"
+          style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=22;"
+          vertex="1" parent="dev_env_box">
+          <mxGeometry x="15" y="35" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="dev_env_label" value="Azure Resources (Dev)"
+          style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=10;fontColor=#1F3864;"
+          vertex="1" parent="dev_env_box">
+          <mxGeometry x="10" y="90" width="210" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- QA ENVIRONMENT -->
+        <mxCell id="qa_env_box" value="QA ENVIRONMENT"
+          style="swimlane;startSize=26;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=10;fontColor=#5d4037;dashed=1;dashPattern=8 4;"
+          vertex="1" parent="ado_pipeline_box">
+          <mxGeometry x="495" y="310" width="230" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="qa_env_icons" value="🗄️      📦      ☁️"
+          style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=22;"
+          vertex="1" parent="qa_env_box">
+          <mxGeometry x="15" y="35" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="qa_env_label" value="Azure Resources (QA)"
+          style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=10;fontColor=#5d4037;"
+          vertex="1" parent="qa_env_box">
+          <mxGeometry x="10" y="90" width="210" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- PROD ENVIRONMENT -->
+        <mxCell id="prod_env_box" value="PROD ENVIRONMENT"
+          style="swimlane;startSize=26;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=10;fontColor=#7a0000;dashed=1;dashPattern=8 4;"
+          vertex="1" parent="ado_pipeline_box">
+          <mxGeometry x="745" y="325" width="245" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prod_env_icons" value="🗄️      📦      ☁️"
+          style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=22;"
+          vertex="1" parent="prod_env_box">
+          <mxGeometry x="15" y="35" width="215" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="prod_env_label" value="Azure Resources (Prod)"
+          style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=10;fontColor=#7a0000;"
+          vertex="1" parent="prod_env_box">
+          <mxGeometry x="10" y="90" width="225" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows: Stages → Environments -->
+        <mxCell id="arr_dev_to_devenv" value=""
+          style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#82b366;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;"
+          edge="1" parent="ado_pipeline_box" source="dev_deploy" target="dev_env_box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr_qa_to_qaenv" value=""
+          style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#d6b656;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;"
+          edge="1" parent="ado_pipeline_box" source="qa_deploy" target="qa_env_box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr_prod_to_prodenv" value=""
+          style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#b85450;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;"
+          edge="1" parent="ado_pipeline_box" source="prod_deploy" target="prod_env_box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Plan Artifact → Dev Deploy arrow -->
+        <mxCell id="arr_artifact_dev" value=""
+          style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#d6b656;strokeWidth=1.5;dashed=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.3;entryY=1;entryDx=0;entryDy=0;"
+          edge="1" parent="ado_pipeline_box" source="plan_artifact_doc" target="dev_deploy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════════════ -->
+        <!-- AUTHENTICATION & AUTHORIZATION BOX            -->
+        <!-- ══════════════════════════════════════════════ -->
+        <mxCell id="auth_box" value="AUTHENTICATION &amp; AUTHORIZATION"
+          style="swimlane;startSize=30;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=11;fontColor=#4a148c;"
+          vertex="1" parent="1">
+          <mxGeometry x="1280" y="65" width="260" height="380" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ado_svc_conn" value="🔵&#xa;Azure DevOps&#xa;Service Connection"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0078D4;strokeColor=#005a9e;fontSize=10;fontColor=#ffffff;fontStyle=1;"
+          vertex="1" parent="auth_box">
+          <mxGeometry x="40" y="45" width="175" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="auth_arr1" value=""
+          style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#9673a6;strokeWidth=2;"
+          edge="1" parent="auth_box" source="ado_svc_conn" target="svc_principal">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="svc_principal" value="🔑&#xa;Service Principal /&#xa;Workload Identity&#xa;Federation (OIDC)"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;fontColor=#4a148c;fontStyle=1;"
+          vertex="1" parent="auth_box">
+          <mxGeometry x="30" y="160" width="195" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="auth_arr2" value=""
+          style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#9673a6;strokeWidth=2;"
+          edge="1" parent="auth_box" source="svc_principal" target="azure_sub">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="azure_sub" value="☁️&#xa;Azure Subscription&#xa;(Dev / QA / Prod)"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;fontColor=#1F3864;fontStyle=1;"
+          vertex="1" parent="auth_box">
+          <mxGeometry x="30" y="285" width="195" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="auth_access_lbl" value="↕ Access to Azure Resources"
+          style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=9;fontColor=#4a148c;"
+          vertex="1" parent="auth_box">
+          <mxGeometry x="20" y="355" width="220" height="18" as="geometry" />
+        </mxCell>
+
+        <!-- Arrow: Pipeline → Auth -->
+        <mxCell id="arr_pipeline_auth" value=""
+          style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#9673a6;strokeWidth=1.5;dashed=1;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.35;entryDx=0;entryDy=0;"
+          edge="1" parent="1" source="ado_pipeline_box" target="auth_box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════════════ -->
+        <!-- TERRAFORM STATE BACKEND                       -->
+        <!-- ══════════════════════════════════════════════ -->
+        <mxCell id="tf_state_box" value="TERRAFORM STATE BACKEND"
+          style="swimlane;startSize=30;fillColor=#f0f0f0;strokeColor=#555555;fontStyle=1;fontSize=11;fontColor=#333333;"
+          vertex="1" parent="1">
+          <mxGeometry x="265" y="668" width="650" height="220" as="geometry" />
+        </mxCell>
+
+        <!-- Azure Storage Account -->
+        <mxCell id="storage_acct" value="🗄️&#xa;Azure Storage Account&#xa;(tftfstateprod001)"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0078D4;strokeColor=#005a9e;fontSize=10;fontColor=#ffffff;fontStyle=1;"
+          vertex="1" parent="tf_state_box">
+          <mxGeometry x="15" y="45" width="165" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Blob Container -->
+        <mxCell id="blob_container" value="📦 Blob Container: tfstate"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#0078D4;fontSize=10;fontStyle=1;"
+          vertex="1" parent="tf_state_box">
+          <mxGeometry x="15" y="135" width="165" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- State files -->
+        <mxCell id="state_dev_doc" value="dev/&#xa;app.tfstate"
+          style="shape=document;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;fontStyle=1;"
+          vertex="1" parent="tf_state_box">
+          <mxGeometry x="200" y="60" width="90" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="state_qa_doc" value="qa/&#xa;app.tfstate"
+          style="shape=document;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;fontStyle=1;"
+          vertex="1" parent="tf_state_box">
+          <mxGeometry x="305" y="60" width="90" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="state_prod_doc" value="prod/&#xa;app.tfstate"
+          style="shape=document;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;fontStyle=1;"
+          vertex="1" parent="tf_state_box">
+          <mxGeometry x="410" y="60" width="90" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- backend.tf code block -->
+        <mxCell id="backend_tf_code" value="backend.tf (Example)&#xa;&#xa;terraform {&#xa;  backend &quot;azurerm&quot; {&#xa;    resource_group_name  =&#xa;      &quot;rg-tfstate-prod&quot;&#xa;    storage_account_name =&#xa;      &quot;tftfstateprod001&quot;&#xa;    container_name = &quot;tfstate&quot;&#xa;    key = &quot;prod/app-infra.tfstate&quot;&#xa;  }&#xa;}"
+          style="text;html=1;strokeColor=#555555;fillColor=#ffffff;align=left;verticalAlign=top;whiteSpace=pre;fontSize=9;fontFamily=Courier New;rounded=1;arcSize=4;"
+          vertex="1" parent="tf_state_box">
+          <mxGeometry x="515" y="40" width="125" height="165" as="geometry" />
+        </mxCell>
+
+        <!-- State feature badges -->
+        <mxCell id="badge_remote" value="✅ Remote State"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;fontStyle=1;"
+          vertex="1" parent="tf_state_box">
+          <mxGeometry x="200" y="145" width="110" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="badge_lock" value="✅ State Locking (Blob Lease)"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;fontStyle=1;"
+          vertex="1" parent="tf_state_box">
+          <mxGeometry x="320" y="145" width="135" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="badge_version" value="✅ Versioning"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;fontStyle=1;"
+          vertex="1" parent="tf_state_box">
+          <mxGeometry x="200" y="180" width="110" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="badge_secure" value="✅ Secure &amp; Reliable"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;fontStyle=1;"
+          vertex="1" parent="tf_state_box">
+          <mxGeometry x="320" y="180" width="135" height="26" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════════════ -->
+        <!-- PIPELINE FLOW SUMMARY                         -->
+        <!-- ══════════════════════════════════════════════ -->
+        <mxCell id="flow_box" value="PIPELINE FLOW SUMMARY"
+          style="swimlane;startSize=30;fillColor=#f5f5f5;strokeColor=#555555;fontStyle=1;fontSize=11;fontColor=#333333;"
+          vertex="1" parent="1">
+          <mxGeometry x="930" y="668" width="610" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow_step1" value="&lt;/&gt;&#xa;Code Change&#xa;(Push / PR)"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;fontStyle=1;align=center;"
+          vertex="1" parent="flow_box">
+          <mxGeometry x="8" y="40" width="82" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_arr1" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#555;strokeWidth=2;" edge="1" parent="flow_box" source="flow_step1" target="flow_step2"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="flow_step2" value="✅&#xa;PR Validation&#xa;(Plan)"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;fontStyle=1;align=center;"
+          vertex="1" parent="flow_box">
+          <mxGeometry x="102" y="40" width="82" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_arr2" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#555;strokeWidth=2;" edge="1" parent="flow_box" source="flow_step2" target="flow_step3"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="flow_step3" value="📄&#xa;Plan Artifact&#xa;(tfplan)"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;fontStyle=1;align=center;"
+          vertex="1" parent="flow_box">
+          <mxGeometry x="196" y="40" width="82" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_arr3" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#555;strokeWidth=2;" edge="1" parent="flow_box" source="flow_step3" target="flow_step4"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="flow_step4" value="👤&#xa;Manual Approval&#xa;(tfplan)"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=9;fontStyle=1;align=center;"
+          vertex="1" parent="flow_box">
+          <mxGeometry x="290" y="40" width="82" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_arr4" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#555;strokeWidth=2;" edge="1" parent="flow_box" source="flow_step4" target="flow_step5"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="flow_step5" value="🔷&#xa;Apply Terraform&#xa;to Target Env"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;fontStyle=1;align=center;"
+          vertex="1" parent="flow_box">
+          <mxGeometry x="384" y="40" width="82" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_arr5" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#555;strokeWidth=2;" edge="1" parent="flow_box" source="flow_step5" target="flow_step6"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="flow_step6" value="☁️&#xa;Azure Resources&#xa;Updated"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;fontStyle=1;align=center;"
+          vertex="1" parent="flow_box">
+          <mxGeometry x="478" y="40" width="120" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════════════ -->
+        <!-- BEST PRACTICES BAR                            -->
+        <!-- ══════════════════════════════════════════════ -->
+        <mxCell id="bp_bar" value="BEST PRACTICES"
+          style="swimlane;startSize=30;fillColor=#1F3864;strokeColor=#1F3864;fontStyle=1;fontSize=13;fontColor=#ffffff;"
+          vertex="1" parent="1">
+          <mxGeometry x="20" y="908" width="1520" height="85" as="geometry" />
+        </mxCell>
+
+        <mxCell id="bp1" value="🔷 Use Modular Terraform"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;fontStyle=1;fontColor=#1F3864;"
+          vertex="1" parent="bp_bar">
+          <mxGeometry x="10" y="38" width="200" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="bp2" value="📦 Separate State per Environment"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;fontStyle=1;fontColor=#1F3864;"
+          vertex="1" parent="bp_bar">
+          <mxGeometry x="220" y="38" width="200" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="bp3" value="📋 Plan on PR – No Apply"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;fontStyle=1;fontColor=#1F3864;"
+          vertex="1" parent="bp_bar">
+          <mxGeometry x="430" y="38" width="200" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="bp4" value="✅ Apply only after Approval"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;fontStyle=1;fontColor=#1F3864;"
+          vertex="1" parent="bp_bar">
+          <mxGeometry x="640" y="38" width="200" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="bp5" value="🗄️ Azure Storage for Remote Backend"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;fontStyle=1;fontColor=#1F3864;"
+          vertex="1" parent="bp_bar">
+          <mxGeometry x="850" y="38" width="210" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="bp6" value="🔑 Separate Service Connection / SP for Dev, QA, Prod"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;fontStyle=1;fontColor=#1F3864;"
+          vertex="1" parent="bp_bar">
+          <mxGeometry x="1070" y="38" width="230" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="bp7" value="🔐 Least Privilege Access"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;fontStyle=1;fontColor=#1F3864;"
+          vertex="1" parent="bp_bar">
+          <mxGeometry x="1310" y="38" width="200" height="38" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
