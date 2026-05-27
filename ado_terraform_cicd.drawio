@@ -1,0 +1,51 @@
+<mxfile host="app.diagrams.net" modified="2026-05-27T00:00:00.000Z" agent="ChatGPT" version="24.7.17">
+  <diagram id="ado-terraform" name="ADO Terraform CI/CD">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1920" pageHeight="1080" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="ADO CI/CD PIPELINE WITH TERRAFORM – AZURE" style="text;html=1;fontSize=24;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="500" y="20" width="700" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dev" value="Developer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="150" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="repo" value="Azure Repos / GitHub&#xa;(Source Control)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="220" y="140" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ci" value="PR Validation (CI)&#xa;- terraform fmt&#xa;- terraform validate&#xa;- tflint/checkov&#xa;- terraform plan&#xa;- publish tfplan artifact" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="500" y="110" width="260" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="artifact" value="Terraform Plan Artifact&#xa;(tfplan)" style="shape=document;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="830" y="150" width="140" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="devdeploy" value="DEV Deploy (CD)&#xa;- terraform init&#xa;- terraform apply&#xa;- auto deploy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#cfe2f3;strokeColor=#6c8ebf;fontSize=13;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="90" width="220" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="qadeploy" value="QA Deploy (CD)&#xa;- manual approval&#xa;- terraform apply" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=13;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="260" width="220" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="proddeploy" value="PROD Deploy (CD)&#xa;- restricted access&#xa;- approval gates&#xa;- terraform apply" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="430" width="220" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="state" value="Terraform Remote State&#xa;Azure Storage Account&#xa;Blob Container: tfstate&#xa;State Locking Enabled" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d9ead3;strokeColor=#6aa84f;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="500" y="420" width="300" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="auth" value="Authentication &amp; Authorization&#xa;ADO Service Connection&#xa;OIDC / Service Principal&#xa;Azure Subscription" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ead1dc;strokeColor=#c27ba0;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="180" width="260" height="180" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
