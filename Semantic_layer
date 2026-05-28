@@ -1,0 +1,44 @@
+Yes — since your enterprise data is in Iceberg tables / data warehouse, I would not use Iceberg directly for low-latency app serving.
+
+Use an additional Serving / Operational Database layer.
+
+Recommended database layer
+
+Best choice for Azure shop: Azure PostgreSQL Flexible Server
+
+Use it for:
+
+Application transactional data
+User/session/conversation state
+Low-latency API reads/writes
+Cached/curated AI insights
+Report-ready summary tables
+Metadata and workflow status
+Updated architecture pattern
+Iceberg Tables / Data Warehouse
+        |
+        | Batch / CDC / Streaming sync
+        v
+Serving Database Layer
+Azure PostgreSQL Flexible Server
+        |
+        v
+FastAPI / App API / UI
+For very fast reads
+
+Add Redis cache in front of PostgreSQL:
+
+UI / App
+   |
+FastAPI
+   |
+Redis Cache  ---> PostgreSQL
+   |
+Fallback if cache miss
+What to store where
+Layer	Purpose
+Iceberg / Snowflake / Warehouse	Historical, analytical, large-scale data
+Databricks	ML, GenAI, batch processing, feature generation
+PostgreSQL	Low-latency app data and serving layer
+Redis	Ultra-fast cache for frequent reads
+Vector DB / Databricks Vector Search	Semantic search / embeddings
