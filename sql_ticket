@@ -1,0 +1,80 @@
+You can paste this into the **Description** section:
+
+---
+
+## User Story:
+
+As an **application/platform team**, we need to **create an Azure SQL Database instance for the operational store**, so that the application can support **low-latency read/write operations** and store application-specific operational data securely.
+
+## Scenarios:
+
+1. Provision a new Azure SQL Database instance in the approved Azure subscription and resource group.
+2. Configure the database for application operational data usage.
+3. Enable secure connectivity from the application/backend services.
+4. Configure required access for application service principals, developers, and support teams.
+5. Enable backup, monitoring, logging, and alerting for the SQL instance.
+6. Validate that the application can connect to the SQL database successfully.
+
+## Risk/Dependency:
+
+* Azure subscription, resource group, and naming standards must be confirmed.
+* Network configuration, firewall rules, private endpoint, and VNet access may require infrastructure/security team support.
+* Service principal or managed identity access must be available.
+* Database sizing/SKU needs confirmation based on expected workload.
+* Dependency on DevOps/Terraform pipeline if provisioning is done through IaC.
+
+## Assumptions:
+
+* Azure SQL Database is the approved operational store for this application.
+* Database will be provisioned using standard enterprise security and naming conventions.
+* Access will be granted using managed identity/service principal where applicable.
+* Required environments such as Dev/Test/Prod will follow the same provisioning pattern.
+* Backup, monitoring, and alerting will follow enterprise standards.
+
+## Dev Notes:
+
+* Create Azure SQL Server and Azure SQL Database.
+* Configure database SKU, compute tier, storage, and region.
+* Configure private endpoint/firewall rules as required.
+* Add required users, roles, and service principal/managed identity access.
+* Enable diagnostic logs and monitoring.
+* Configure backup and retention policy.
+* Store connection details securely in Key Vault.
+* Provision using Terraform/ADO pipeline if required.
+
+## QA Notes:
+
+* Validate database instance is created successfully.
+* Validate application/backend service can connect to the database.
+* Validate required users/service principals have appropriate access.
+* Validate firewall/private endpoint connectivity.
+* Validate monitoring and diagnostic logs are enabled.
+* Validate backup policy is configured.
+* Validate database naming, tagging, and resource group placement follow standards.
+
+## Definition of Ready (DoR):
+
+* Azure subscription and resource group are confirmed.
+* Database naming convention is confirmed.
+* Required environment is identified.
+* SKU/sizing requirements are confirmed.
+* Network/security requirements are confirmed.
+* Access requirements are confirmed.
+* Terraform/ADO deployment approach is confirmed.
+
+## Definition of Done (DoD):
+
+* Azure SQL Database instance is provisioned successfully.
+* Required networking and security configurations are completed.
+* Required users/service principals/managed identities have access.
+* Connection string or secret is stored in Key Vault.
+* Monitoring, logging, backup, and alerting are enabled.
+* Connectivity from application/backend services is validated.
+* Deployment details are documented.
+* Story is reviewed and accepted by the technical owner.
+
+---
+
+For the title, I would slightly improve it to:
+
+**Create Azure SQL Database Instance for Application Operational Store**
