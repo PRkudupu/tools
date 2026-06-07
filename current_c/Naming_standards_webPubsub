@@ -1,0 +1,84 @@
+A practical, Azure-aligned naming convention you can adopt as-is:
+
+## Pattern
+`<resource-prefix>-<project/app>-<env>-<region>[-<instance>]`
+
+## Resource prefixes (Microsoft's recommended abbreviations)
+| Resource | Prefix |
+|---|---|
+| Resource Group | `rg` |
+| Service Bus Namespace | `sb` |
+| Web PubSub | `wps` |
+| Queue | (no prefix — use descriptive name) |
+| Topic | (no prefix — use descriptive name) |
+
+## Environment codes
+`dev`, `test`, `uat`, `prod`
+
+## Region codes (shorten to keep names compact)
+`eus` (East US), `wus` (West US), `weu` (West Europe), etc.
+
+## Examples by resource type
+
+**Resource Group:**
+`rg-orders-dev-eus`
+
+**Service Bus Namespace:**
+`sb-orders-dev-eus` (must be globally unique — append a short suffix if needed, e.g. `sb-orders-dev-eus-01`)
+
+**Web PubSub:**
+`wps-orders-dev-eus`
+
+**Queue** — pattern: `<domain>-<entity>-<action>-q`
+- `orders-payment-failed-q`
+- `inventory-stock-updated-q`
+
+**Topic** — pattern: `<domain>-<entity>-<event>-t`
+- `orders-created-t`
+- `shipment-status-changed-t`
+
+**Subscription** — pattern: `<topic-name>-<consumer/purpose>-sub`
+- `orders-created-t-billing-sub`
+- `orders-created-t-notifications-sub`
+
+## Rules to keep consistent
+- All lowercase, hyphen-separated (no spaces, no underscores, no camelCase)
+- Keep names descriptive but short — Service Bus names max 50 chars (namespace), 260 chars (queue/topic), but readability matters more than the limit
+- No environment code in queue/topic/subscription names — environment is already scoped by which namespace they live in
+- Be consistent on domain/entity terms across the team (agree on a short glossary, e.g. "orders" not "order" vs "Orders")
+
+  1. Define Queue and Topic Naming Standards
+
+Goal: Create a consistent naming pattern before resources are created.
+
+Recommended naming format:
+
+<env>-<app/domain>-<resource-purpose>
+
+Example:
+
+dev-agent-queue-ticket-events
+dev-agent-topic-notifications
+test-agent-subscription-ui-updates
+prod-agent-queue-processing
+
+Suggested standards:
+
+Resource	Naming Example
+Service Bus Namespace	dev-agent-sbns-001
+Queue	dev-agent-queue-ticket-processing
+Topic	dev-agent-topic-notifications
+Subscription	dev-agent-sub-ui-notifications
+Web PubSub	dev-agent-wps-001
+
+Acceptance criteria:
+
+The team agrees on naming standards for Dev/Test/Prod.
+
+Naming standard is documented in the story/task notes.
+
+Queue, topic, and subscription names are finalized before creation.
+
+
+  
+Want me to apply this convention to your actual queues/topics list and produce the final names ready for the ServiceNow request?
