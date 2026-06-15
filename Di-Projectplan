@@ -1,0 +1,871 @@
+Below is the **consolidated backlog** with **Features → Stories → Tickets** for the **Decision Intelligence AI Platform**.
+
+---
+
+# EPIC: Decision Intelligence AI Platform
+
+## Feature 1: Security & API Access Layer
+
+### Story 1.1: Configure secure API entry point
+
+| Ticket     | Task                                                             |
+| ---------- | ---------------------------------------------------------------- |
+| DI-SEC-101 | Create API Gateway / APIM resource                               |
+| DI-SEC-102 | Configure OAuth2 / OIDC authentication                           |
+| DI-SEC-103 | Configure API routing for backend, agent, and reporting services |
+| DI-SEC-104 | Enable request / response logging                                |
+| DI-SEC-105 | Validate 401 / 403 unauthorized access scenarios                 |
+
+### Story 1.2: Configure firewall and service access control
+
+| Ticket     | Task                                                   |
+| ---------- | ------------------------------------------------------ |
+| DI-SEC-106 | Configure application firewall rules                   |
+| DI-SEC-107 | Configure managed identity or service principal access |
+| DI-SEC-108 | Restrict backend service access to approved identities |
+| DI-SEC-109 | Validate service-to-service authentication             |
+| DI-SEC-110 | Document access control model                          |
+
+---
+
+## Feature 2: Frontend React Migration
+
+### Story 2.1: Convert existing JavaScript UI to React.js
+
+| Ticket    | Task                                                          |
+| --------- | ------------------------------------------------------------- |
+| DI-FE-201 | Review existing JavaScript UI and identify screens/components |
+| DI-FE-202 | Create React.js project structure                             |
+| DI-FE-203 | Convert layout, header, navigation, and shared components     |
+| DI-FE-204 | Convert conversation/chat screen to React                     |
+| DI-FE-205 | Integrate React app with backend Conversation API             |
+| DI-FE-206 | Integrate React app with Web PubSub / WebSocket streaming     |
+| DI-FE-207 | Add environment-based config for Dev / QA / Prod              |
+| DI-FE-208 | Perform React UI regression testing                           |
+| DI-FE-209 | Fix React migration defects                                   |
+
+---
+
+## Feature 3: Conversational AI Runtime
+
+### Story 3.1: Implement conversation manager service
+
+| Ticket    | Task                                                     |
+| --------- | -------------------------------------------------------- |
+| DI-BE-301 | Create FastAPI conversation endpoint                     |
+| DI-BE-302 | Define request / response contract                       |
+| DI-BE-303 | Add session ID and user context handling                 |
+| DI-BE-304 | Forward request to agent orchestrator                    |
+| DI-BE-305 | Add exception handling and standard error response model |
+| DI-BE-306 | Unit test conversation endpoint                          |
+
+### Story 3.2: Integrate Web PubSub for streaming responses
+
+| Ticket    | Task                                       |
+| --------- | ------------------------------------------ |
+| DI-BE-307 | Create Web PubSub resource                 |
+| DI-BE-308 | Implement backend publish-to-channel logic |
+| DI-BE-309 | Add session-to-channel mapping             |
+| DI-BE-310 | Stream agent response chunks to browser    |
+| DI-BE-311 | Validate streaming response flow           |
+
+### Story 3.3: Configure Service Bus for async backend processing
+
+| Ticket    | Task                                       |
+| --------- | ------------------------------------------ |
+| DI-BE-312 | Create Service Bus namespace               |
+| DI-BE-313 | Create queue/topic for AI runtime requests |
+| DI-BE-314 | Define async message schema                |
+| DI-BE-315 | Configure retry and dead-letter policy     |
+| DI-BE-316 | Build producer/consumer POC                |
+| DI-BE-317 | Validate failed message handling           |
+
+---
+
+## Feature 4: AI as a Feature Enablement
+
+### Story 4.1: Define AI feature framework
+
+| Ticket     | Task                                                                                          |
+| ---------- | --------------------------------------------------------------------------------------------- |
+| DI-AIF-401 | Define AI feature catalog structure                                                           |
+| DI-AIF-402 | Identify initial AI features: chat, insights, summarization, recommendation, report assistant |
+| DI-AIF-403 | Define metadata: name, description, owner, status, risk level, dependencies                   |
+| DI-AIF-404 | Define AI feature enablement flags by environment                                             |
+| DI-AIF-405 | Create AI feature configuration table in SQL Server                                           |
+| DI-AIF-406 | Implement backend API to read enabled AI features                                             |
+| DI-AIF-407 | Add feature-level authorization checks                                                        |
+| DI-AIF-408 | Add feature-level audit logging                                                               |
+| DI-AIF-409 | Document AI feature onboarding process                                                        |
+
+### Story 4.2: Add AI feature toggle support
+
+| Ticket     | Task                                                 |
+| ---------- | ---------------------------------------------------- |
+| DI-AIF-410 | Define feature toggle model for Dev / QA / Prod      |
+| DI-AIF-411 | Add SQL Server tables for feature toggles            |
+| DI-AIF-412 | Implement feature toggle service                     |
+| DI-AIF-413 | Add user group / role-based toggle logic             |
+| DI-AIF-414 | Integrate feature toggle check into Conversation API |
+| DI-AIF-415 | Integrate feature toggle check into Agent Runtime    |
+| DI-AIF-416 | Add tests for enabled/disabled feature scenarios     |
+| DI-AIF-417 | Document feature toggle management process           |
+
+---
+
+## Feature 5: Agent Orchestration Runtime
+
+### Story 5.1: Build agent planner, router, and executor
+
+| Ticket     | Task                                       |
+| ---------- | ------------------------------------------ |
+| DI-AGT-501 | Create agent orchestrator service skeleton |
+| DI-AGT-502 | Implement planner component                |
+| DI-AGT-503 | Implement router component                 |
+| DI-AGT-504 | Implement executor component               |
+| DI-AGT-505 | Add agent memory/session context handling  |
+| DI-AGT-506 | Add agent execution trace logging          |
+| DI-AGT-507 | Unit test planner-router-executor flow     |
+
+### Story 5.2: Add tool and API calling capability
+
+| Ticket     | Task                                   |
+| ---------- | -------------------------------------- |
+| DI-AGT-508 | Define tool registry design            |
+| DI-AGT-509 | Implement tool invocation interface    |
+| DI-AGT-510 | Add tool input/output validation       |
+| DI-AGT-511 | Add tool error handling                |
+| DI-AGT-512 | Create sample operational SQL tool     |
+| DI-AGT-513 | Create sample Snowflake analytics tool |
+
+---
+
+## Feature 6: Agent Registry System
+
+### Story 6.1: Create agent registry data model
+
+| Ticket     | Task                                                                                              |
+| ---------- | ------------------------------------------------------------------------------------------------- |
+| DI-REG-601 | Define agent registry data model                                                                  |
+| DI-REG-602 | Create SQL Server tables for agent registry                                                       |
+| DI-REG-603 | Add fields for agent name, description, owner, version, status, domain, tools, model, permissions |
+| DI-REG-604 | Add lifecycle statuses: Draft, Active, Deprecated, Retired                                        |
+| DI-REG-605 | Add agent versioning model                                                                        |
+| DI-REG-606 | Add agent-to-tool mapping table                                                                   |
+| DI-REG-607 | Add agent-to-feature mapping table                                                                |
+| DI-REG-608 | Add migration scripts for registry schema                                                         |
+
+### Story 6.2: Implement agent registry APIs
+
+| Ticket     | Task                                          |
+| ---------- | --------------------------------------------- |
+| DI-REG-609 | Create Agent Registry API service             |
+| DI-REG-610 | Implement register-agent endpoint             |
+| DI-REG-611 | Implement update-agent endpoint               |
+| DI-REG-612 | Implement get-agent-by-id endpoint            |
+| DI-REG-613 | Implement list-agents endpoint with filters   |
+| DI-REG-614 | Implement get-active-agent-version endpoint   |
+| DI-REG-615 | Add validation for required registry metadata |
+| DI-REG-616 | Add registry API unit tests                   |
+| DI-REG-617 | Add registry API integration tests            |
+
+### Story 6.3: Integrate agent registry with runtime orchestrator
+
+| Ticket     | Task                                                         |
+| ---------- | ------------------------------------------------------------ |
+| DI-REG-618 | Update agent orchestrator to retrieve metadata from registry |
+| DI-REG-619 | Load agent tool configuration from registry                  |
+| DI-REG-620 | Load model endpoint configuration from registry              |
+| DI-REG-621 | Load prompt/template reference from registry                 |
+| DI-REG-622 | Add registry cache for active agents                         |
+| DI-REG-623 | Add fallback behavior when metadata is unavailable           |
+| DI-REG-624 | Validate runtime execution using registered agent            |
+
+---
+
+## Feature 7: Agent Card Implementation
+
+### Story 7.1: Define Agent Card schema
+
+| Ticket       | Task                                                                                           |
+| ------------ | ---------------------------------------------------------------------------------------------- |
+| DI-ACARD-701 | Define Agent Card schema                                                                       |
+| DI-ACARD-702 | Add fields for identity, description, owner, contact, capabilities, tools, model, data sources |
+| DI-ACARD-703 | Add fields for auth requirements, input/output schema, risk level, compliance notes            |
+| DI-ACARD-704 | Add fields for version, release date, lifecycle status, changelog                              |
+| DI-ACARD-705 | Create JSON schema for Agent Card validation                                                   |
+| DI-ACARD-706 | Review schema with architecture/security stakeholders                                          |
+| DI-ACARD-707 | Document Agent Card standard                                                                   |
+
+### Story 7.2: Implement Agent Card generation and retrieval
+
+| Ticket       | Task                                                      |
+| ------------ | --------------------------------------------------------- |
+| DI-ACARD-708 | Create Agent Card storage model in SQL Server             |
+| DI-ACARD-709 | Implement Agent Card generator from registry metadata     |
+| DI-ACARD-710 | Implement get-agent-card endpoint                         |
+| DI-ACARD-711 | Implement list-agent-cards endpoint                       |
+| DI-ACARD-712 | Add Agent Card JSON schema validation                     |
+| DI-ACARD-713 | Add Agent Card version support                            |
+| DI-ACARD-714 | Add sample Agent Card for Decision Intelligence Assistant |
+| DI-ACARD-715 | Add unit tests for Agent Card generation                  |
+| DI-ACARD-716 | Add API tests for Agent Card retrieval                    |
+
+### Story 7.3: Display Agent Card in React UI
+
+| Ticket       | Task                                                |
+| ------------ | --------------------------------------------------- |
+| DI-ACARD-717 | Design Agent Card UI component in React             |
+| DI-ACARD-718 | Add Agent Card API integration in React             |
+| DI-ACARD-719 | Display capabilities, tools, limitations, and owner |
+| DI-ACARD-720 | Display agent version and lifecycle status          |
+| DI-ACARD-721 | Add loading and error states                        |
+| DI-ACARD-722 | Add UI regression test for Agent Card component     |
+
+---
+
+## Feature 8: A2A — Agent-to-Agent Communication Support
+
+### Story 8.1: Define A2A architecture and communication model
+
+| Ticket     | Task                                                                                              |
+| ---------- | ------------------------------------------------------------------------------------------------- |
+| DI-A2A-801 | Define A2A architecture pattern                                                                   |
+| DI-A2A-802 | Identify supported agent communication scenarios                                                  |
+| DI-A2A-803 | Define agent-to-agent request/response contract                                                   |
+| DI-A2A-804 | Define A2A message envelope with agent ID, task ID, trace ID, context, payload, response metadata |
+| DI-A2A-805 | Define sync vs async A2A communication patterns                                                   |
+| DI-A2A-806 | Define security model for agent-to-agent calls                                                    |
+| DI-A2A-807 | Document A2A interaction flows                                                                    |
+
+### Story 8.2: Implement A2A communication service
+
+| Ticket     | Task                                                      |
+| ---------- | --------------------------------------------------------- |
+| DI-A2A-808 | Create A2A communication service skeleton                 |
+| DI-A2A-809 | Implement call-agent API endpoint                         |
+| DI-A2A-810 | Implement agent response handling                         |
+| DI-A2A-811 | Add request validation for A2A payloads                   |
+| DI-A2A-812 | Add timeout and retry handling                            |
+| DI-A2A-813 | Add error handling for unavailable or unauthorized agents |
+| DI-A2A-814 | Add A2A response aggregation support                      |
+| DI-A2A-815 | Unit test A2A communication service                       |
+
+### Story 8.3: Integrate A2A with Agent Registry and Agent Card
+
+| Ticket     | Task                                                   |
+| ---------- | ------------------------------------------------------ |
+| DI-A2A-816 | Add A2A capability flag to Agent Registry              |
+| DI-A2A-817 | Add allowed caller-agent and target-agent mapping      |
+| DI-A2A-818 | Add supported A2A actions to agent metadata            |
+| DI-A2A-819 | Validate target agent lifecycle status before A2A call |
+| DI-A2A-820 | Validate caller permissions before A2A call            |
+| DI-A2A-821 | Add A2A capability section to Agent Card schema        |
+| DI-A2A-822 | Update Agent Card API to expose A2A metadata           |
+| DI-A2A-823 | Test registry-controlled A2A execution                 |
+
+### Story 8.4: Add asynchronous A2A using Service Bus
+
+| Ticket     | Task                                          |
+| ---------- | --------------------------------------------- |
+| DI-A2A-824 | Define async A2A message schema               |
+| DI-A2A-825 | Create Service Bus queue/topic for A2A tasks  |
+| DI-A2A-826 | Implement A2A message producer                |
+| DI-A2A-827 | Implement A2A message consumer                |
+| DI-A2A-828 | Add task status tracking in SQL Server        |
+| DI-A2A-829 | Add dead-letter handling for failed A2A tasks |
+| DI-A2A-830 | Add retry and backoff policy                  |
+| DI-A2A-831 | Validate async A2A workflow end to end        |
+
+### Story 8.5: Add A2A tests to Agent CI/CD
+
+| Ticket     | Task                                             |
+| ---------- | ------------------------------------------------ |
+| DI-A2A-832 | Add A2A contract validation to Agent CI/CD       |
+| DI-A2A-833 | Add Agent Card A2A schema validation to pipeline |
+| DI-A2A-834 | Add mock target-agent tests                      |
+| DI-A2A-835 | Add multi-agent regression test cases            |
+| DI-A2A-836 | Add negative tests for unauthorized A2A calls    |
+| DI-A2A-837 | Add timeout/failure scenario tests               |
+| DI-A2A-838 | Add QA A2A validation gate                       |
+| DI-A2A-839 | Document A2A CI/CD validation process            |
+
+---
+
+## Feature 9: RAG Pipeline and Knowledge Layer
+
+### Story 9.1: Build retrieval and augmentation flow
+
+| Ticket     | Task                                 |
+| ---------- | ------------------------------------ |
+| DI-RAG-901 | Define RAG request/response model    |
+| DI-RAG-902 | Implement retrieval service          |
+| DI-RAG-903 | Implement context augmentation logic |
+| DI-RAG-904 | Integrate with vector search/index   |
+| DI-RAG-905 | Add source metadata to response      |
+| DI-RAG-906 | Test RAG flow with sample documents  |
+
+### Story 9.2: Connect enterprise knowledge sources
+
+| Ticket     | Task                                   |
+| ---------- | -------------------------------------- |
+| DI-RAG-907 | Identify approved knowledge sources    |
+| DI-RAG-908 | Build document ingestion POC           |
+| DI-RAG-909 | Generate embeddings for sample content |
+| DI-RAG-910 | Store embeddings in vector index       |
+| DI-RAG-911 | Validate document-level access control |
+
+---
+
+## Feature 10: LLM Gateway
+
+### Story 10.1: Build prompt and context processing layer
+
+| Ticket      | Task                              |
+| ----------- | --------------------------------- |
+| DI-LLM-1001 | Create prompt manager component   |
+| DI-LLM-1002 | Create context builder component  |
+| DI-LLM-1003 | Add prompt template configuration |
+| DI-LLM-1004 | Add prompt versioning structure   |
+| DI-LLM-1005 | Unit test prompt assembly         |
+
+### Story 10.2: Add guardrails and PII masking
+
+| Ticket      | Task                                |
+| ----------- | ----------------------------------- |
+| DI-LLM-1006 | Implement input guardrails          |
+| DI-LLM-1007 | Implement output guardrails         |
+| DI-LLM-1008 | Implement PII detection and masking |
+| DI-LLM-1009 | Add policy violation logging        |
+| DI-LLM-1010 | Test unsafe input/output scenarios  |
+
+### Story 10.3: Integrate model endpoints
+
+| Ticket      | Task                                          |
+| ----------- | --------------------------------------------- |
+| DI-LLM-1011 | Create LLM provider interface                 |
+| DI-LLM-1012 | Integrate Azure OpenAI / GPT endpoint         |
+| DI-LLM-1013 | Add Databricks model serving endpoint support |
+| DI-LLM-1014 | Configure timeout/retry policy                |
+| DI-LLM-1015 | Test model endpoint response flow             |
+
+---
+
+## Feature 11: Operational SQL Server Layer
+
+### Story 11.1: Move application resources and operational data to SQL Server
+
+| Ticket      | Task                                                                               |
+| ----------- | ---------------------------------------------------------------------------------- |
+| DI-SQL-1101 | Identify resources/data currently stored outside SQL Server                        |
+| DI-SQL-1102 | Define SQL Server operational data model                                           |
+| DI-SQL-1103 | Create SQL Server database/schema                                                  |
+| DI-SQL-1104 | Create tables for conversations, sessions, users, agent runs, tool calls, feedback |
+| DI-SQL-1105 | Create tables for app configuration and runtime resources                          |
+| DI-SQL-1106 | Create migration scripts for existing resources/data                               |
+| DI-SQL-1107 | Move existing app resources/configuration to SQL Server                            |
+| DI-SQL-1108 | Update backend services to read/write from SQL Server                              |
+| DI-SQL-1109 | Add indexing strategy for low-latency app queries                                  |
+| DI-SQL-1110 | Validate application behavior after migration                                      |
+
+### Story 11.2: Implement SQL Server access layer
+
+| Ticket      | Task                                                 |
+| ----------- | ---------------------------------------------------- |
+| DI-SQL-1111 | Configure SQL Server connection using secure secrets |
+| DI-SQL-1112 | Store credentials/config in Key Vault                |
+| DI-SQL-1113 | Implement SQL repository/data access layer           |
+| DI-SQL-1114 | Add connection pooling                               |
+| DI-SQL-1115 | Add query timeout and retry policy                   |
+| DI-SQL-1116 | Add read/write service methods for runtime metadata  |
+| DI-SQL-1117 | Add SQL Server integration tests                     |
+
+### Story 11.3: Validate SQL Server migration
+
+| Ticket      | Task                                                 |
+| ----------- | ---------------------------------------------------- |
+| DI-SQL-1118 | Create migration validation checklist                |
+| DI-SQL-1119 | Compare source data count vs SQL Server target count |
+| DI-SQL-1120 | Validate migrated resource metadata                  |
+| DI-SQL-1121 | Validate app configuration loaded from SQL Server    |
+| DI-SQL-1122 | Validate conversation/session data persistence       |
+| DI-SQL-1123 | Validate rollback process for migration              |
+| DI-SQL-1124 | Document migration results                           |
+
+---
+
+## Feature 12: Backup and Sync from Operational Layer to Snowflake
+
+### Story 12.1: Design SQL Server to Snowflake backup strategy
+
+| Ticket     | Task                                                               |
+| ---------- | ------------------------------------------------------------------ |
+| DI-SF-1201 | Identify operational SQL Server tables for Snowflake backup        |
+| DI-SF-1202 | Define backup frequency: batch, CDC, or scheduled incremental load |
+| DI-SF-1203 | Define Snowflake target schema and table design                    |
+| DI-SF-1204 | Define data retention policy                                       |
+| DI-SF-1205 | Define PII/security masking rules for Snowflake                    |
+| DI-SF-1206 | Document SQL Server to Snowflake backup design                     |
+
+### Story 12.2: Build SQL Server to Snowflake backup pipeline
+
+| Ticket     | Task                                          |
+| ---------- | --------------------------------------------- |
+| DI-SF-1207 | Configure secure SQL Server source connection |
+| DI-SF-1208 | Configure secure Snowflake target connection  |
+| DI-SF-1209 | Build initial full-load pipeline              |
+| DI-SF-1210 | Build incremental load or CDC pipeline        |
+| DI-SF-1211 | Add watermark/change tracking logic           |
+| DI-SF-1212 | Add transformation/mapping logic              |
+| DI-SF-1213 | Add duplicate handling and idempotency logic  |
+| DI-SF-1214 | Schedule pipeline execution                   |
+| DI-SF-1215 | Add pipeline failure alerting                 |
+
+### Story 12.3: Validate Snowflake backup and reconciliation
+
+| Ticket     | Task                                                  |
+| ---------- | ----------------------------------------------------- |
+| DI-SF-1216 | Create SQL Server to Snowflake reconciliation queries |
+| DI-SF-1217 | Validate row counts between SQL Server and Snowflake  |
+| DI-SF-1218 | Validate key business columns                         |
+| DI-SF-1219 | Validate incremental load correctness                 |
+| DI-SF-1220 | Validate late-arriving or updated records             |
+| DI-SF-1221 | Validate Snowflake access controls                    |
+| DI-SF-1222 | Document reconciliation results                       |
+
+---
+
+## Feature 13: AI Insights and Reporting Runtime
+
+### Story 13.1: Build reporting and insight API service
+
+| Ticket      | Task                                  |
+| ----------- | ------------------------------------- |
+| DI-RPT-1301 | Create insight API endpoint           |
+| DI-RPT-1302 | Define report request/response model  |
+| DI-RPT-1303 | Connect API to structured query layer |
+| DI-RPT-1304 | Format insight response payload       |
+| DI-RPT-1305 | Unit test insight API                 |
+
+### Story 13.2: Add KPI cache read/write
+
+| Ticket      | Task                                   |
+| ----------- | -------------------------------------- |
+| DI-RPT-1306 | Create Redis cache resource            |
+| DI-RPT-1307 | Implement KPI cache read/write helper  |
+| DI-RPT-1308 | Define TTL strategy for KPIs           |
+| DI-RPT-1309 | Add cache miss fallback logic          |
+| DI-RPT-1310 | Validate cache performance improvement |
+
+---
+
+## Feature 14: Feedback Mechanism
+
+### Story 14.1: Capture user feedback on AI responses
+
+| Ticket       | Task                                                                                             |
+| ------------ | ------------------------------------------------------------------------------------------------ |
+| DI-FDBK-1401 | Define feedback data model                                                                       |
+| DI-FDBK-1402 | Create SQL Server feedback table                                                                 |
+| DI-FDBK-1403 | Add feedback fields: response ID, conversation ID, user ID, rating, comment, category, timestamp |
+| DI-FDBK-1404 | Implement submit-feedback API                                                                    |
+| DI-FDBK-1405 | Add thumbs up/down UI in React                                                                   |
+| DI-FDBK-1406 | Add optional comment box for feedback                                                            |
+| DI-FDBK-1407 | Link feedback to agent run ID and LLM trace ID                                                   |
+| DI-FDBK-1408 | Validate feedback submission from UI to backend                                                  |
+| DI-FDBK-1409 | Add feedback API unit tests                                                                      |
+
+### Story 14.2: Build feedback review and analytics support
+
+| Ticket       | Task                                                                                            |
+| ------------ | ----------------------------------------------------------------------------------------------- |
+| DI-FDBK-1410 | Add feedback category values: helpful, incorrect, incomplete, unsafe, slow, hallucinated, other |
+| DI-FDBK-1411 | Create feedback export/query view                                                               |
+| DI-FDBK-1412 | Add feedback data to SQL Server to Snowflake backup scope                                       |
+| DI-FDBK-1413 | Create Snowflake feedback analytics table                                                       |
+| DI-FDBK-1414 | Create feedback reconciliation checks                                                           |
+| DI-FDBK-1415 | Create dashboard-ready feedback view                                                            |
+| DI-FDBK-1416 | Document feedback review process                                                                |
+
+### Story 14.3: Add feedback loop for agent evaluation
+
+| Ticket       | Task                                               |
+| ------------ | -------------------------------------------------- |
+| DI-FDBK-1417 | Link feedback records to agent evaluation dataset  |
+| DI-FDBK-1418 | Create process to sample low-rated responses       |
+| DI-FDBK-1419 | Add feedback examples to agent regression test set |
+| DI-FDBK-1420 | Define quality metrics for agent improvement       |
+| DI-FDBK-1421 | Add feedback quality checks to Agent CI/CD         |
+| DI-FDBK-1422 | Document human review and approval process         |
+
+---
+
+## Feature 15: Logging, Observability, and Audit
+
+### Story 15.1: Implement structured application logging
+
+| Ticket      | Task                                                        |
+| ----------- | ----------------------------------------------------------- |
+| DI-LOG-1501 | Define structured logging standard                          |
+| DI-LOG-1502 | Add correlation ID and request ID to logs                   |
+| DI-LOG-1503 | Implement logging middleware in backend APIs                |
+| DI-LOG-1504 | Add request start/end, status code, and latency logs        |
+| DI-LOG-1505 | Add error and exception logging                             |
+| DI-LOG-1506 | Add environment, service name, and version metadata to logs |
+| DI-LOG-1507 | Mask sensitive values in logs                               |
+| DI-LOG-1508 | Validate logs in Dev environment                            |
+
+### Story 15.2: Implement agent, A2A, and LLM execution logging
+
+| Ticket      | Task                                                             |
+| ----------- | ---------------------------------------------------------------- |
+| DI-LOG-1509 | Log agent run start and completion events                        |
+| DI-LOG-1510 | Log planner decision events                                      |
+| DI-LOG-1511 | Log router selection events                                      |
+| DI-LOG-1512 | Log tool invocation events                                       |
+| DI-LOG-1513 | Log tool response status and latency                             |
+| DI-LOG-1514 | Log LLM provider, model name, token usage, and latency           |
+| DI-LOG-1515 | Log RAG retrieval metadata                                       |
+| DI-LOG-1516 | Log guardrail pass/fail events                                   |
+| DI-LOG-1517 | Log A2A request and response events                              |
+| DI-LOG-1518 | Log caller-agent and target-agent metadata                       |
+| DI-LOG-1519 | Log A2A failures, retries, and timeouts                          |
+| DI-LOG-1520 | Validate full trace across conversation → agent → A2A/tool → LLM |
+
+### Story 15.3: Centralize logs and create dashboards
+
+| Ticket      | Task                                                      |
+| ----------- | --------------------------------------------------------- |
+| DI-LOG-1521 | Configure centralized log sink                            |
+| DI-LOG-1522 | Configure backend service logs to observability platform  |
+| DI-LOG-1523 | Configure agent runtime logs to observability platform    |
+| DI-LOG-1524 | Configure Data Engineering pipeline logs                  |
+| DI-LOG-1525 | Configure Data Science pipeline logs                      |
+| DI-LOG-1526 | Configure frontend error logging                          |
+| DI-LOG-1527 | Create API health dashboard                               |
+| DI-LOG-1528 | Create agent execution dashboard                          |
+| DI-LOG-1529 | Create A2A communication dashboard                        |
+| DI-LOG-1530 | Create LLM usage and latency dashboard                    |
+| DI-LOG-1531 | Create data pipeline monitoring dashboard                 |
+| DI-LOG-1532 | Configure alert rules for failures and latency thresholds |
+
+### Story 15.4: Add audit logging and governance controls
+
+| Ticket      | Task                                                 |
+| ----------- | ---------------------------------------------------- |
+| DI-AUD-1533 | Define audit log schema                              |
+| DI-AUD-1534 | Implement audit logging middleware                   |
+| DI-AUD-1535 | Add data-access audit events                         |
+| DI-AUD-1536 | Add model-call audit events                          |
+| DI-AUD-1537 | Add agent-action audit events                        |
+| DI-AUD-1538 | Add A2A audit events                                 |
+| DI-AUD-1539 | Validate sensitive data is not written to audit logs |
+
+---
+
+## Feature 16: Backend CI/CD Pipeline
+
+### Story 16.1: Create backend CI/CD pipeline
+
+| Ticket          | Task                                            |
+| --------------- | ----------------------------------------------- |
+| DI-CICD-BE-1601 | Create backend repo structure                   |
+| DI-CICD-BE-1602 | Create backend build pipeline                   |
+| DI-CICD-BE-1603 | Add backend unit test execution                 |
+| DI-CICD-BE-1604 | Deploy backend services to Dev                  |
+| DI-CICD-BE-1605 | Deploy backend services to QA                   |
+| DI-CICD-BE-1606 | Add QA validation gate                          |
+| DI-CICD-BE-1607 | Add production approval gate                    |
+| DI-CICD-BE-1608 | Deploy backend services to Production           |
+| DI-CICD-BE-1609 | Configure backend environment variables/secrets |
+| DI-CICD-BE-1610 | Document backend rollback process               |
+
+---
+
+## Feature 17: Frontend CI/CD Pipeline
+
+### Story 17.1: Create frontend React CI/CD pipeline
+
+| Ticket          | Task                                       |
+| --------------- | ------------------------------------------ |
+| DI-CICD-FE-1701 | Create frontend build pipeline             |
+| DI-CICD-FE-1702 | Add React lint and unit test steps         |
+| DI-CICD-FE-1703 | Configure Dev environment variables        |
+| DI-CICD-FE-1704 | Configure QA environment variables         |
+| DI-CICD-FE-1705 | Configure Production environment variables |
+| DI-CICD-FE-1706 | Deploy React app to Dev                    |
+| DI-CICD-FE-1707 | Deploy React app to QA                     |
+| DI-CICD-FE-1708 | Add production approval gate               |
+| DI-CICD-FE-1709 | Deploy React app to Production             |
+| DI-CICD-FE-1710 | Validate frontend smoke test               |
+
+---
+
+## Feature 18: Agent CI/CD Pipeline
+
+### Story 18.1: Create Agent CI/CD pipeline
+
+| Ticket           | Task                                        |
+| ---------------- | ------------------------------------------- |
+| DI-CICD-AGT-1801 | Define agent repo/folder structure          |
+| DI-CICD-AGT-1802 | Create agent build pipeline                 |
+| DI-CICD-AGT-1803 | Add lint and unit test steps for agent code |
+| DI-CICD-AGT-1804 | Add prompt validation step                  |
+| DI-CICD-AGT-1805 | Add tool contract validation step           |
+| DI-CICD-AGT-1806 | Add Agent Card schema validation            |
+| DI-CICD-AGT-1807 | Add A2A contract validation                 |
+| DI-CICD-AGT-1808 | Add agent evaluation test cases             |
+| DI-CICD-AGT-1809 | Add feedback quality checks                 |
+| DI-CICD-AGT-1810 | Package agent artifacts/configs             |
+| DI-CICD-AGT-1811 | Deploy agent runtime/config to Dev          |
+| DI-CICD-AGT-1812 | Deploy agent runtime/config to QA           |
+| DI-CICD-AGT-1813 | Run QA agent regression tests               |
+| DI-CICD-AGT-1814 | Add production approval gate                |
+| DI-CICD-AGT-1815 | Deploy agent runtime/config to Production   |
+| DI-CICD-AGT-1816 | Document agent CI/CD release process        |
+
+---
+
+## Feature 19: Data Science CI/CD Pipeline
+
+### Story 19.1: Create Data Science CI/CD pipeline
+
+| Ticket          | Task                                    |
+| --------------- | --------------------------------------- |
+| DI-CICD-DS-1901 | Define Data Science pipeline structure  |
+| DI-CICD-DS-1902 | Configure DS build pipeline             |
+| DI-CICD-DS-1903 | Add notebook/model validation step      |
+| DI-CICD-DS-1904 | Add prompt/template validation step     |
+| DI-CICD-DS-1905 | Register model artifact or MLflow model |
+| DI-CICD-DS-1906 | Deploy model endpoint to Dev            |
+| DI-CICD-DS-1907 | Deploy model endpoint to QA             |
+| DI-CICD-DS-1908 | Add production approval gate            |
+| DI-CICD-DS-1909 | Deploy model endpoint to Production     |
+| DI-CICD-DS-1910 | Document DS CI/CD process               |
+
+---
+
+## Feature 20: Data Engineering CI/CD Pipeline
+
+### Story 20.1: Create Data Engineering CI/CD pipeline
+
+| Ticket          | Task                                       |
+| --------------- | ------------------------------------------ |
+| DI-CICD-DE-2001 | Define Data Engineering pipeline structure |
+| DI-CICD-DE-2002 | Configure DE build pipeline                |
+| DI-CICD-DE-2003 | Add unit tests for pipeline logic          |
+| DI-CICD-DE-2004 | Add schema validation step                 |
+| DI-CICD-DE-2005 | Add data quality validation step           |
+| DI-CICD-DE-2006 | Deploy DE jobs/workflows to Dev            |
+| DI-CICD-DE-2007 | Deploy DE jobs/workflows to QA             |
+| DI-CICD-DE-2008 | Execute QA data validation tests           |
+| DI-CICD-DE-2009 | Add production approval gate               |
+| DI-CICD-DE-2010 | Deploy DE jobs/workflows to Production     |
+| DI-CICD-DE-2011 | Document DE CI/CD process                  |
+
+---
+
+## Feature 21: QA Deployment and Testing
+
+### Story 21.1: Deploy platform to QA
+
+| Ticket     | Task                                          |
+| ---------- | --------------------------------------------- |
+| DI-QA-2101 | Create QA environment configuration           |
+| DI-QA-2102 | Configure QA secrets and Key Vault references |
+| DI-QA-2103 | Deploy backend API service to QA              |
+| DI-QA-2104 | Deploy React frontend to QA                   |
+| DI-QA-2105 | Deploy agent runtime/config to QA             |
+| DI-QA-2106 | Deploy Web PubSub configuration to QA         |
+| DI-QA-2107 | Deploy Service Bus configuration to QA        |
+| DI-QA-2108 | Configure QA API Gateway/APIM routes          |
+| DI-QA-2109 | Validate QA deployment smoke test             |
+
+### Story 21.2: Perform QA testing
+
+| Ticket     | Task                                          |
+| ---------- | --------------------------------------------- |
+| DI-QA-2110 | Create QA test plan                           |
+| DI-QA-2111 | Create API test cases                         |
+| DI-QA-2112 | Test conversation API in QA                   |
+| DI-QA-2113 | Test React UI in QA                           |
+| DI-QA-2114 | Test Web PubSub streaming in QA               |
+| DI-QA-2115 | Test Service Bus async processing in QA       |
+| DI-QA-2116 | Test LLM gateway integration in QA            |
+| DI-QA-2117 | Test agent planner/router/executor flow in QA |
+| DI-QA-2118 | Test Agent Registry and Agent Card in QA      |
+| DI-QA-2119 | Test A2A communication in QA                  |
+| DI-QA-2120 | Test SQL Server operational data flow in QA   |
+| DI-QA-2121 | Test SQL Server to Snowflake backup in QA     |
+| DI-QA-2122 | Test feedback mechanism in QA                 |
+| DI-QA-2123 | Test authentication and authorization in QA   |
+| DI-QA-2124 | Perform regression testing                    |
+| DI-QA-2125 | Log and triage QA defects                     |
+| DI-QA-2126 | Retest fixed QA defects                       |
+
+---
+
+## Feature 22: AI Feature Governance and Approval
+
+### Story 22.1: Add AI feature approval workflow
+
+| Ticket      | Task                                                            |
+| ----------- | --------------------------------------------------------------- |
+| DI-GOV-2201 | Define AI feature approval checklist                            |
+| DI-GOV-2202 | Add risk classification for each AI feature                     |
+| DI-GOV-2203 | Add required review fields to AI feature catalog                |
+| DI-GOV-2204 | Add approval status: Pending, Approved, Rejected, Needs Changes |
+| DI-GOV-2205 | Link approval status to production feature enablement           |
+| DI-GOV-2206 | Document AI feature release governance process                  |
+
+---
+
+## Feature 23: Production Deployment
+
+### Story 23.1: Prepare production release
+
+| Ticket       | Task                                       |
+| ------------ | ------------------------------------------ |
+| DI-PROD-2301 | Create production release checklist        |
+| DI-PROD-2302 | Review production configuration            |
+| DI-PROD-2303 | Validate production secrets and access     |
+| DI-PROD-2304 | Create rollback plan                       |
+| DI-PROD-2305 | Configure production monitoring and alerts |
+| DI-PROD-2306 | Obtain production deployment approval      |
+| DI-PROD-2307 | Confirm deployment window and support team |
+
+### Story 23.2: Deploy platform to Production
+
+| Ticket       | Task                                                         |
+| ------------ | ------------------------------------------------------------ |
+| DI-PROD-2308 | Deploy backend API service to Production                     |
+| DI-PROD-2309 | Deploy React frontend to Production                          |
+| DI-PROD-2310 | Deploy agent runtime/config to Production                    |
+| DI-PROD-2311 | Deploy LLM gateway configuration to Production               |
+| DI-PROD-2312 | Deploy SQL Server migration changes to Production            |
+| DI-PROD-2313 | Deploy SQL Server to Snowflake backup pipeline to Production |
+| DI-PROD-2314 | Validate production API Gateway/APIM routes                  |
+| DI-PROD-2315 | Validate Web PubSub streaming in Production                  |
+| DI-PROD-2316 | Validate Service Bus message flow in Production              |
+| DI-PROD-2317 | Validate Agent Registry, Agent Card, and A2A in Production   |
+| DI-PROD-2318 | Execute production smoke test                                |
+| DI-PROD-2319 | Monitor production logs after release                        |
+| DI-PROD-2320 | Publish release notes                                        |
+
+---
+
+# Recommended Sprint Split
+
+## Sprint 1: Core Backend + Agent Foundation
+
+| Feature                   | Stories                                   |
+| ------------------------- | ----------------------------------------- |
+| Security & API Access     | Secure API entry point                    |
+| Conversational AI Runtime | Conversation API, Web PubSub, Service Bus |
+| Agent Runtime             | Planner/router/executor skeleton          |
+| LLM Gateway               | Basic LLM provider integration            |
+| Backend CI/CD             | Dev deployment pipeline                   |
+| Agent CI/CD               | Repo structure and basic pipeline         |
+
+---
+
+## Sprint 2: React + Registry + SQL Operational Layer
+
+| Feature                  | Stories                                  |
+| ------------------------ | ---------------------------------------- |
+| Frontend React Migration | Convert JavaScript UI to React           |
+| Agent Registry           | Data model and APIs                      |
+| Agent Card               | Schema and API                           |
+| SQL Server Layer         | Move operational resources to SQL Server |
+| QA Deployment            | Deploy backend/frontend/agent to QA      |
+
+---
+
+## Sprint 3: A2A + Feedback + Snowflake Backup
+
+| Feature                | Stories                                                |
+| ---------------------- | ------------------------------------------------------ |
+| A2A Support            | Communication service, registry integration, async A2A |
+| Feedback               | Feedback API and React feedback UI                     |
+| Snowflake Backup       | SQL Server to Snowflake full/incremental backup        |
+| Data Engineering CI/CD | Build and deploy DE jobs                               |
+| Data Science CI/CD     | Build and deploy DS/model artifacts                    |
+
+---
+
+## Sprint 4: RAG + Reporting + Governance
+
+| Feature               | Stories                                    |
+| --------------------- | ------------------------------------------ |
+| RAG Pipeline          | Retrieval and enterprise knowledge sources |
+| Reporting Runtime     | Insight API and Redis KPI cache            |
+| Logging/Observability | Dashboards, alerts, audit logs             |
+| AI Governance         | AI feature approval workflow               |
+| QA Testing            | Full regression and defect fixes           |
+
+---
+
+## Sprint 5: Production Readiness + Production Deployment
+
+| Feature               | Stories                                     |
+| --------------------- | ------------------------------------------- |
+| Production Deployment | Release checklist and production deployment |
+| Security              | Final access validation                     |
+| Observability         | Production alerts and dashboards            |
+| QA                    | Production smoke testing                    |
+| Release               | Release notes and support handoff           |
+
+---
+
+# Current Sprint Priority Tickets
+
+| Priority | Ticket           | Title                                                       |
+| -------: | ---------------- | ----------------------------------------------------------- |
+|       P1 | DI-SEC-101       | Create API Gateway / APIM resource                          |
+|       P1 | DI-BE-301        | Create FastAPI conversation endpoint                        |
+|       P1 | DI-BE-307        | Create Web PubSub resource                                  |
+|       P1 | DI-BE-312        | Create Service Bus namespace                                |
+|       P1 | DI-AGT-501       | Create agent orchestrator service skeleton                  |
+|       P1 | DI-LLM-1011      | Create LLM provider interface                               |
+|       P1 | DI-CICD-BE-1601  | Create backend repo structure                               |
+|       P1 | DI-CICD-BE-1602  | Create backend build pipeline                               |
+|       P1 | DI-CICD-AGT-1801 | Define agent repo/folder structure                          |
+|       P1 | DI-CICD-AGT-1802 | Create agent build pipeline                                 |
+|       P2 | DI-FE-202        | Create React.js project structure                           |
+|       P2 | DI-REG-601       | Define agent registry data model                            |
+|       P2 | DI-ACARD-701     | Define Agent Card schema                                    |
+|       P2 | DI-A2A-801       | Define A2A architecture pattern                             |
+|       P2 | DI-SQL-1101      | Identify resources/data currently stored outside SQL Server |
+|       P2 | DI-LOG-1501      | Define structured logging standard                          |
+
+---
+
+# Final Release Flow
+
+```text
+Developer Commit
+   ↓
+Backend / Frontend / Agent / Data Science / Data Engineering Pipeline Trigger
+   ↓
+Build + Unit Tests + Lint + Contract Validation
+   ↓
+Deploy to Dev
+   ↓
+Dev Smoke Testing
+   ↓
+Deploy to QA
+   ↓
+QA Functional + Regression + Data Validation
+   ↓
+QA Signoff
+   ↓
+Production Approval Gate
+   ↓
+Deploy to Production
+   ↓
+Production Smoke Test
+   ↓
+Monitoring + Alerts + Release Notes
+```
+
+This gives you a clean ADO structure with **23 consolidated features**, each broken into **stories and implementation tickets**.
