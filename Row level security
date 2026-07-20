@@ -1,0 +1,206 @@
+## Start with the core message
+
+This architecture creates a **central entitlement and authorization layer** between consumer applications and enterprise data sources.
+
+Its purpose is to ensure that every request—whether it comes from Power BI, an AI agent, a web application, mobile client, or external API—returns only the data the authenticated user is entitled to see.
+
+## Prepare this 2-minute walkthrough
+
+You can explain the diagram like this:
+
+> “A user authenticates through Azure Entra ID and sends an access token to the application backend. The entitlement middleware validates the token, identifies the user, and resolves their business role and organizational scope using Entra groups and the user-security or alignment tables.
+>
+> The policy engine converts those entitlements into enforceable filters such as country, division, region, district, or territory. The query-rewriter applies those filters to the generated query. The connection router then sends the secured query to Snowflake, Databricks, or another supported source.
+>
+> Every request is audited, including the user identity, policy applied, data accessed, execution status, and response details. This gives us consistent security across Power BI, AI applications, APIs, and future consumers.”
+
+## Be ready to explain the example
+
+The example on the right is important:
+
+**Request:** “Show me my top 10 accounts by revenue this quarter.”
+
+The user is a CAM responsible for India and Singapore and Division 20.
+
+The middleware should perform this sequence:
+
+1. Validate the Entra ID JWT.
+2. Extract the user’s UPN or immutable Entra user ID.
+3. Retrieve the user’s role and assignments.
+4. Generate filters such as:
+
+   * Country in India and Singapore
+   * Division equals 20
+5. Add those restrictions to the business query.
+6. Route the query to Snowflake.
+7. Write an audit record.
+8. Return the authorized top-ten results.
+
+The important point is:
+
+> The application or AI agent does not decide what the user can access. The middleware enforces the policy server-side.
+
+## Questions you should expect
+
+### Why do we need middleware instead of implementing security in every application?
+
+Your answer:
+
+> Central middleware avoids duplicating entitlement logic across Power BI, AI agents, web applications, and APIs. It also provides consistent enforcement, auditing, policy management, and onboarding of future consumers.
+
+Add that the database should still provide **defense-in-depth**, such as Snowflake row-access policies, secure views, masking policies, and Unity Catalog controls.
+
+### How will query rewriting be implemented safely?
+
+Do not recommend simple string replacement.
+
+> The rewriter should use a SQL parser or abstract syntax tree, apply validated policy predicates, use parameterized values, and then validate the final query. It must handle joins, subqueries, CTEs, unions, aliases, and nested queries.
+
+For AI-generated SQL, policy enforcement must happen **after the AI generates the query and before execution**.
+
+### What happens when the entitlement service is unavailable?
+
+Recommended answer:
+
+> The system should fail closed. If identity or entitlement resolution cannot be completed, the request should not run with unrestricted access.
+
+You should discuss whether previously resolved entitlements may be cached temporarily and how cache expiration and revocation will work.
+
+### Why is the user-security table in Snowflake?
+
+Explain that Snowflake may be the current system of record for organizational assignments, but ask:
+
+* Will every request query Snowflake for entitlements?
+* Will entitlements be cached?
+* How quickly must access changes and terminations take effect?
+* What happens when Snowflake is unavailable?
+
+A dedicated cache or entitlement service may reduce latency, but the source of truth and invalidation process must be clear.
+
+### Does this support both users and service accounts?
+
+The diagram mainly shows interactive users. Ask how it will handle:
+
+* User-delegated access using OAuth On-Behalf-Of
+* Application identities and service principals
+* Scheduled Power BI refreshes
+* Background processes
+* Third-party API clients
+
+The policy may need both **user identity** and **calling application identity**.
+
+## Important gaps to raise constructively
+
+### 1. Middleware bypass
+
+Ask whether every consumer is forced through this layer. A user with direct Snowflake or Databricks access could bypass middleware security.
+
+Recommend:
+
+> Middleware as the common orchestration layer, with data-platform security as the final enforcement layer.
+
+### 2. Power BI behavior
+
+Power BI Import mode may retrieve and cache data before the user opens the report. The team needs to determine whether security will be handled through:
+
+* Power BI row-level security
+* DirectQuery through a secured endpoint
+* Snowflake row-access policies
+* Separate secured semantic models
+
+The middleware by itself may not control already-imported Power BI datasets.
+
+### 3. Row security is not enough
+
+Ask about:
+
+* Column-level security
+* Dynamic masking
+* Sensitive fields
+* Export and download restrictions
+* Aggregate-data inference
+* Minimum group-size restrictions
+* AI-agent response filtering
+
+### 4. Multiple roles and conflicting assignments
+
+Clarify what happens when someone is both a CAM and a regional manager.
+
+Questions:
+
+* Are permissions combined using union or intersection?
+* Does an explicit deny override an allow?
+* Which role takes precedence?
+* What is the default when no assignment exists?
+
+A good default is **deny unless explicitly authorized**.
+
+### 5. Policy versioning
+
+The policy engine should support:
+
+* Version-controlled policies
+* Approval workflow
+* Effective dates
+* Unit and regression testing
+* Policy simulation before deployment
+* Rollback
+* Recording the policy version in audit logs
+
+### 6. Cross-source differences
+
+Country and division fields may have different names or formats in Snowflake and Databricks. Ask where the canonical mapping will reside.
+
+The semantic layer should define business concepts such as `Country`, `Division`, and `Territory`, while source adapters translate them into physical fields.
+
+## Decisions to get from the meeting
+
+Try to leave the meeting with answers to these questions:
+
+1. Is middleware the primary enforcement point or an orchestration layer over source-level controls?
+2. What is the authoritative source for user entitlements?
+3. Will entitlements be resolved in real time or cached?
+4. How will Power BI Import and DirectQuery models be secured?
+5. How will AI-generated queries be parsed and validated?
+6. What are the rules for multiple roles and conflicting permissions?
+7. Is authorization row-level only, or also column-level and masking?
+8. What is the fail-closed behavior when identity, policy, audit, or a data source is unavailable?
+9. What audit information must be retained, and for how long?
+10. Which component owns policy administration and approval?
+
+## Suggested audit fields
+
+The audit section should ideally capture:
+
+* Correlation/request ID
+* User ID and UPN
+* Calling application/client ID
+* Authentication method
+* Role and resolved entitlements
+* Policy ID and policy version
+* Original query hash and secured query hash
+* Data source, database, schema, tables, and columns
+* Filters applied
+* Row count returned
+* Execution duration
+* Success or failure reason
+* Timestamp
+
+Avoid storing sensitive query results directly in the audit log.
+
+## Your preparation checklist
+
+Before the meeting:
+
+* Practice the two-minute walkthrough.
+* Be able to describe the eight steps in the sample request.
+* Mark the trust boundaries: consumer, middleware, identity provider, and data platforms.
+* Prepare a recommendation for caching and fail-closed behavior.
+* Understand Power BI Import versus DirectQuery implications.
+* Be ready to recommend AST-based query rewriting rather than string manipulation.
+* Prepare the ten decision questions above.
+* Separate **current-state design** from **future enhancements** so the discussion does not become too broad.
+
+The strongest message to repeat is:
+
+> “Identity tells us who the caller is. Entitlements determine what business scope they have. The policy engine converts that scope into enforceable controls, and the data platform provides the final defense against unauthorized access.”
