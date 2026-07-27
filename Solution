@@ -1,0 +1,1379 @@
+# Architecture summary
+
+This design separates the Sales Intelligence platform into **two primary user journeys**:
+
+1. **Conversational AI path** — stateful, streaming, agent-based interactions.
+2. **Insights and reporting path** — deterministic KPI retrieval, dashboards, reports, and LLM-generated explanations.
+
+Both paths share the same identity, API security, LLM gateway, enterprise data, observability, and deployment capabilities.
+
+A strong message for the meeting is:
+
+> **Databricks, Snowflake, and PostgreSQL calculate and serve the facts. The LLM explains the facts and orchestrates actions; it is not the system of record.**
+
+---
+
+# Architecture planes
+
+The diagram is organized into architectural planes.
+
+| Plane                        | Purpose                                                             |
+| ---------------------------- | ------------------------------------------------------------------- |
+| User Experience              | Everything the user sees and interacts with                         |
+| Security and Access          | Authentication, authorization, API protection, and compliance       |
+| Runtime Plane                | Executes chat, agents, reporting, and insight-generation requests   |
+| LLM Control Plane            | Centralizes prompts, safety, model access, and provider abstraction |
+| Data Plane                   | Stores operational, serving, and historical analytical data         |
+| Observability and Governance | Monitors performance, quality, security, and cost                   |
+| Platform Plane               | Builds, deploys, and provisions the platform                        |
+
+---
+
+# Zone 1 — Experience Layer
+
+This is the front-end layer where users access sales intelligence features.
+
+## Web application — React
+
+The React application provides the main user interface for:
+
+* AI chat
+* Sales dashboards
+* Account and opportunity insights
+* Reports
+* Recommendations
+* Workflow actions
+* User feedback
+
+The browser should never communicate directly with Snowflake, Databricks, PostgreSQL, or the LLM provider. All communication should pass through the API gateway and authorized backend services.
+
+### Meeting point
+
+The React application is a presentation layer. Business rules, entitlement enforcement, data access, and LLM access belong in backend services.
+
+---
+
+## Responsive UI
+
+Responsive UI ensures the application works across:
+
+* Desktop browsers
+* Tablets
+* Mobile devices
+* Different screen resolutions
+
+For reporting pages, it may display charts and KPI cards. For conversational experiences, it may stream tokens progressively instead of waiting for the complete response.
+
+---
+
+## Personalization
+
+Personalization controls what the user sees based on attributes such as:
+
+* Role
+* Sales territory
+* Region
+* Accounts assigned to the user
+* Previous activity
+* Preferred dashboard layout
+* Recently viewed customers
+* Saved reports
+
+Personalization should not be confused with authorization.
+
+For example:
+
+* Personalization may place a user's most frequently viewed accounts at the top.
+* Authorization determines whether the user is allowed to see those accounts at all.
+
+Security must always take precedence over personalization.
+
+---
+
+## Conversation path
+
+The conversation path supports chat-like experiences using:
+
+* HTTPS to initiate requests
+* WebSocket or Azure Web PubSub for streaming responses
+* Session and conversation state
+* Agent orchestration
+* Tool calls
+* LLM generation
+
+Examples include:
+
+* “Summarize my top opportunities.”
+* “Why did pipeline coverage decline?”
+* “Show accounts at risk.”
+* “Create a follow-up task for this customer.”
+
+This path is stateful because it may need previous messages, selected accounts, user preferences, and tool execution history.
+
+---
+
+## Insights and reporting path
+
+The reporting path uses HTTPS/REST APIs for:
+
+* Dashboard retrieval
+* KPI cards
+* Trend analysis
+* Tabular reports
+* Scheduled insights
+* LLM-generated summaries of deterministic metrics
+
+Unlike chat, reporting requests are usually more structured and stateless.
+
+For example:
+
+```text
+GET /accounts/123/pipeline-summary
+GET /territories/west/kpis?snapshot_date=2026-07-26
+POST /insights/narrate
+```
+
+The numerical values should come from SQL queries or precomputed KPI tables. The LLM should only summarize or explain those values.
+
+---
+
+# Zone 2 — Security and API Access
+
+This is the entry point for all user requests.
+
+## Microsoft Entra ID
+
+Microsoft Entra ID is responsible primarily for **authentication**.
+
+Authentication answers:
+
+> Who is this user or service?
+
+Entra ID provides:
+
+* Single sign-on
+* Multi-factor authentication
+* User and group identity
+* OAuth 2.0 and OpenID Connect tokens
+* Service principal or managed identity authentication
+* Conditional access policies
+
+After the user signs in, Entra ID issues a token containing claims such as:
+
+* User ID
+* Tenant ID
+* Group membership
+* Application roles
+* Token expiration
+* Identity type
+
+---
+
+## Microsoft API Management
+
+Azure API Management acts as the API gateway.
+
+Its responsibilities include:
+
+* Providing a single controlled API endpoint
+* Validating Entra ID access tokens
+* Routing requests to the correct backend
+* Applying rate limits
+* Enforcing request-size limits
+* Logging API activity
+* Transforming request or response formats
+* Applying API versioning
+* Hiding internal service addresses
+* Managing subscription and consumer policies
+
+For example:
+
+```text
+Browser
+   ↓
+API Management
+   ├── /chat/*       → Conversational runtime
+   ├── /reports/*    → Reporting runtime
+   └── /feedback/*   → Feedback service
+```
+
+### Important clarification
+
+API Management should validate identity at the edge, but backend services should also validate authorization. Security should not depend only on the gateway.
+
+---
+
+## Authorization — RBAC
+
+RBAC means **Role-Based Access Control**.
+
+Authorization answers:
+
+> What is this authenticated user permitted to do?
+
+Possible roles include:
+
+* Sales representative
+* Sales manager
+* Regional manager
+* Executive
+* Analyst
+* Platform administrator
+* Compliance auditor
+
+RBAC can control permissions such as:
+
+* View reports
+* Query sales data
+* Access AI chat
+* Export data
+* Run administrative operations
+* Modify prompts
+* Register model endpoints
+
+For sales intelligence, RBAC alone may not be enough. The implementation will probably also need data-level attributes such as:
+
+* Territory
+* Region
+* Business unit
+* Customer assignment
+* Data classification
+
+That becomes a combination of RBAC and attribute-based access control.
+
+A manager may have the role `SalesManager`, but should still only see accounts in the manager's authorized region.
+
+---
+
+## Rate limiting
+
+Rate limiting sets a maximum number of requests allowed during a time period.
+
+Example:
+
+```text
+100 requests per user per minute
+20 concurrent LLM requests per application
+10 report exports per user per hour
+```
+
+When the limit is exceeded, the API commonly returns HTTP `429 Too Many Requests`.
+
+Rate limits protect:
+
+* Backend services
+* Databases
+* LLM capacity
+* Platform cost
+* The system from abusive or accidental traffic
+
+---
+
+## Throttling
+
+Throttling controls how requests are handled when the platform is under pressure.
+
+The platform may:
+
+* Reduce concurrency
+* Queue requests
+* Slow request processing
+* Prioritize critical workloads
+* Reject lower-priority requests
+* Return a retry-after duration
+
+Rate limiting is normally based on a defined quota. Throttling is more closely related to controlling resource pressure and concurrency.
+
+---
+
+## Audit and compliance
+
+This component records security-relevant events such as:
+
+* User sign-in
+* API invocation
+* Authorization decision
+* Data access
+* Report export
+* Prompt change
+* Administrative action
+* Tool execution
+* Model invocation
+* Sensitive-data detection
+
+Audit logs should capture:
+
+```text
+Who performed the action?
+What action was performed?
+Which account or data was involved?
+When did it occur?
+Was it allowed or denied?
+Which model or tool was invoked?
+What was the correlation ID?
+```
+
+The audit record should generally avoid storing full sensitive prompts and responses unless policy explicitly permits it.
+
+---
+
+# Zone 3A — Conversational AI Runtime
+
+This zone handles interactive chat and agent execution.
+
+## Conversation Manager
+
+The Conversation Manager maintains:
+
+* Conversation ID
+* User session
+* Message history
+* Selected account or customer context
+* Agent execution status
+* Short-term memory
+* Long-term user preferences, where allowed
+* Conversation expiration and retention
+
+It allows follow-up questions such as:
+
+```text
+User: Show me the five largest opportunities.
+User: Which two have the highest risk?
+User: Draft follow-up messages for those accounts.
+```
+
+The second and third requests depend on context from the first request.
+
+### Storage consideration
+
+PostgreSQL can store durable conversation state. Frequently accessed or temporary state could additionally be cached, although a cache is not shown in this diagram.
+
+Chat history retention must be governed because it may contain customer information or personally identifiable information.
+
+---
+
+## Azure Web PubSub
+
+Web PubSub provides a persistent real-time connection between the browser and backend.
+
+It is useful for:
+
+* Streaming LLM tokens
+* Displaying agent progress
+* Sending tool-execution updates
+* Sending notifications
+* Cancelling long-running requests
+* Updating UI status without polling
+
+A user could see:
+
+```text
+Analyzing pipeline…
+Retrieving opportunity data…
+Comparing current quarter with last quarter…
+Generating explanation…
+```
+
+Web PubSub is primarily for browser-facing, real-time communication. It should not be treated as the durable internal message queue.
+
+---
+
+## Azure Service Bus
+
+Service Bus supports durable, asynchronous communication between backend services.
+
+Typical uses include:
+
+* Long-running insight-generation jobs
+* Report generation
+* Agent tool execution
+* Retry handling
+* Decoupling the API from workers
+* Dead-lettering failed messages
+* Smoothing traffic spikes
+
+### Web PubSub versus Service Bus
+
+| Web PubSub                      | Service Bus                             |
+| ------------------------------- | --------------------------------------- |
+| Browser-facing                  | Backend-facing                          |
+| Real-time connection            | Durable asynchronous messaging          |
+| Streams tokens and progress     | Queues commands and events              |
+| Connection-oriented             | Message-oriented                        |
+| Not the primary retry mechanism | Supports retries and dead-letter queues |
+
+A common flow is:
+
+```text
+API → Service Bus → Worker/Agent
+                      ↓
+                Web PubSub → Browser
+```
+
+---
+
+## Agent Orchestrator
+
+The Agent Orchestrator coordinates the execution of an AI request.
+
+Its responsibilities include:
+
+* Understanding the requested objective
+* Selecting the appropriate agent or workflow
+* Creating an execution plan
+* Choosing allowed tools
+* Executing steps
+* Handling retries and timeouts
+* Maintaining intermediate state
+* Combining tool results
+* Returning the final response
+
+The orchestrator should enforce maximum limits such as:
+
+* Maximum number of planning steps
+* Maximum tool calls
+* Maximum execution time
+* Maximum token usage
+* Maximum cost per request
+
+This prevents uncontrolled agent loops.
+
+---
+
+## Planner
+
+The Planner converts a user objective into an ordered execution strategy.
+
+Example:
+
+```text
+User request:
+“Explain why the West region pipeline dropped and identify the three accounts
+that require immediate attention.”
+
+Plan:
+1. Retrieve the current and previous pipeline KPIs.
+2. Identify the largest negative changes.
+3. Retrieve account-level contributing factors.
+4. Rank accounts by risk.
+5. Generate a grounded explanation.
+```
+
+The planner should only select tools the user is authorized to access.
+
+---
+
+## Executor
+
+The Executor performs the steps selected by the planner.
+
+It may:
+
+* Run a parameterized SQL query
+* Call a sales application API
+* Retrieve documents
+* Run vector search
+* Invoke an approved workflow
+* Create a CRM task
+* Call the LLM gateway
+
+The Executor should enforce:
+
+* Tool allowlists
+* Parameter validation
+* Timeouts
+* Retries
+* Idempotency
+* Authorization checks
+* Output validation
+
+The LLM should never receive raw database credentials. The Executor should mediate access through controlled tools.
+
+---
+
+## Tooling and connector layer
+
+The diagram shows a shared connector layer that can include:
+
+* SQL tools
+* API tools
+* Vector search
+* Enterprise SaaS connectors
+* CRM connectors
+* Document-search tools
+* Workflow automation services
+
+The purpose is to give agents standardized, governed access to enterprise capabilities.
+
+Each tool should have a clearly defined contract:
+
+```json
+{
+  "tool": "get_account_pipeline",
+  "input": {
+    "account_id": "string",
+    "snapshot_date": "date"
+  },
+  "output": {
+    "pipeline_amount": "number",
+    "change_percent": "number",
+    "source_timestamp": "datetime"
+  }
+}
+```
+
+Tool definitions should include ownership, authorization requirements, timeout, retry policy, and data classification.
+
+---
+
+# Zone 3B — AI Insights and Reporting Runtime
+
+This zone handles dashboards, metrics, reports, and analytical narratives.
+
+## Precomputed KPIs, aggregations, and metrics
+
+These are metrics calculated ahead of time rather than recomputed for every UI request.
+
+Examples include:
+
+* Pipeline value
+* Pipeline coverage
+* Win rate
+* Average deal size
+* Sales-cycle duration
+* Forecast accuracy
+* Renewal risk
+* Opportunity aging
+* Conversion rate
+* Territory attainment
+
+Because your underlying KPI data is refreshed daily, the system can compute these values once per day and serve them repeatedly.
+
+This improves:
+
+* Response latency
+* Query consistency
+* Snowflake cost
+* Application scalability
+* KPI reproducibility
+
+Every KPI record should include metadata such as:
+
+```text
+snapshot_date
+calculation_version
+source_updated_at
+load_id
+business_unit
+territory
+currency
+data_quality_status
+```
+
+---
+
+## Snowflake
+
+Snowflake is the enterprise analytical warehouse and likely the primary source for historical sales data.
+
+It is suitable for:
+
+* Large historical datasets
+* Enterprise reporting
+* Detailed analytical queries
+* Cross-domain joins
+* Data governance
+* Long-term analytical storage
+
+However, invoking complex federated Snowflake queries during every application request can produce inconsistent latency. That is why the architecture introduces precomputation and PostgreSQL serving.
+
+---
+
+## Databricks
+
+Databricks is the compute and data-engineering platform for:
+
+* Reading relevant source data
+* Performing KPI calculations
+* Data quality checks
+* Building aggregations
+* Creating daily snapshots
+* AI and machine-learning workflows
+* Publishing serving datasets
+* Producing Iceberg or other interoperable analytical tables
+
+In the broader flow you described, Databricks performs the daily KPI calculation and publishes the result to:
+
+1. An analytical Iceberg/Snowflake-accessible table.
+2. PostgreSQL as the low-latency serving copy.
+
+Databricks is primarily the transformation and calculation engine in this architecture, not the browser-serving database.
+
+---
+
+## PostgreSQL in the reporting runtime
+
+PostgreSQL stores the small, application-optimized subset of data needed for low-latency UI queries.
+
+It can serve:
+
+* KPI cards
+* Account summaries
+* Current snapshot data
+* User preferences
+* Saved views
+* Chat metadata
+* Operational actions
+* Report metadata
+
+Typical latency should be significantly more predictable than running a complex warehouse query for each screen load.
+
+The copy should remain intentionally minimal. It should not become a second copy of the full enterprise warehouse.
+
+---
+
+## Insight Narrator — LLM
+
+The Insight Narrator converts structured analytical results into understandable business language.
+
+Example input:
+
+```json
+{
+  "region": "West",
+  "pipeline_change_percent": -12.4,
+  "largest_contributors": [
+    {"account": "A", "change": -3200000},
+    {"account": "B", "change": -1800000}
+  ],
+  "snapshot_date": "2026-07-26"
+}
+```
+
+Example output:
+
+> Pipeline in the West region declined 12.4%, primarily because two large opportunities moved to the next quarter. Accounts A and B represent approximately 70% of the decline.
+
+The narrator should not independently invent or calculate authoritative numbers.
+
+A useful meeting statement is:
+
+> **SQL produces the numbers. The narrator explains the numbers.**
+
+The narrator should also receive:
+
+* Metric definitions
+* Reporting period
+* Source timestamp
+* User entitlement context
+* Approved terminology
+* Supporting data references
+
+---
+
+# Zone 4 — LLM Gateway
+
+The LLM Gateway provides a centralized entry point for all model calls.
+
+Neither the chat runtime nor reporting runtime should directly call Claude or another model provider. Both should call the gateway.
+
+This provides:
+
+* Consistent security
+* Prompt governance
+* Model abstraction
+* Guardrails
+* PII protection
+* Usage monitoring
+* Provider switching
+* Centralized cost controls
+
+---
+
+## Prompt Manager
+
+The Prompt Manager controls the lifecycle of prompts.
+
+It should manage:
+
+* Prompt templates
+* Prompt versions
+* Owners
+* Environment
+* Approval status
+* Model compatibility
+* Evaluation results
+* Change history
+* Rollback
+* Effective dates
+
+For example:
+
+```text
+sales_insight_narrator
+Version: 12
+Environment: Production
+Model: Approved Claude endpoint
+Owner: Sales Intelligence AI Team
+Status: Approved
+```
+
+Prompts should be deployed like code rather than edited manually in production.
+
+---
+
+## Prompts
+
+Prompts are reusable instructions for individual use cases.
+
+Different prompts may be maintained for:
+
+* Sales insight narration
+* Account summarization
+* Pipeline-risk analysis
+* Opportunity follow-up drafting
+* Executive summaries
+* Agent planning
+* Tool-result synthesis
+
+Prompts should separate:
+
+* System instructions
+* Business rules
+* User input
+* Retrieved context
+* Output format
+
+This reduces prompt injection risk and improves maintainability.
+
+---
+
+## Context Builder
+
+The Context Builder assembles everything the model needs for a particular request.
+
+Possible context includes:
+
+* User request
+* User role and territory
+* Conversation history
+* Retrieved documents
+* KPI values
+* Metric definitions
+* Tool outputs
+* Account metadata
+* Time period
+* Security restrictions
+* Response-format instructions
+
+It must also perform token budgeting. It should select the most relevant information rather than sending every available record to the model.
+
+For example:
+
+```text
+System instructions
++ authorized user context
++ current account context
++ verified KPI results
++ metric definitions
++ relevant conversation history
++ requested output schema
+```
+
+---
+
+## Input guardrails
+
+Input guardrails inspect requests before they reach the model.
+
+They can detect or prevent:
+
+* Prompt injection
+* Requests to bypass access controls
+* Malicious instructions
+* Unsupported use cases
+* Excessively large prompts
+* Unsafe content
+* Attempts to retrieve system prompts
+* Tool manipulation
+* Sensitive-data exposure
+
+Input guardrails should not be the only security layer. Even if a request passes the guardrail, all tools must independently enforce authorization.
+
+---
+
+## Output guardrails
+
+Output guardrails validate the model response before it reaches the user.
+
+They may check:
+
+* Required JSON structure
+* Restricted or confidential information
+* Unsupported claims
+* Policy violations
+* Toxic or unsafe language
+* Missing citations
+* Invalid account identifiers
+* Numeric inconsistency
+* Hallucinated actions
+* Leakage of system instructions
+
+For reports, output guardrails can compare numbers mentioned by the LLM with the structured input.
+
+If the input says pipeline declined by `12.4%`, the response should not say `21.4%`.
+
+---
+
+## PII masking
+
+PII masking detects sensitive information such as:
+
+* Social Security numbers
+* Credit card numbers
+* Personal addresses
+* Phone numbers
+* Email addresses
+* Customer contact details
+* Employee identifiers
+
+Masking should occur:
+
+* Before sending data to an external LLM provider
+* Before writing sensitive content to logs
+* Before exposing data to unauthorized users
+
+The organization should decide whether masking is:
+
+* Irreversible redaction
+* Tokenization
+* Reversible pseudonymization
+
+For most narrative use cases, the model does not need raw PII.
+
+---
+
+## Model Registry and policies
+
+The model registry maintains approved model configurations, including:
+
+* Model name and version
+* Provider
+* Endpoint
+* Supported use cases
+* Context-window size
+* Cost profile
+* Data-handling restrictions
+* Region
+* Performance evaluation
+* Fallback model
+* Approval status
+
+Routing policies can choose models based on:
+
+* Use case
+* Required quality
+* Latency
+* Data sensitivity
+* Cost
+* Availability
+
+For example, simple summarization may use a smaller model, while complex analysis may use a more capable model.
+
+---
+
+## Endpoint registration
+
+Endpoint registration stores the technical configuration needed to call an approved model deployment.
+
+It may include:
+
+* Provider endpoint
+* Deployment ID
+* Authentication method
+* Network route
+* Health status
+* Timeout
+* Retry policy
+* Rate quota
+* Region
+* Supported model capabilities
+
+Credentials should be stored in a secure secret-management service, not directly in application configuration.
+
+---
+
+## LLM provider — Claude
+
+Claude is shown as the current LLM provider.
+
+Because the application calls the LLM Gateway rather than Claude directly, the platform can later support:
+
+* Another Claude deployment
+* Azure OpenAI
+* Databricks-hosted models
+* Open-source models
+* Different models for different use cases
+
+This avoids provider lock-in at the application layer.
+
+---
+
+# Zone 5B — Enterprise Data and Analytics
+
+## Operational PostgreSQL
+
+PostgreSQL is the low-latency transactional and serving database.
+
+It can store:
+
+* Operational application data
+* User preferences
+* Conversation metadata
+* Workflow state
+* Feedback
+* Saved reports
+* Precomputed KPI subsets
+* Current account-level summaries
+
+PostgreSQL supports:
+
+* Fast indexed lookups
+* Transactions
+* Frequent small reads and writes
+* Predictable API latency
+* Application-oriented data models
+
+It should not become the complete historical warehouse.
+
+---
+
+## Snowflake and Databricks historical data
+
+This block represents the enterprise analytical foundation.
+
+Snowflake provides the historical enterprise data, while Databricks performs data transformation, KPI computation, analytics, and AI workloads.
+
+A clean ownership model would be:
+
+| Data type                               | Primary owner                      |
+| --------------------------------------- | ---------------------------------- |
+| Detailed historical sales data          | Snowflake                          |
+| KPI calculation pipelines               | Databricks                         |
+| Authoritative KPI snapshot              | Iceberg/Snowflake analytical layer |
+| Fast KPI-serving subset                 | PostgreSQL                         |
+| Application operational writes          | PostgreSQL                         |
+| Historical copy of operational activity | Snowflake after replication        |
+
+---
+
+## Daily KPI refresh flow
+
+Based on the daily update requirement, the recommended flow is:
+
+```text
+Snowflake source data
+        ↓
+Databricks daily KPI calculation
+        ↓
+Data-quality validation
+        ↓
+Authoritative KPI snapshot in Iceberg/Snowflake
+        ↓
+Minimal serving dataset copied to PostgreSQL
+        ↓
+Reporting APIs and UI
+```
+
+The PostgreSQL load should use an atomic publication pattern:
+
+1. Load a new version into staging tables.
+2. Validate row counts, checksums, and required fields.
+3. Mark the snapshot as successful.
+4. Switch the active snapshot.
+5. Retain the previous successful snapshot for rollback.
+
+Users should never see a partially loaded KPI dataset.
+
+---
+
+## Operational write-back flow
+
+In the broader design you described, operational data is written first to PostgreSQL and then moved to Snowflake through Fivetran.
+
+```text
+Application operational action
+        ↓
+PostgreSQL
+        ↓
+Fivetran
+        ↓
+Snowflake historical/analytical layer
+```
+
+Examples of operational data include:
+
+* User feedback
+* Saved actions
+* Workflow decisions
+* Notes
+* Task status
+* Report subscriptions
+* Application activity
+
+This is preferable to having the application write simultaneously to PostgreSQL and Snowflake. Dual writes can result in inconsistent records if one write succeeds and the other fails.
+
+Fivetran is not explicitly shown in the current diagram, so this is something to add or explain verbally during the meeting.
+
+---
+
+# Zone 6 — Observability and Governance
+
+## LLM observability
+
+LLM observability measures how AI requests behave.
+
+It should track:
+
+* Prompt version
+* Model and endpoint
+* Token usage
+* Cost
+* End-to-end latency
+* Time to first token
+* Tool calls
+* Agent steps
+* Retrieval results
+* Guardrail decisions
+* User feedback
+* Response quality
+* Error rate
+* Hallucination or groundedness evaluation
+
+A complete trace might look like:
+
+```text
+APIM request
+→ Conversation runtime
+→ Agent plan
+→ SQL tool
+→ Context builder
+→ LLM call
+→ Output guardrail
+→ Web PubSub response
+```
+
+All steps should share the same correlation ID.
+
+---
+
+## Infrastructure metrics
+
+Infrastructure metrics monitor the technical health of the system.
+
+Important metrics include:
+
+* API response time
+* HTTP error rate
+* PostgreSQL connection usage
+* Query latency
+* Service Bus queue depth
+* Dead-letter message count
+* Web PubSub connection count
+* Worker CPU and memory
+* LLM endpoint failures
+* Databricks job duration
+* Daily KPI refresh status
+* Data freshness
+* Uptime
+
+Service-level objectives should be defined separately for chat and reporting.
+
+For example:
+
+```text
+Reporting API: 95% under 2 seconds
+Chat first token: 95% under 3 seconds
+Daily KPI snapshot: available by 6:00 AM
+```
+
+---
+
+## Security and audit
+
+This is the centralized governance view across the complete platform.
+
+It should consolidate:
+
+* Identity logs
+* Authorization decisions
+* API activity
+* Data-access logs
+* Prompt and model changes
+* Tool execution
+* Admin operations
+* Security alerts
+* Vulnerability findings
+* Compliance reports
+
+The Audit and Compliance box in Zone 2 focuses on enforcement at API access. Zone 6 provides centralized monitoring and reporting across the entire platform.
+
+---
+
+# Zone 7 — DevOps and Deployment
+
+## CI/CD pipeline
+
+The CI/CD pipeline automates:
+
+* Build
+* Unit tests
+* Integration tests
+* Security scanning
+* AI evaluation
+* Infrastructure validation
+* Deployment
+* Smoke tests
+* Rollback
+
+Artifacts that should go through CI/CD include:
+
+* React application
+* Backend APIs
+* Agent code
+* Tool definitions
+* Databricks jobs
+* Databricks Asset Bundles
+* Database migrations
+* Prompt versions
+* Guardrail policies
+* Evaluation datasets
+
+A mature deployment flow is:
+
+```text
+Feature branch
+→ Pull request
+→ Build and test
+→ Security scan
+→ Deploy to development
+→ Integration and AI evaluation
+→ Approval
+→ Deploy to test
+→ Approval
+→ Deploy to production
+```
+
+For AI components, deployment gates should include quality tests, not only traditional unit tests.
+
+---
+
+## Infrastructure as Code — Terraform
+
+Terraform provisions and configures infrastructure consistently.
+
+It can manage:
+
+* API Management
+* Web PubSub
+* Service Bus
+* Networking
+* Private endpoints
+* Managed identities
+* PostgreSQL
+* Monitoring
+* Role assignments
+* Databricks resources
+* Storage
+* Key-management integrations
+
+Benefits include:
+
+* Repeatable environments
+* Version history
+* Peer review
+* Drift detection
+* Disaster recovery
+* Faster environment creation
+
+Secrets should not be stored in Terraform source code or state in plain text.
+
+---
+
+# Complete conversational flow
+
+```text
+1. User signs in through Entra ID.
+2. React receives an identity token.
+3. React sends the chat request through API Management.
+4. API Management validates the token and applies rate limits.
+5. RBAC and data entitlements are evaluated.
+6. Conversation Manager loads session and conversation state.
+7. Agent Orchestrator receives the request.
+8. Planner determines the required steps.
+9. Executor calls approved SQL, API, vector, or SaaS tools.
+10. Context Builder combines verified results with conversation context.
+11. Input guardrails and PII masking are applied.
+12. LLM Gateway selects an approved model endpoint.
+13. Claude generates the response.
+14. Output guardrails validate the result.
+15. Web PubSub streams the answer to the React UI.
+16. Logs, metrics, traces, cost, and audit records are captured.
+```
+
+---
+
+# Complete reporting and insight flow
+
+```text
+1. User requests a dashboard or report.
+2. React calls a REST API through API Management.
+3. Identity and data entitlements are validated.
+4. Reporting runtime queries PostgreSQL for the current precomputed KPIs.
+5. Snowflake/Databricks are queried only when detailed historical data is needed.
+6. Structured metrics are returned.
+7. The Insight Narrator receives only the authorized structured results.
+8. The LLM Gateway applies prompts, safety, masking, and model policies.
+9. The LLM generates a business explanation.
+10. The API returns numbers, narrative, source timestamp, and supporting details.
+```
+
+---
+
+# Questions you are likely to receive
+
+## Why do we need PostgreSQL when data already exists in Snowflake?
+
+Snowflake is optimized for enterprise analytics, while PostgreSQL is optimized for low-latency application serving and transactional operations.
+
+Only the minimum dataset required by the application is copied to PostgreSQL. Snowflake remains the historical analytical source, and PostgreSQL becomes the fast serving layer.
+
+---
+
+## Why is Databricks required?
+
+Databricks provides scalable calculation and transformation for daily KPIs, data-quality validation, AI workflows, and publication of serving datasets.
+
+It prevents the application from recalculating complex KPIs during every user request.
+
+---
+
+## Why are there separate chat and reporting runtimes?
+
+They have different behavior.
+
+| Chat                    | Reporting                        |
+| ----------------------- | -------------------------------- |
+| Stateful                | Mostly stateless                 |
+| Streaming               | REST response                    |
+| May invoke tools        | Primarily retrieves metrics      |
+| Variable execution path | Predictable execution path       |
+| Agent orchestration     | Deterministic reporting services |
+
+Separating them allows each to scale, fail, and deploy independently.
+
+---
+
+## How do we prevent hallucinated metrics?
+
+The platform follows these principles:
+
+* Metrics are calculated by SQL or Databricks.
+* The LLM receives structured, verified data.
+* The LLM is not asked to independently calculate authoritative KPIs.
+* Output guardrails compare generated numbers with source values.
+* Responses include snapshot timestamps and supporting references.
+* The Insight Narrator explains facts rather than creating facts.
+
+---
+
+## How is data access enforced?
+
+The user's identity and claims flow from Entra ID through API Management and backend authorization.
+
+The same entitlement context must be applied to:
+
+* SQL queries
+* PostgreSQL queries
+* Snowflake queries
+* Databricks tools
+* Context sent to the LLM
+* Report exports
+* Agent actions
+
+Filtering data only in the UI is not sufficient.
+
+---
+
+## What happens when the daily KPI load fails?
+
+The application should continue to use the last successful snapshot and display its timestamp.
+
+Operations should receive an alert, and the failed load should not replace the active production snapshot.
+
+---
+
+## How do we minimize data duplication?
+
+Only application-serving columns and records are copied into PostgreSQL.
+
+The platform should document:
+
+* Which system is authoritative
+* What data is copied
+* Why it is copied
+* Refresh frequency
+* Retention
+* Reconciliation process
+
+---
+
+## What happens if the LLM provider is unavailable?
+
+The Model Registry and Endpoint Registration layer can support:
+
+* Retry
+* Circuit breaker
+* Fallback endpoint
+* Alternate model
+* Degraded non-LLM reporting mode
+
+Reports and KPIs should remain accessible even when the LLM narrator is unavailable.
+
+---
+
+# Items to clarify before the meeting
+
+The architecture is strong at a high level, but the following items are not clearly represented in the diagram:
+
+1. **Fivetran write-back flow** from operational PostgreSQL to Snowflake.
+2. **Private networking and private endpoints** between services.
+3. **Secret management**, such as Azure Key Vault.
+4. **Row-level and column-level entitlement enforcement**.
+5. **Daily KPI refresh SLA and data-freshness indicator**.
+6. **Failure handling**, retries, dead-letter queues, and fallback behavior.
+7. **Cache strategy**, if one is needed for very frequently accessed data.
+8. **Semantic definitions** for KPIs so the UI, SQL, and LLM use identical definitions.
+9. **Disaster recovery and regional availability**.
+10. **Data ownership for the Iceberg table**, especially which engine is allowed to write.
+11. The diagram jumps to **Zone 5B**; clarify whether Zone 5A exists or whether this is only a numbering artifact.
+12. **Human approval** before agents execute high-impact actions.
+13. Retention policies for chat history, prompts, model responses, and audit records.
+
+---
+
+# Five-minute meeting talk track
+
+> This architecture supports two distinct sales intelligence experiences: conversational AI and insights/reporting. Users access both through a React application and authenticate through Entra ID. All APIs are protected by Azure API Management, RBAC, rate limiting, and audit controls.
+>
+> The conversational path uses Web PubSub for real-time response streaming, Service Bus for durable asynchronous work, and an agent orchestrator containing planner and executor capabilities. Agents access enterprise systems only through approved tools and connectors.
+>
+> The reporting path uses precomputed KPIs and aggregations. Databricks calculates these metrics daily from Snowflake data. The authoritative analytical snapshot is retained in the Snowflake/Iceberg layer, while a minimal serving copy is moved into PostgreSQL to provide predictable application latency.
+>
+> All AI requests pass through a centralized LLM Gateway. The gateway manages prompts, constructs context, applies input and output guardrails, masks sensitive information, and routes requests to approved model endpoints such as Claude.
+>
+> Finally, the platform includes end-to-end observability, security auditing, CI/CD, and Terraform-based infrastructure deployment. The core principle is that databases and deterministic processing produce the facts, while the LLM explains those facts and helps orchestrate authorized actions.
+
+The most important line to emphasize is:
+
+> **We are not replacing governed analytics with an LLM. We are placing a governed AI experience on top of deterministic, authorized, and precomputed enterprise data.**
